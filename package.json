@@ -1,0 +1,37 @@
+{
+  "name": "kenji-raffle",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @kenji-raffle/api",
+    "dev:platform": "npm run dev -w @kenji-raffle/platform",
+    "dev:web": "npm run dev -w @kenji-raffle/web",
+    "dev:worker": "npm run dev -w @kenji-raffle/worker",
+    "build": "npm run build -w @kenji-raffle/shared && npm run build -w @kenji-raffle/database-platform && npm run build -w @kenji-raffle/database-tenant && npm run build --workspaces --if-present",
+    "typecheck": "npm run build -w @kenji-raffle/shared && npm run build -w @kenji-raffle/database-platform && npm run build -w @kenji-raffle/database-tenant && npm run build -w @kenji-raffle/api && npm run typecheck -w @kenji-raffle/platform && npm run typecheck -w @kenji-raffle/web",
+    "validate:schemas": "npm run validate:schemas -w @kenji-raffle/database-platform && npm run validate:schemas -w @kenji-raffle/database-tenant",
+    "lint": "npm run typecheck && npm run validate:schemas",
+    "migrate:platform": "npm run migrate:deploy -w @kenji-raffle/database-platform",
+    "migrate:tenant": "tsx packages/database-platform/scripts/migrate-tenant.ts",
+    "migrate:tenants": "tsx packages/database-platform/scripts/migrate-all-tenants.ts",
+    "provision:tenant": "tsx packages/database-platform/scripts/provision-tenant.ts",
+    "db:seed:platform": "npm run seed -w @kenji-raffle/database-platform",
+    "test:isolation": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/tenant-isolation.test.mjs",
+    "test:operator-isolation": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/operator-isolation.test.mjs",
+    "test:platform-e2e": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/platform-operator-create.test.mjs apps/api/tests/platform-password-reset.test.mjs",
+    "test:purchase-e2e": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/raffle-purchase-e2e.test.mjs",
+    "test:checkout-pricing": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/checkout-pricing.test.mjs",
+    "test:gra-outbound": "npm run test -w @kenji-raffle/shared",
+    "test:e2e": "npm run build -w @kenji-raffle/web && npm run test:e2e -w @kenji-raffle/web"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
+  }
+}

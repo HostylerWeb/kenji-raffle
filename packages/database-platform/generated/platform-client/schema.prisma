@@ -1,0 +1,179 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/platform-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PLATFORM_DATABASE_URL")
+}
+
+enum operator_status {
+  onboarding
+  active
+  suspended
+  archived
+  onboarding_failed
+}
+
+enum domain_type {
+  subdomain
+  custom
+}
+
+enum domain_verification_status {
+  pending
+  verified
+  failed
+}
+
+enum ssl_status {
+  pending
+  active
+}
+
+enum tenant_database_status {
+  provisioning
+  active
+  failed
+}
+
+enum platform_role {
+  platform_admin
+  platform_support
+}
+
+model operators {
+  id               String          @id @default(uuid()) @db.Uuid
+  gra_registry_id  String          @unique
+  name             String
+  slug             String          @unique
+  status           operator_status @default(onboarding)
+  licence_number   String?
+  default_tax_rate Decimal         @default(0.30) @db.Decimal(5, 4)
+  created_at       DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime        @updatedAt @db.Timestamptz(6)
+
+  tenant_database tenant_databases?
+  domains         operator_domains[]
+  settings        operator_settings?
+  audit_logs      platform_audit_logs[]
+  rollups         tenant_daily_rollups[]
+}
+
+model tenant_databases {
+  id                          String                 @id @default(uuid()) @db.Uuid
+  operator_id                 String                 @unique @db.Uuid
+  database_name               String
+  database_host               String
+  database_port               Int
+  database_user               String
+  database_password_encrypted String
+  connection_url_encrypted    String
+  schema_version              String                 @default("0")
+  provisioned_at              DateTime?              @db.Timestamptz(6)
+  provision_error             String?
+  status                      tenant_database_status @default(provisioning)
+  created_at                  DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at                  DateTime               @updatedAt @db.Timestamptz(6)
+
+  operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
+}
+
+model operator_domains {
+  id                  String                     @id @default(uuid()) @db.Uuid
+  operator_id         String                     @db.Uuid
+  hostname            String                     @unique
+  domain_type         domain_type
+  verification_status domain_verification_status @default(pending)
+  ssl_status          ssl_status                 @default(pending)
+  is_primary          Boolean                    @default(false)
+  created_at          DateTime                   @default(now()) @db.Timestamptz(6)
+
+  operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
+
+  @@index([operator_id])
+}
+
+model operator_settings {
+  id                             String   @id @default(uuid()) @db.Uuid
+  operator_id                    String   @unique @db.Uuid
+  logo_url                       String?
+  primary_color                  String?
+  support_email                  String?
+  footer_licence_text            String?
+  social_links                   Json?
+  gra_api_key_encrypted          String?
+  gra_hmac_secret_encrypted      String?
+  payment_merchant_ref_encrypted String?
+  feature_flags                  Json     @default("{}")
+  ga4_measurement_id             String?
+  facebook_pixel_id              String?
+  analytics_enabled              Boolean  @default(false)
+  faq_text                       String?
+  terms_text                     String?
+  privacy_text                   String?
+  created_at                     DateTime @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime @updatedAt @db.Timestamptz(6)
+
+  operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
+}
+
+model platform_users {
+  id                   String        @id @default(uuid()) @db.Uuid
+  email                String        @unique
+  password_hash        String
+  role                 platform_role @default(platform_support)
+  mfa_enabled          Boolean       @default(false)
+  mfa_secret_encrypted String?
+  last_login_at        DateTime?     @db.Timestamptz(6)
+  created_at           DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime      @updatedAt @db.Timestamptz(6)
+
+  audit_logs platform_audit_logs[]
+}
+
+model platform_audit_logs {
+  id               String   @id @default(uuid()) @db.Uuid
+  platform_user_id String?  @db.Uuid
+  operator_id      String?  @db.Uuid
+  action           String
+  entity_type      String
+  entity_id        String?
+  metadata         Json?
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  platform_user platform_users? @relation(fields: [platform_user_id], references: [id])
+  operator      operators?      @relation(fields: [operator_id], references: [id])
+
+  @@index([operator_id])
+  @@index([created_at])
+}
+
+model platform_settings {
+  id                 String   @id @default("default")
+  tenant_base_domain String   @default("kenji-raffle.local")
+  alert_email        String?
+  rollup_schedule    String   @default("0 2 * * *")
+  smtp_host          String?
+  smtp_port          Int?
+  smtp_user          String?
+  updated_at         DateTime @updatedAt @db.Timestamptz(6)
+}
+
+model tenant_daily_rollups {
+  id                String   @id @default(uuid()) @db.Uuid
+  operator_id       String   @db.Uuid
+  date              DateTime @db.Date
+  gross_sales       Decimal  @default(0) @db.Decimal(18, 2)
+  tax_collected     Decimal  @default(0) @db.Decimal(18, 2)
+  orders_count      Int      @default(0)
+  active_raffles    Int      @default(0)
+  failed_gra_events Int      @default(0)
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
+
+  @@unique([operator_id, date])
+  @@index([date])
+}

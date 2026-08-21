@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kenji-raffle-postgres
+    # POSTGRES_USER is a superuser in the official image — can CREATE DATABASE
+    # for tenant provisioning (kenji_tenant_*). Production: use a restricted role.
+    environment:
+      POSTGRES_USER: kenji_platform
+      POSTGRES_PASSWORD: kenji_platform
+      POSTGRES_DB: kenji_platform
+    ports:
+      - "5437:5432"
+    volumes:
+      - kenji_raffle_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kenji_platform -d kenji_platform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: kenji-raffle-redis
+    ports:
+      - "6383:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: kenji-raffle-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - kenji_raffle_minio_data:/data
+
+volumes:
+  kenji_raffle_postgres_data:
+  kenji_raffle_minio_data:

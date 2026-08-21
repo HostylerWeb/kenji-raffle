@@ -1,0 +1,602 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/tenant-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("TENANT_DATABASE_URL")
+}
+
+enum operator_staff_role {
+  owner
+  manager
+  support
+  finance
+}
+
+enum spending_limit_period {
+  weekly
+  monthly
+}
+
+enum kyc_status {
+  none
+  pending
+  verified
+}
+
+enum raffle_status {
+  draft
+  listed
+  active
+  to_be_drawn
+  drawn
+  cancelled
+  failed
+}
+
+enum draw_type {
+  manual
+  automatic
+  scheduled
+}
+
+enum prize_type {
+  physical
+  cash
+  site_credit
+}
+
+enum instant_win_status {
+  active
+  paused
+  completed
+}
+
+enum ticket_status {
+  available
+  reserved
+  purchased
+  cancelled
+  winning
+}
+
+enum order_status {
+  pending
+  completed
+  cancelled
+  failed
+  refunded
+}
+
+enum site_credit_transaction_type {
+  credit
+  debit
+}
+
+enum coupon_discount_type {
+  percent
+  fixed
+}
+
+enum coupon_status {
+  active
+  disabled
+}
+
+enum payment_status {
+  pending
+  completed
+  failed
+  refunded
+}
+
+enum gateway_mode {
+  mock
+  live
+}
+
+enum prize_claim_status {
+  pending
+  shipped
+  delivered
+}
+
+enum withdrawal_status {
+  pending
+  approved
+  paid
+  rejected
+}
+
+enum withdrawal_method {
+  mpesa
+  bank
+}
+
+enum gra_event_status {
+  pending
+  sent
+  failed
+}
+
+model operator_staff {
+  id                   String              @id @default(uuid()) @db.Uuid
+  email                String              @unique
+  password_hash        String
+  role                 operator_staff_role @default(manager)
+  mfa_enabled          Boolean             @default(false)
+  mfa_secret_encrypted String?
+  last_login_at        DateTime?           @db.Timestamptz(6)
+  created_at           DateTime            @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime            @updatedAt @db.Timestamptz(6)
+
+  audit_logs tenant_audit_logs[]
+}
+
+model users {
+  id                    String                 @id @default(uuid()) @db.Uuid
+  email                 String                 @unique
+  phone                 String?
+  password_hash         String
+  full_name             String?
+  date_of_birth         DateTime?              @db.Date
+  county                String?
+  email_verified_at     DateTime?              @db.Timestamptz(6)
+  site_credit_balance   Decimal                @default(0) @db.Decimal(18, 2)
+  spending_limit        Decimal?               @db.Decimal(18, 2)
+  spending_limit_period spending_limit_period?
+  play_safe_active      Boolean                @default(false)
+  play_safe_until       DateTime?              @db.Timestamptz(6)
+  kyc_status            kyc_status             @default(none)
+  kyc_document_url      String?
+  account_disabled      Boolean                @default(false)
+  registration_ip       String?
+  last_login_at         DateTime?              @db.Timestamptz(6)
+  created_at            DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime               @updatedAt @db.Timestamptz(6)
+
+  shipping_addresses       user_shipping_addresses[]
+  login_logs               login_logs[]
+  tickets                  tickets[]
+  orders                   orders[]
+  payments                 payments[]
+  winners                  winners[]
+  instant_win_awards       instant_win_awards[]
+  prize_claims             prize_claims[]
+  coupon_redemptions       coupon_redemptions[]
+  site_credit_transactions site_credit_transactions[]
+  withdrawals              withdrawals[]
+}
+
+model user_shipping_addresses {
+  id           String  @id @default(uuid()) @db.Uuid
+  user_id      String  @db.Uuid
+  label        String?
+  county       String?
+  town         String?
+  address_line String?
+  postal_code  String?
+  is_default   Boolean @default(false)
+
+  user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model login_logs {
+  id                String   @id @default(uuid()) @db.Uuid
+  user_id           String?  @db.Uuid
+  operator_staff_id String?  @db.Uuid
+  success           Boolean
+  ip_address        String?
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  user users? @relation(fields: [user_id], references: [id])
+}
+
+model categories {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  slug       String   @unique
+  image_url  String?
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  raffles raffles[]
+}
+
+model raffles {
+  id                      String        @id @default(uuid()) @db.Uuid
+  title                   String
+  slug                    String        @unique
+  description             String?
+  category_id             String?       @db.Uuid
+  start_date              DateTime?     @db.Timestamptz(6)
+  end_date                DateTime?     @db.Timestamptz(6)
+  ticket_price            Decimal       @db.Decimal(18, 2)
+  max_entries             Int
+  min_tickets             Int           @default(0)
+  ticket_limit_per_user   Int?
+  draw_type               draw_type     @default(manual)
+  number_of_winners       Int           @default(1)
+  status                  raffle_status @default(draft)
+  is_featured             Boolean       @default(false)
+  featured_image_url      String?
+  cash_alternative_amount Decimal?      @db.Decimal(18, 2)
+  scheduled_draw_at       DateTime?     @db.Timestamptz(6)
+  created_at              DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime      @updatedAt @db.Timestamptz(6)
+
+  category           categories?                 @relation(fields: [category_id], references: [id])
+  gallery            raffle_gallery[]
+  prizes             prizes[]
+  instant_win_groups instant_win_groups[]
+  instant_win_prizes instant_win_prizes[]
+  quantity_discounts raffle_quantity_discounts[]
+  tickets            tickets[]
+  cart_items         cart_items[]
+  order_items        order_items[]
+  winners            winners[]
+}
+
+model instant_win_groups {
+  id         String   @id @default(uuid()) @db.Uuid
+  raffle_id  String   @db.Uuid
+  name       String
+  sort_order Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  raffle raffles              @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+  prizes instant_win_prizes[]
+
+  @@index([raffle_id])
+}
+
+model raffle_quantity_discounts {
+  id             String               @id @default(uuid()) @db.Uuid
+  raffle_id      String               @db.Uuid
+  min_quantity   Int
+  discount_type  coupon_discount_type
+  discount_value Decimal              @db.Decimal(18, 2)
+  created_at     DateTime             @default(now()) @db.Timestamptz(6)
+
+  raffle raffles @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+
+  @@index([raffle_id])
+}
+
+model raffle_gallery {
+  id         String @id @default(uuid()) @db.Uuid
+  raffle_id  String @db.Uuid
+  image_url  String
+  sort_order Int    @default(0)
+
+  raffle raffles @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+
+  @@index([raffle_id])
+}
+
+model prizes {
+  id         String     @id @default(uuid()) @db.Uuid
+  raffle_id  String     @db.Uuid
+  name       String
+  prize_type prize_type
+  value_kes  Decimal?   @db.Decimal(18, 2)
+  image_url  String?
+  sort_order Int        @default(0)
+
+  raffle  raffles   @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+  winners winners[]
+
+  @@index([raffle_id])
+}
+
+model instant_win_prizes {
+  id              String             @id @default(uuid()) @db.Uuid
+  raffle_id       String             @db.Uuid
+  group_id        String?            @db.Uuid
+  name            String
+  prize_type      prize_type
+  prize_value     Decimal            @db.Decimal(18, 2)
+  win_frequency   Int
+  total_available Int
+  total_awarded   Int                @default(0)
+  status          instant_win_status @default(active)
+
+  raffle  raffles              @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+  group   instant_win_groups?  @relation(fields: [group_id], references: [id])
+  tickets tickets[]
+  awards  instant_win_awards[]
+
+  @@index([raffle_id])
+  @@index([group_id])
+}
+
+model tickets {
+  id                   String        @id @default(uuid()) @db.Uuid
+  raffle_id            String        @db.Uuid
+  ticket_number        Int
+  user_id              String?       @db.Uuid
+  session_id           String?
+  order_id             String?       @db.Uuid
+  payment_id           String?       @db.Uuid
+  status               ticket_status @default(available)
+  purchase_price       Decimal?      @db.Decimal(18, 2)
+  purchased_at         DateTime?     @db.Timestamptz(6)
+  instant_win_prize_id String?       @db.Uuid
+  reserved_until       DateTime?     @db.Timestamptz(6)
+  created_at           DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime      @updatedAt @db.Timestamptz(6)
+
+  raffle             raffles              @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+  user               users?               @relation(fields: [user_id], references: [id])
+  order              orders?              @relation(fields: [order_id], references: [id])
+  payment            payments?            @relation(fields: [payment_id], references: [id])
+  instant_win_prize  instant_win_prizes?  @relation(fields: [instant_win_prize_id], references: [id])
+  winners            winners[]
+  instant_win_awards instant_win_awards[]
+
+  @@unique([raffle_id, ticket_number])
+  @@index([raffle_id, status])
+  @@index([session_id, raffle_id])
+}
+
+model cart_items {
+  id              String   @id @default(uuid()) @db.Uuid
+  user_id         String?  @db.Uuid
+  session_id      String?
+  ip_address      String?
+  raffle_id       String   @db.Uuid
+  ticket_quantity Int
+  unit_price      Decimal  @db.Decimal(18, 2)
+  subtotal        Decimal  @db.Decimal(18, 2)
+  discount_amount Decimal  @default(0) @db.Decimal(18, 2)
+  final_amount    Decimal  @db.Decimal(18, 2)
+  ticket_numbers  Json
+  coupon_id       String?  @db.Uuid
+  expires_at      DateTime @db.Timestamptz(6)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  raffle raffles  @relation(fields: [raffle_id], references: [id], onDelete: Cascade)
+  coupon coupons? @relation(fields: [coupon_id], references: [id])
+
+  @@index([session_id])
+  @@index([user_id])
+}
+
+model orders {
+  id                  String       @id @default(uuid()) @db.Uuid
+  user_id             String       @db.Uuid
+  sub_total           Decimal      @db.Decimal(18, 2)
+  discount            Decimal      @default(0) @db.Decimal(18, 2)
+  total               Decimal      @db.Decimal(18, 2)
+  coupon_code         String?
+  site_credit_applied Decimal      @default(0) @db.Decimal(18, 2)
+  status              order_status @default(pending)
+  payment_method      String?
+  transaction_id      String?
+  coupon_id           String?      @db.Uuid
+  created_at          DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime     @updatedAt @db.Timestamptz(6)
+
+  user                     users                      @relation(fields: [user_id], references: [id])
+  coupon                   coupons?                   @relation(fields: [coupon_id], references: [id])
+  items                    order_items[]
+  payments                 payments[]
+  tickets                  tickets[]
+  redemptions              coupon_redemptions[]
+  site_credit_transactions site_credit_transactions[]
+}
+
+model order_items {
+  id             String  @id @default(uuid()) @db.Uuid
+  order_id       String  @db.Uuid
+  raffle_id      String  @db.Uuid
+  quantity       Int
+  unit_price     Decimal @db.Decimal(18, 2)
+  subtotal       Decimal @db.Decimal(18, 2)
+  discount       Decimal @default(0) @db.Decimal(18, 2)
+  total          Decimal @db.Decimal(18, 2)
+  ticket_numbers Json    @default("[]")
+
+  order  orders  @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  raffle raffles @relation(fields: [raffle_id], references: [id])
+
+  @@index([order_id])
+}
+
+model coupons {
+  id                String               @id @default(uuid()) @db.Uuid
+  code              String               @unique
+  discount_type     coupon_discount_type
+  discount_value    Decimal              @db.Decimal(18, 2)
+  min_order_amount  Decimal?             @db.Decimal(18, 2)
+  max_uses          Int?
+  max_uses_per_user Int?
+  uses_count        Int                  @default(0)
+  valid_from        DateTime?            @db.Timestamptz(6)
+  valid_until       DateTime?            @db.Timestamptz(6)
+  status            coupon_status        @default(active)
+  created_at        DateTime             @default(now()) @db.Timestamptz(6)
+
+  cart_items  cart_items[]
+  redemptions coupon_redemptions[]
+  orders      orders[]
+}
+
+model site_credit_transactions {
+  id         String                       @id @default(uuid()) @db.Uuid
+  user_id    String                       @db.Uuid
+  order_id   String?                      @db.Uuid
+  amount     Decimal                      @db.Decimal(18, 2)
+  type       site_credit_transaction_type
+  note       String?
+  created_at DateTime                     @default(now()) @db.Timestamptz(6)
+
+  user  users   @relation(fields: [user_id], references: [id])
+  order orders? @relation(fields: [order_id], references: [id])
+
+  @@index([user_id])
+  @@index([order_id])
+}
+
+model coupon_redemptions {
+  id         String   @id @default(uuid()) @db.Uuid
+  coupon_id  String   @db.Uuid
+  user_id    String   @db.Uuid
+  order_id   String   @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  coupon coupons @relation(fields: [coupon_id], references: [id])
+  user   users   @relation(fields: [user_id], references: [id])
+  order  orders  @relation(fields: [order_id], references: [id])
+
+  @@index([coupon_id])
+}
+
+model payments {
+  id                     String         @id @default(uuid()) @db.Uuid
+  order_id               String         @db.Uuid
+  user_id                String         @db.Uuid
+  amount                 Decimal        @db.Decimal(18, 2)
+  operator_amount        Decimal        @db.Decimal(18, 2)
+  tax_amount             Decimal        @db.Decimal(18, 2)
+  tax_rate               Decimal        @db.Decimal(5, 4)
+  gateway_fee_rate       Decimal        @default(0) @db.Decimal(5, 4)
+  gateway_fee_amount     Decimal        @default(0) @db.Decimal(18, 2)
+  gateway_transaction_id String?
+  transaction_id         String?
+  payment_method         String?
+  status                 payment_status @default(pending)
+  gateway_mode           gateway_mode   @default(mock)
+  gra_reported_at        DateTime?      @db.Timestamptz(6)
+  created_at             DateTime       @default(now()) @db.Timestamptz(6)
+
+  order   orders    @relation(fields: [order_id], references: [id])
+  user    users     @relation(fields: [user_id], references: [id])
+  tickets tickets[]
+
+  @@index([order_id])
+}
+
+model winners {
+  id           String   @id @default(uuid()) @db.Uuid
+  raffle_id    String   @db.Uuid
+  user_id      String   @db.Uuid
+  ticket_id    String   @db.Uuid
+  prize_id     String?  @db.Uuid
+  announced_at DateTime @default(now()) @db.Timestamptz(6)
+
+  raffle raffles        @relation(fields: [raffle_id], references: [id])
+  user   users          @relation(fields: [user_id], references: [id])
+  ticket tickets        @relation(fields: [ticket_id], references: [id])
+  prize  prizes?        @relation(fields: [prize_id], references: [id])
+  claims prize_claims[]
+}
+
+model instant_win_awards {
+  id                   String   @id @default(uuid()) @db.Uuid
+  ticket_id            String   @db.Uuid
+  instant_win_prize_id String   @db.Uuid
+  user_id              String   @db.Uuid
+  awarded_at           DateTime @default(now()) @db.Timestamptz(6)
+  status               String   @default("awarded")
+
+  ticket tickets            @relation(fields: [ticket_id], references: [id])
+  prize  instant_win_prizes @relation(fields: [instant_win_prize_id], references: [id])
+  user   users              @relation(fields: [user_id], references: [id])
+  claims prize_claims[]
+}
+
+model prize_claims {
+  id                   String             @id @default(uuid()) @db.Uuid
+  user_id              String             @db.Uuid
+  winner_id            String?            @db.Uuid
+  instant_win_award_id String?            @db.Uuid
+  county               String?
+  town                 String?
+  address_line         String?
+  postal_code          String?
+  status               prize_claim_status @default(pending)
+  created_at           DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime           @updatedAt @db.Timestamptz(6)
+
+  user        users               @relation(fields: [user_id], references: [id])
+  winner      winners?            @relation(fields: [winner_id], references: [id])
+  award       instant_win_awards? @relation(fields: [instant_win_award_id], references: [id])
+  withdrawals withdrawals[]
+}
+
+model withdrawals {
+  id             String            @id @default(uuid()) @db.Uuid
+  user_id        String            @db.Uuid
+  prize_claim_id String?           @db.Uuid
+  amount         Decimal           @db.Decimal(18, 2)
+  method         withdrawal_method
+  account_name   String?
+  account_number String?
+  bank_name      String?
+  status         withdrawal_status @default(pending)
+  admin_note     String?
+  processed_at   DateTime?         @db.Timestamptz(6)
+  created_at     DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime          @updatedAt @db.Timestamptz(6)
+
+  user  users         @relation(fields: [user_id], references: [id])
+  claim prize_claims? @relation(fields: [prize_claim_id], references: [id])
+
+  @@index([user_id])
+  @@index([status])
+}
+
+model gra_session_aggregates {
+  id            String   @id @default(uuid()) @db.Uuid
+  hour_start    DateTime @db.Timestamptz(6)
+  county        String?
+  stake_band    String
+  session_count Int      @default(0)
+  ticket_count  Int      @default(0)
+  total_stake   Decimal  @default(0) @db.Decimal(18, 2)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([hour_start, county, stake_band])
+  @@index([hour_start])
+}
+
+model gra_outbound_events {
+  id           String           @id @default(uuid()) @db.Uuid
+  event_type   String
+  payload      Json
+  status       gra_event_status @default(pending)
+  retry_count  Int              @default(0)
+  last_error   String?
+  created_at   DateTime         @default(now()) @db.Timestamptz(6)
+  processed_at DateTime?        @db.Timestamptz(6)
+
+  @@index([status, created_at])
+}
+
+model media {
+  id                   String   @id @default(uuid()) @db.Uuid
+  storage_key          String
+  mime_type            String
+  size_bytes           Int
+  uploaded_by_staff_id String?  @db.Uuid
+  created_at           DateTime @default(now()) @db.Timestamptz(6)
+}
+
+model tenant_audit_logs {
+  id                String   @id @default(uuid()) @db.Uuid
+  operator_staff_id String?  @db.Uuid
+  action            String
+  entity_type       String
+  entity_id         String?
+  metadata          Json?
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+
+  staff operator_staff? @relation(fields: [operator_staff_id], references: [id])
+
+  @@index([created_at])
+}

@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kenji_platform
+          POSTGRES_PASSWORD: kenji_platform
+          POSTGRES_DB: kenji_platform
+        ports:
+          - 5437:5432
+        options: >-
+          --health-cmd "pg_isready -U kenji_platform -d kenji_platform"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6383:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      PLATFORM_DATABASE_URL: postgresql://kenji_platform:kenji_platform@localhost:5437/kenji_platform?schema=public
+      DATABASE_ADMIN_URL: postgresql://kenji_platform:kenji_platform@localhost:5437/postgres?schema=public
+      REDIS_URL: redis://localhost:6383
+      JWT_SECRET: ci-test-secret
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      CREDENTIALS_ENCRYPTION_KEY: ci-test-encryption-key-32chars-min
+      API_PORT: 4002
+      PLAYER_AUTO_VERIFY_EMAIL: "true"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run generate -w @kenji-raffle/database-platform
+      - run: npm run generate -w @kenji-raffle/database-tenant
+      - run: npm run migrate:platform
+      - run: npm run db:seed:platform
+      - run: npm run build -w @kenji-raffle/shared
+      - run: npm run build -w @kenji-raffle/database-platform
+      - run: npm run provision:tenant -- --slug ci-a --gra-id op-ci-a --name "CI Operator A"
+      - run: npm run provision:tenant -- --slug ci-b --gra-id op-ci-b --name "CI Operator B"
+      - run: npm run lint
+      - run: npm run build
+      - run: npm run test:isolation
+      - name: Start API for operator isolation test
+        run: |
+          npm run start -w @kenji-raffle/api &
+          sleep 8
+      - run: npm run test:operator-isolation
+      - run: npm run test:purchase-e2e
+      - name: Build web for Playwright
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4002
+          NEXT_PUBLIC_DEV_TENANT_HOST: ci-a.kenji-raffle.local
+        run: npm run build -w @kenji-raffle/web
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+        working-directory: apps/web
+      - name: Start web for Playwright
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:4002
+          NEXT_PUBLIC_DEV_TENANT_HOST: ci-a.kenji-raffle.local
+          WEB_PORT: 3002
+        run: |
+          npm run start -w @kenji-raffle/web &
+          sleep 8
+      - name: Playwright smoke tests
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3002
+        run: npm run test:e2e -w @kenji-raffle/web

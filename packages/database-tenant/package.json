@@ -1,0 +1,22 @@
+{
+  "name": "@kenji-raffle/database-tenant",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "build": "tsc",
+    "validate:schemas": "TENANT_DATABASE_URL=postgresql://localhost:5432/kenji_tenant_validate_dummy prisma validate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0"
+  },
+  "devDependencies": {
+    "dotenv": "^16.5.0",
+    "prisma": "^6.9.0",
+    "typescript": "^5.8.3"
+  }
+}

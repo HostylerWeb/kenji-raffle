@@ -1,0 +1,7 @@
+ALTER TABLE operator_settings
+  ADD COLUMN IF NOT EXISTS ga4_measurement_id TEXT,
+  ADD COLUMN IF NOT EXISTS facebook_pixel_id TEXT,
+  ADD COLUMN IF NOT EXISTS analytics_enabled BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS faq_text TEXT,
+  ADD COLUMN IF NOT EXISTS terms_text TEXT,
+  ADD COLUMN IF NOT EXISTS privacy_text TEXT;

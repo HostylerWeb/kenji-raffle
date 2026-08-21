@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+*.tsbuildinfo
+.DS_Store
+coverage/
+.turbo/
+uploads/
+
+packages/database-platform/prisma/migrations/**/migration.sql.bak

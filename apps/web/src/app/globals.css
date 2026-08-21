@@ -1,0 +1,156 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.site-logo-bar {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 12px 20px;
+}
+
+.site-logo-bar img {
+  max-height: 48px;
+}
+
+a {
+  color: #0369a1;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  background: #fff;
+  color: #0f172a;
+  padding: 20px 16px;
+  border-right: 1px solid #e2e8f0;
+}
+
+.sidebar a {
+  color: #475569;
+  display: block;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.sidebar a:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.main {
+  padding: 28px 32px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+
+.form input {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.btn {
+  background: #0ea5e9;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.form select,
+.form textarea {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+.muted {
+  color: #64748b;
+}
+
+.error {
+  color: #dc2626;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.checklist {
+  margin: 12px 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.checklist li {
+  margin-bottom: 8px;
+}
+
+.handoff-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.handoff-grid h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.handoff-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+}

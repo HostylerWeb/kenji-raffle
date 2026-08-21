@@ -1,0 +1,20 @@
+{
+  "name": "@kenji-raffle/shared",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "npm run build && node --test tests/gra-outbound.test.mjs"
+  },
+  "dependencies": {
+    "@kenji-raffle/database-platform": "*",
+    "@kenji-raffle/database-tenant": "*",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
