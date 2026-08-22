@@ -517,6 +517,10 @@ export class PlatformOperatorsService {
       gra_credentials_configured:
         Boolean(settings?.gra_api_key_encrypted) &&
         Boolean(settings?.gra_hmac_secret_encrypted),
+      gra_last_heartbeat_at:
+        settings?.gra_last_heartbeat_at?.toISOString() ?? null,
+      gra_last_heartbeat_status: settings?.gra_last_heartbeat_status ?? null,
+      gra_last_heartbeat_error: settings?.gra_last_heartbeat_error ?? null,
     };
   }
 
@@ -595,6 +599,15 @@ export class PlatformOperatorsService {
     );
 
     const result = await testGraIngestConnection({ apiKey, hmacSecret });
+
+    await this.platformPrisma.client.operator_settings.update({
+      where: { operator_id: operatorId },
+      data: {
+        gra_last_heartbeat_at: new Date(),
+        gra_last_heartbeat_status: result.ok ? "ok" : "failed",
+        gra_last_heartbeat_error: result.ok ? null : result.error,
+      },
+    });
 
     await this.audit.log(
       user,
@@ -728,6 +741,12 @@ export class PlatformOperatorsService {
             gra_credentials_configured:
               Boolean(operator.settings.gra_api_key_encrypted) &&
               Boolean(operator.settings.gra_hmac_secret_encrypted),
+            gra_last_heartbeat_at:
+              operator.settings.gra_last_heartbeat_at?.toISOString() ?? null,
+            gra_last_heartbeat_status:
+              operator.settings.gra_last_heartbeat_status ?? null,
+            gra_last_heartbeat_error:
+              operator.settings.gra_last_heartbeat_error ?? null,
           }
         : null,
       dns_instructions: this.dnsInstructions(operator.id),

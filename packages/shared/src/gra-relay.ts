@@ -152,6 +152,9 @@ export type GraRelayRunMetrics = {
   events_rate_limited: number;
   http_429_total: number;
   backlog_remaining: number;
+  relay_latency_ms_max: number;
+  relay_latency_ms_sum: number;
+  relay_latency_samples: number;
 };
 
 export function emptyGraRelayMetrics(): GraRelayRunMetrics {
@@ -162,6 +165,9 @@ export function emptyGraRelayMetrics(): GraRelayRunMetrics {
     events_rate_limited: 0,
     http_429_total: 0,
     backlog_remaining: 0,
+    relay_latency_ms_max: 0,
+    relay_latency_ms_sum: 0,
+    relay_latency_samples: 0,
   };
 }
 
@@ -170,6 +176,11 @@ export function logGraRelayRun(
   metrics: GraRelayRunMetrics,
   extra?: Record<string, unknown>,
 ): void {
+  const relay_latency_ms_avg =
+    metrics.relay_latency_samples > 0
+      ? Math.round(metrics.relay_latency_ms_sum / metrics.relay_latency_samples)
+      : null;
+
   console.log(
     JSON.stringify({
       event: "gra_relay_run",
@@ -180,6 +191,8 @@ export function logGraRelayRun(
       gra_relay_events_rate_limited: metrics.events_rate_limited,
       gra_relay_http_429_total: metrics.http_429_total,
       gra_relay_backlog: metrics.backlog_remaining,
+      gra_relay_latency_ms_max: metrics.relay_latency_ms_max,
+      gra_relay_latency_ms_avg: relay_latency_ms_avg,
       ...extra,
       at: new Date().toISOString(),
     }),

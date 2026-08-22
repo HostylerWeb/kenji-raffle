@@ -199,76 +199,45 @@ Other operator ingest:
 
 ---
 
-## TODO — Payment gateway integration (this repo)
+## Payment gateway integration (this repo)
 
-### 1. Database — add gateway fee columns to `payments`
+**Status (2026-08-22):** Done in raffle codebase except deploying production **`kenji-gateway`**.
 
-**File:** `packages/database-tenant/prisma/schema.prisma`
-
-```prisma
-gateway_fee_rate       Decimal @default(0) @db.Decimal(5, 4)
-gateway_fee_amount     Decimal @default(0) @db.Decimal(18, 2)
-gateway_transaction_id String? // gateway external_transaction_id
-```
-
-### 2. Stop owning card processing in live mode
-
-**Target flow:**
-
-1. `POST /v1/checkout` creates order + pending payment → `payment_redirect_url` to **payment gateway** (not GRA).
-2. Player pays on gateway.
-3. Gateway notifies GRA via `gateway/notify`.
-4. Gateway webhooks raffle → mark payment completed, issue tickets.
+| Item | Status |
+|------|--------|
+| `payments.gateway_fee_*` columns + migration | Done |
+| `POST /v1/payments/gateway/callback` | Done |
+| Dev mock gateway (`GATEWAY_DEV_MOCK`) | Done |
+| Admin payments UI (gateway fee, operator net) | Done |
+| Reports GGR includes gateway fees | Done |
+| Live `kenji-gateway` at `HARAMBE_GATEWAY_URL` | **Deploy** `/var/www/kenji-gateway` |
 
 | Variable | Purpose |
 |----------|---------|
-| `HARAMBE_GATEWAY_URL` | Gateway checkout base (e.g. `http://localhost:4003/v1/pay`) — **not** GRA ingest |
+| `HARAMBE_GATEWAY_URL` | Gateway checkout (e.g. `http://localhost:4003/v1/charge`) — **not** GRA `:4001` |
 | `HARAMBE_PAYMENT_MODE` | `mock` \| `live` |
 | `HARAMBE_CALLBACK_SECRET` | Verify gateway → raffle webhooks |
-| `HARAMBE_PAYMENT_DISPLAY_NAME` | Checkout UI label |
-
-### 3. Gateway callback (receive from payment gateway)
-
-Implement e.g. `POST /v1/payments/gateway/callback`:
-
-```json
-{
-  "order_id": "uuid",
-  "external_transaction_id": "gw-...",
-  "status": "completed",
-  "gross_amount": 1000,
-  "tax_amount": 300,
-  "operator_amount": 700,
-  "gateway_fee_rate": 0.025,
-  "gateway_fee_amount": 25,
-  "decline_reason": null
-}
-```
-
-On `completed`: update `payments`, run `completePayment()`, **do not** call GRA `gateway/notify`.
-
-On `failed`: mark failed, release tickets, queue `payment.failed` GRA event.
-
-### 4. Operator admin — payments UI
-
-Add **Gateway fee** and **Operator net** columns (`operator_net = operator_amount - gateway_fee_amount`).
-
-### 5. Operator reports
-
-Include `gateway_fee_total` and `operator_net_total` in GGR/tax summaries when gateway fields exist.
+| `GATEWAY_DEV_MOCK` | Dev pay page on raffle API |
 
 ---
 
-## TODO — GRA outbound worker (this repo)
+## GRA platform relay (this repo)
 
-**Status (2026-08-21):** Implemented in `packages/shared/src/gra-outbound.ts` — worker and admin retry both use this module.
+**Status (2026-08-22):** Complete — see `docs/GRA_INTEGRATION_ARCHITECTURE.md` and `docs/GRA_RELAY_RUNBOOK.md`.
 
-Remaining GRA alignment (not outbound worker):
+| Item | Status |
+|------|--------|
+| Tenant enqueue only (no GRA HTTP on checkout) | Done |
+| Single worker relay (`process-gra-outbound` + sweep) | Done |
+| Rate limit + `next_attempt_at` backoff | Done |
+| Daily heartbeat cron | Done |
+| Play Safe requires county before enqueue | Done |
+| Monthly return deduped per period | Done |
+| Platform GRA health + alerts | Done |
 
-- [ ] Extend `payment.completed` body with `tax_amount` when stored on payment row (optional for live feed)
-- [ ] Operator Play Safe without county → event fails with clear error (player should set county in profile)
+**Env:** `GRA_INGEST_URL`, `GRA_RELAY_BATCH_SIZE`, `GRA_RELAY_MAX_PER_MINUTE`, `GRA_RELAY_OPERATOR_CONCURRENCY`
 
-**Env:** `GRA_INGEST_URL` (default `http://localhost:4001/v1`)
+**Remaining (external):** Payment ledger via `kenji-gateway` → `POST /v1/gateway/notify` (not raffle relay).
 
 ---
 
@@ -288,14 +257,15 @@ Remaining GRA alignment (not outbound worker):
 
 ## Files to touch (summary)
 
-| Priority | Task | Files |
-|----------|------|-------|
-| P0 | Gateway webhook + no direct card complete in live | `checkout.controller.ts`, `checkout.service.ts` |
-| P0 | `payments` schema + migration for gateway fees | `database-tenant/prisma/schema.prisma` |
-| P1 | Complete GRA outbound event types + GRA-shaped aggregates | `gra-outbound.ts`, `session-aggregate.ts` |
-| P1 | Admin payments UI + reports | `admin/payments`, `operator-reports.service.ts` |
-| P2 | Fee preview on checkout | `checkout.service.ts` |
-| P2 | Operator gateway merchant ref | `platform-operators.service.ts` |
+Most P0/P1 items below are **done**. Remaining work is **`kenji-gateway` deployment** and production ops (P7).
+
+| Priority | Task | Status |
+|----------|------|--------|
+| P0 | Gateway webhook + live checkout | Done (callback); gateway repo to deploy |
+| P0 | `payments` gateway fee columns | Done |
+| P1 | GRA relay + all outbound event types | Done |
+| P1 | Admin payments UI + reports | Done |
+| P2 | Fee preview on checkout | Done (`DEFAULT_GATEWAY_FEE_RATE`) |
 
 ---
 

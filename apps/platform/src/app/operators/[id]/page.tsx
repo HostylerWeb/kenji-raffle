@@ -49,6 +49,9 @@ type OperatorDetail = {
     support_email: string | null;
     primary_color: string | null;
     gra_credentials_configured: boolean;
+    gra_last_heartbeat_at?: string | null;
+    gra_last_heartbeat_status?: string | null;
+    gra_last_heartbeat_error?: string | null;
     feature_flags?: Record<string, boolean>;
   } | null;
   dns_instructions: {
@@ -943,6 +946,19 @@ export default function OperatorDetailPage() {
             Test GRA connection
           </button>
           {graTestResult && <p className="muted">{graTestResult}</p>}
+          {operator.settings?.gra_last_heartbeat_at && (
+            <p className="muted" style={{ marginTop: 8 }}>
+              Last GRA heartbeat:{" "}
+              {operator.settings.gra_last_heartbeat_status === "ok"
+                ? "OK"
+                : "Failed"}{" "}
+              ({new Date(operator.settings.gra_last_heartbeat_at).toLocaleString()}
+              )
+              {operator.settings.gra_last_heartbeat_error
+                ? ` — ${operator.settings.gra_last_heartbeat_error}`
+                : ""}
+            </p>
+          )}
         </form>
       </div>
       )}

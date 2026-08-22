@@ -74,7 +74,9 @@ Browsing and cart work without an account. **Checkout requires login or register
 - Play Safe auto-clears after cooling-off period expires
 - Reports date range filter in admin UI
 - Reports CSV export + instant win frequency/total edit on raffle page
-- Player list pagination; cart merges on register (same as login)
+- **GRA platform relay:** single worker egress, rate limit, sweep, daily heartbeat, latency metrics, unified retry rules
+- **Play Safe:** county required before GRA enqueue; clear `GraQueueError` for operators
+- **Monthly return:** deduped per `reporting_year` / `reporting_month`
 
 ## Implemented (summary)
 
@@ -93,7 +95,7 @@ Browsing and cart work without an account. **Checkout requires login or register
 | Referral / cashback | Explicitly out of scope in `PROJECT_PLAN_2.md` |
 | Anonymous checkout | Not supported — login/register required at checkout (by design) |
 | P7 production hardening | CSRF, monitoring, load tests — see `PROJECT_PLAN_2.md` §P7 |
-| **`kenji-gateway` repo** | Empty — see `/var/www/kenji-gateway/IMPORTANT.md` |
+| **`kenji-gateway` repo** | **Scaffold** at `/var/www/kenji-gateway` — `POST /v1/charge`, GRA notify, raffle callback; not production card/M-Pesa |
 
 ## Migrations (tenant DB)
 
@@ -106,6 +108,11 @@ npm run migrate:tenants
 3. `20260820190000_operator_staff_mfa`
 4. `20260821200000_checkout_order_snapshot`
 5. `20260821210000_payment_gateway_fees`
+6. `20260822180000_gra_relay_next_attempt` — `gra_outbound_events.next_attempt_at` for relay backoff
+
+**Platform DB** (`npm run migrate:platform`):
+
+1. `20260822180000_gra_heartbeat` — `operator_settings.gra_last_heartbeat_*`
 
 ## Test commands
 
@@ -116,6 +123,7 @@ npm run migrate:tenants
 | `npm run test:purchase-e2e` | Full purchase API pipeline (needs API running) |
 | `npm run test:checkout-pricing` | Coupon/site-credit ticket price allocation |
 | `npm run test:gra-outbound` | GRA ingest payload mapping |
+| `npm run test:gra-relay-integration` | GRA relay contracts + retry rules (shared package) |
 | `npm run test:e2e` | Playwright smoke (needs web on 3002; API for live data) |
 
 ## GRA integration
@@ -133,7 +141,7 @@ Outbound worker sends all queued event types to GRA ingest:
 
 **Payment ledger (regulatory):** `POST /v1/gateway/notify` on GRA ingest — **only the payment gateway** (or dev simulator), never the raffle site.
 
-Implementation: `packages/shared/src/gra-outbound.ts`. See [IMPORTANT.md](../IMPORTANT.md).
+Implementation: `packages/shared/src/gra-outbound.ts`, `gra-relay.ts`, `gra-retry.ts`. See [IMPORTANT.md](../IMPORTANT.md) and [GRA_RELAY_RUNBOOK.md](./GRA_RELAY_RUNBOOK.md).
 
 ## Env vars
 
@@ -151,6 +159,9 @@ Implementation: `packages/shared/src/gra-outbound.ts`. See [IMPORTANT.md](../IMP
 | `GATEWAY_DEV_MOCK` | `true` enables dev pay page at `/v1/payments/dev-mock-gateway/pay` |
 | `DEFAULT_GATEWAY_FEE_RATE` | Checkout fee **preview** only (default 0.025) |
 | `GRA_INGEST_URL` | Outbound worker target (default `http://localhost:4001/v1`) |
+| `GRA_RELAY_BATCH_SIZE` | Events per relay batch (default 50) |
+| `GRA_RELAY_MAX_PER_MINUTE` | Per-operator rate limit (default 50) |
+| `GRA_RELAY_OPERATOR_CONCURRENCY` | Parallel operators per sweep (default 3) |
 | `EMAIL_ASYNC=true` | Queue mail to worker |
 | `PLAYER_AUTO_VERIFY_EMAIL=true` | Dev/CI — skip email verify before checkout |
 | `NEXT_PUBLIC_DEV_TENANT_HOST` | Local tenant hostname for web (e.g. `demo.kenji-raffle.local`) |

@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "npm run build && node --test tests/gra-outbound.test.mjs tests/gra-relay-contract.test.mjs"
+    "test": "npm run build && node --test tests/gra-outbound.test.mjs tests/gra-relay-contract.test.mjs tests/gra-retry.test.mjs"
   },
   "dependencies": {
     "@kenji-raffle/database-platform": "*",

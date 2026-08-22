@@ -3,6 +3,7 @@ import type { PlatformAuthUser } from "@kenji-raffle/shared";
 import {
   enqueueProcessGraOutbound,
   getGraQueueStatsForOperator,
+  canRetryGraEvent,
 } from "@kenji-raffle/shared";
 import { TENANT_SCHEMA_VERSION } from "@kenji-raffle/database-tenant";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
@@ -371,8 +372,10 @@ export class PlatformDrilldownService {
     if (!event) {
       throw new NotFoundException("GRA event not found");
     }
-    if (event.status !== "failed") {
-      throw new BadRequestException("Only failed events can be retried");
+    if (!canRetryGraEvent({ status: event.status, created_at: event.created_at })) {
+      throw new BadRequestException(
+        "Only failed events (or pending events stuck over 6 hours) can be retried",
+      );
     }
 
     await client.gra_outbound_events.update({

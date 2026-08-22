@@ -56,6 +56,10 @@ export { slugify } from "./slug";
 export { fisherYatesShuffle, pickRandomItems } from "./random";
 export { enqueueProcessGraOutbound, PLATFORM_QUEUE_NAME } from "./gra-relay-queue";
 export {
+  GRA_STUCK_PENDING_HOURS,
+  canRetryGraEvent,
+} from "./gra-retry";
+export {
   GRA_RELAY_MAX_RETRIES,
   GRA_RELAY_BACKOFF_MS,
   graRelayConfig,

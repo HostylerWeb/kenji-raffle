@@ -483,6 +483,11 @@ export class OperatorPlayersService {
     });
 
     if (input.play_safe_active === true && !existing.play_safe_active) {
+      if (!user.county?.trim()) {
+        throw new BadRequestException(
+          "Player county is required before enabling Play Safe (GRA reporting).",
+        );
+      }
       await queueGraPlaySafeActivated(client, {
         county: user.county,
         occurred_at: new Date().toISOString(),

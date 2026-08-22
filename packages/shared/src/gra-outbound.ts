@@ -311,6 +311,7 @@ type GraEventRow = {
   event_type: string;
   payload: unknown;
   retry_count: number;
+  created_at: Date;
 };
 
 type SendGraEventResult = "sent" | "skipped" | "failed" | "rate_limited" | "deferred";
@@ -436,6 +437,12 @@ async function sendGraEvent(
   }
 
   metrics.events_sent += 1;
+  const latencyMs = Date.now() - event.created_at.getTime();
+  metrics.relay_latency_ms_sum += latencyMs;
+  metrics.relay_latency_samples += 1;
+  if (latencyMs > metrics.relay_latency_ms_max) {
+    metrics.relay_latency_ms_max = latencyMs;
+  }
   return "sent";
 }
 

@@ -263,6 +263,16 @@ export class AccountService {
 
   async activatePlaySafe(tenant: TenantContext, player: PlayerAuthUser) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
+    const existing = await client.users.findUnique({
+      where: { id: player.id },
+      select: { county: true },
+    });
+    if (!existing?.county?.trim()) {
+      throw new BadRequestException(
+        "Set your county in account settings before activating Play Safe (required for GRA reporting).",
+      );
+    }
+
     const until = new Date();
     until.setDate(until.getDate() + 7);
 

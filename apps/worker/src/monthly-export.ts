@@ -68,6 +68,32 @@ export async function runMonthlyGraExportForAllTenants() {
         grossRevenue - prizes - expenses,
       );
 
+      const existingReturn = await client.gra_outbound_events.findFirst({
+        where: {
+          event_type: "monthly.return",
+          status: { in: ["pending", "sent"] },
+          AND: [
+            {
+              payload: {
+                path: ["reporting_year"],
+                equals: reportingYear,
+              },
+            },
+            {
+              payload: {
+                path: ["reporting_month"],
+                equals: reportingMonth,
+              },
+            },
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (existingReturn) {
+        continue;
+      }
+
       await client.gra_outbound_events.create({
         data: {
           event_type: "monthly.return",

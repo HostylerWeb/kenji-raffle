@@ -1,5 +1,12 @@
 import type { TenantPrismaClient } from "@kenji-raffle/database-tenant";
 
+export class GraQueueError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GraQueueError";
+  }
+}
+
 export async function queueGraEventsForOrder(
   client: TenantPrismaClient,
   input: {
@@ -97,11 +104,18 @@ export async function queueGraPlaySafeActivated(
     occurred_at?: string;
   },
 ) {
+  const county = typeof input.county === "string" ? input.county.trim() : "";
+  if (!county) {
+    throw new GraQueueError(
+      "County is required for GRA Play Safe reporting. Set the player county in profile settings first.",
+    );
+  }
+
   await client.gra_outbound_events.create({
     data: {
       event_type: "play_safe.activated",
       payload: {
-        county: input.county ?? null,
+        county,
         occurred_at: input.occurred_at ?? new Date().toISOString(),
       },
       status: "pending",
