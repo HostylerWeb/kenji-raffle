@@ -441,8 +441,8 @@ export default function OperatorDetailPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Customer handoff</h2>
         <p className="muted">
-          What <strong>we</strong> do vs what the <strong>customer</strong> does
-          (Rafflex-style). Send them the admin URL and owner login after provisioning.
+          What <strong>we</strong> do vs what the <strong>customer</strong> does. Send
+          them the admin URL and owner login after provisioning.
         </p>
         <div className="handoff-grid">
           <div className="handoff-box">

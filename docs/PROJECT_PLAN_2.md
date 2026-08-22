@@ -1,6 +1,6 @@
 # Raffle Platform — Project Plan
 
-**Kenya multi-tenant raffle platform (Rafflex-style SaaS)**
+**Kenya multi-tenant raffle platform**
 
 Last updated: August 2026
 
@@ -31,9 +31,9 @@ This is **not** a clone of any other product. It is a **Kenya + GRA** business m
 | **Raffle Platform** (this repo) | Multi-tenant raffle SaaS — many sites, one control plane |
 | Harambe Payment Gateway | `/var/www/kenji-gateway` — mock checkout in raffle repo; live gateway notifies GRA |
 
-### Rafflex-style deployment + database-per-tenant
+### Multi-tenant deployment + database-per-tenant
 
-- **One codebase**, **one app tier**, **many hostnames** — same as Rafflex SaaS.
+- **One codebase**, **one app tier**, **many hostnames** — standard multi-tenant SaaS.
 - **One database per operator website** — physical data isolation (not one giant shared tables).
 - **One platform database** — registry, domains, credentials, platform staff, rollups.
 - **Not** one VPS per website. **Not** separate code deploy per operator.
@@ -159,7 +159,7 @@ Rollback on failure: drop database, mark operator `onboarding_failed`.
 |------|---------|------|
 | **Platform** | `platform.kenji-raffle.co.ke` | Platform super-admin only |
 | **Tenant subdomain** | `safarijackpot.kenji-raffle.co.ke` | Instant go-live after onboarding |
-| **Custom domain** | `safarijackpot.co.ke` | Cloudflare CNAME (Rafflex pattern) |
+| **Custom domain** | `safarijackpot.co.ke` | Cloudflare CNAME to platform edge |
 
 ### 4.5 Isolation rules (non-negotiable)
 
@@ -1074,4 +1074,4 @@ HMAC Secret: sandbox_hmac_op001_secret_32chars_min
 - GRA plan: `/var/www/kenji-government/docs/PROJECT_PLAN.md`
 - GRA operator integration: `/var/www/kenji-government/docs/OPERATOR_INTEGRATION.md`
 - Payment gateway (future): `/var/www/kenji-government/docs/PAYMENT_GATEWAY_PROJECT.md`
-- Rafflex domain pattern: [docs.rafflex.io](https://docs.rafflex.io/getting-started/add-your-domain-to-rafflex.md)
+- Custom domain setup: Cloudflare CNAME to platform edge hostname (see `OPERATOR_ONBOARDING.md`)

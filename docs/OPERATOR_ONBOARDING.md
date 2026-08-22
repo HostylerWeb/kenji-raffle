@@ -1,6 +1,6 @@
 # Operator onboarding — who does what
 
-Rafflex-style flow for Kenji Raffle Platform.
+Onboarding flow for Kenji Raffle Platform.
 
 ## Platform team (you)
 
@@ -31,7 +31,7 @@ You do **not** need to add their custom domain DNS for them — they do that in 
    - Enter `www.theirbrand.co.ke` (or `raffles.theirbrand.co.ke`).
    - Copy DNS records shown (CNAME → `customers.kenji-raffle.co.ke` in production).
 4. **At Cloudflare** (recommended):
-   - Move domain to Cloudflare nameservers if needed ([Rafflex guide](https://docs.rafflex.io/getting-started/add-your-domain-to-rafflex.md)).
+   - Move domain to Cloudflare nameservers if needed ([Cloudflare DNS docs](https://developers.cloudflare.com/dns/)).
    - DNS → add **CNAME** for `www` → platform edge hostname.
    - Remove conflicting **A records** on apex `@`.
    - Optional **TXT** for verification.

@@ -10,7 +10,7 @@ platform.kenji-raffle.local:3003  → Platform console (all operators, rollups)
 localhost:4002                    → API (hostname → tenant DB)
 ```
 
-One control plane, many operator websites — Rafflex-style SaaS.
+One control plane, many operator websites — multi-tenant SaaS.
 
 **Database model:** `kenji_platform` (registry) + **one Postgres database per operator** (`kenji_tenant_{slug}`).
 
@@ -140,7 +140,7 @@ Operator staff use `/admin` on the same hostname (e.g. `demo.kenji-raffle.local:
 
 **Staging:** `{slug}.kenji-raffle.local:3002` · **Admin:** `/admin` · **Owner:** `owner@{slug}.local`
 
-**Custom domain:** Customer adds `www.theirbrand.co.ke` in Admin → Domains, adds CNAME → `CUSTOM_DOMAIN_CNAME_TARGET` in Cloudflare, clicks Verify DNS. Not an A record on `@` — use CNAME on www/raffles (Rafflex pattern).
+**Custom domain:** Customer adds `www.theirbrand.co.ke` in Admin → Domains, adds CNAME → `CUSTOM_DOMAIN_CNAME_TARGET` in Cloudflare, clicks Verify DNS. Not an A record on `@` — use CNAME on www or a subdomain.
 
 See [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md).
 

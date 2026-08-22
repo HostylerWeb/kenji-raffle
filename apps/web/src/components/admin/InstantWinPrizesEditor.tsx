@@ -286,8 +286,8 @@ export function InstantWinPrizesEditor({
 
       {!enabled && (
         <p className="muted" style={{ margin: 0 }}>
-          Turn on instant wins to add prize groups on this raffle — same as CompGo&apos;s
-          inline instant win setup.
+          Turn on instant wins to add prize groups and configure how they are drawn on
+          this raffle.
         </p>
       )}
 

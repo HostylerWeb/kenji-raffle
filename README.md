@@ -1,6 +1,6 @@
 # Raffle Platform
 
-**Kenya multi-tenant raffle SaaS** — Rafflex-style. One control plane hosts many licensed operator websites. **Platform staff** use the **platform console**; operators get their domain and `/admin`; players buy tickets on the operator site.
+**Kenya multi-tenant raffle SaaS.** One control plane hosts many licensed operator websites. **Platform staff** use the **platform console**; operators get their domain and `/admin`; players buy tickets on the operator site.
 
 Built for the GRA regulatory model. Standalone product — not a clone of any other codebase.
 
