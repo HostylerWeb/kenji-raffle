@@ -7,6 +7,8 @@ import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminConfirm } from "@/components/admin/AdminConfirm";
+import { AdminFileUpload } from "@/components/admin/AdminFileUpload";
+import { AdminEmptyState } from "@/components/admin/AdminEmptyState";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { useAdminToast } from "@/components/admin/AdminToast";
 import { InstantWinPrizesEditor } from "@/components/admin/InstantWinPrizesEditor";
@@ -131,7 +133,31 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
   const [featuredUrl, setFeaturedUrl] = useState<string | null>(null);
   const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [statusChanging, setStatusChanging] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [initialSnapshot, setInitialSnapshot] = useState("");
+
+  const markDirty = () => setDirty(true);
+
+  useEffect(() => {
+    const snap = JSON.stringify({ title, ticketPrice, maxEntries, description });
+    if (!initialSnapshot) {
+      setInitialSnapshot(snap);
+      return;
+    }
+    setDirty(snap !== initialSnapshot);
+  }, [title, ticketPrice, maxEntries, description, initialSnapshot]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
 
   const applyRaffle = useCallback((data: Raffle) => {
     setRaffle(data);
@@ -200,6 +226,19 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
   const ticketsGenerated = (raffle?.ticket_counts?.total ?? 0) > 0;
   const status = raffle?.status ?? "draft";
   const instantWinCount = instantWinRows.filter((r) => r.name.trim()).length;
+
+  function validateSetup(): string | null {
+    if (!title.trim()) return "Title is required.";
+    if (Number(ticketPrice) <= 0) return "Ticket price must be greater than 0.";
+    if (Number(maxEntries) <= 0) return "Total tickets must be at least 1.";
+    if (drawType === "scheduled" && !scheduledDrawAt) return "Scheduled draw date is required.";
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      return "Sale end must be after sale start.";
+    }
+    return null;
+  }
+
+  const setupComplete = Boolean(title.trim() && Number(ticketPrice) > 0 && Number(maxEntries) > 0);
 
   function failTab(id: string, message: string) {
     setTab(id);
@@ -300,12 +339,13 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
   }
 
   async function createRaffle() {
-    if (!title.trim()) return failTab("setup", "Title is required.");
+    const setupErr = validateSetup();
+    if (setupErr) return failTab("setup", setupErr);
     if (instantWinEnabled) {
       const validation = validateInstantWinRows(instantWinRows, Number(maxEntries) || 1);
       if (validation) return failTab("instant-wins", validation);
     }
-    setLoading(true);
+    setSaving(true);
     setError("");
     try {
       const created = await operatorFetch<{ id: string }>("/v1/admin/raffles", {
@@ -330,18 +370,19 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       setError(message);
       toast(message, "error");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   async function saveAll() {
     if (!raffleId) return createRaffle();
-    if (!title.trim()) return failTab("setup", "Title is required.");
+    const setupErr = validateSetup();
+    if (setupErr) return failTab("setup", setupErr);
     if (instantWinEnabled) {
       const validation = validateInstantWinRows(instantWinRows, Number(maxEntries) || 1);
       if (validation) return failTab("instant-wins", validation);
     }
-    setLoading(true);
+    setSaving(true);
     setError("");
     try {
       await operatorFetch(`/v1/admin/raffles/${raffleId}`, {
@@ -356,13 +397,13 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       setError(message);
       toast(message, "error");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   }
 
   async function generateTickets() {
     if (!raffleId) return;
-    setLoading(true);
+    setStatusChanging(true);
     try {
       await operatorFetch(`/v1/admin/raffles/${raffleId}/tickets/generate`, { method: "POST" });
       await load(raffleId);
@@ -372,13 +413,13 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       toast(message, "error");
       setError(message);
     } finally {
-      setLoading(false);
+      setStatusChanging(false);
     }
   }
 
   async function setStatus(next: string) {
     if (!raffleId) return;
-    setLoading(true);
+    setStatusChanging(true);
     try {
       await operatorFetch(`/v1/admin/raffles/${raffleId}/status`, {
         method: "PATCH",
@@ -391,13 +432,13 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       toast(message, "error");
       setError(message);
     } finally {
-      setLoading(false);
+      setStatusChanging(false);
     }
   }
 
   async function goLive() {
     if (!raffleId) return;
-    setLoading(true);
+    setStatusChanging(true);
     try {
       if (!ticketsGenerated) {
         await operatorFetch(`/v1/admin/raffles/${raffleId}/tickets/generate`, { method: "POST" });
@@ -421,12 +462,12 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       toast(message, "error");
       setError(message);
     } finally {
-      setLoading(false);
+      setStatusChanging(false);
     }
   }
 
   async function uploadFeatured(file: File) {
-    setLoading(true);
+    setUploading(true);
     try {
       const uploaded = await operatorUpload("/v1/admin/media/upload", file);
       if (raffleId) {
@@ -442,12 +483,12 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Upload failed", "error");
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   }
 
   async function addGallery(file: File) {
-    setLoading(true);
+    setUploading(true);
     try {
       const uploaded = await operatorUpload("/v1/admin/media/upload", file);
       if (raffleId) {
@@ -463,9 +504,34 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Upload failed", "error");
     } finally {
-      setLoading(false);
+      setUploading(false);
     }
   }
+
+  async function removeFeatured() {
+    if (raffleId) {
+      await operatorFetch(`/v1/admin/raffles/${raffleId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ featured_image_url: null }),
+      });
+      await load(raffleId);
+    } else {
+      setFeaturedUrl(null);
+    }
+    toast("Featured image removed");
+  }
+
+  async function removeGalleryImage(id: string) {
+    if (raffleId && !id.startsWith("gal-")) {
+      await operatorFetch(`/v1/admin/raffles/${raffleId}/gallery/${id}`, { method: "DELETE" });
+      await load(raffleId);
+    } else {
+      setGallery((prev) => prev.filter((g) => g.id !== id));
+    }
+    toast("Image removed");
+  }
+
+  const busy = saving || uploading || statusChanging;
 
   const editorTabs = [
     { id: "setup", label: "Setup" },
@@ -555,6 +621,8 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
           status={status}
           ticketsGenerated={ticketsGenerated}
           hasInstantWins={instantWinCount > 0}
+          setupComplete={setupComplete}
+          onStepClick={setTab}
         />
       )}
 
@@ -598,7 +666,12 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                       placeholder="Prize details, draw rules, and what makes this raffle special…"
                     />
                   </label>
-                  {categories.length > 0 && (
+                  {categories.length === 0 ? (
+                    <p className="muted">
+                      No categories yet.{" "}
+                      <Link href="/admin/categories">Create a category</Link> to organise raffles.
+                    </p>
+                  ) : (
                     <label>
                       Category
                       <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
@@ -751,19 +824,26 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               </div>
             </div>
             <div className="admin-panel__body">
-              {featuredUrl && <img src={featuredUrl} alt="" className="admin-media-preview" />}
-              <label className="admin-file-upload">
-                <span className="admin-file-upload__label">Upload featured image</span>
-                <span className="admin-file-upload__hint">JPG or PNG, up to 10 MB</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadFeatured(file);
-                  }}
+              {featuredUrl ? (
+                <div style={{ marginBottom: 16 }}>
+                  <img src={featuredUrl} alt="" className="admin-media-preview" />
+                  <div className="admin-form-actions">
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={removeFeatured}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <AdminEmptyState
+                  title="No featured image"
+                  description="Upload a hero image for the raffle card and detail page."
                 />
-              </label>
+              )}
+              <AdminFileUpload
+                label="Upload featured image"
+                uploading={uploading}
+                onFile={uploadFeatured}
+              />
             </div>
           </div>
           <div className="admin-panel">
@@ -774,27 +854,31 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               </div>
             </div>
             <div className="admin-panel__body">
-              {gallery.length > 0 && (
+              {gallery.length > 0 ? (
                 <div className="admin-gallery-grid">
                   {gallery.map((img) => (
                     <div key={img.id} className="admin-gallery-item">
                       <img src={img.image_url} alt="" />
+                      <button
+                        type="button"
+                        className="admin-gallery-item__remove"
+                        onClick={() => removeGalleryImage(img.id)}
+                        aria-label="Remove image"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <AdminEmptyState title="No gallery images" description="Add extra photos for the public raffle page." />
               )}
-              <label className="admin-file-upload">
-                <span className="admin-file-upload__label">Add gallery image</span>
-                <span className="admin-file-upload__hint">You can upload multiple images one at a time</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) addGallery(file);
-                  }}
-                />
-              </label>
+              <AdminFileUpload
+                label="Add gallery image"
+                hint="Upload one image at a time"
+                uploading={uploading}
+                onFile={addGallery}
+              />
             </div>
           </div>
         </div>
@@ -810,13 +894,14 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               </div>
             </div>
             <div className="admin-panel__body">
-            {prizes.length === 0 && (
-              <p className="muted" style={{ marginBottom: 16 }}>
-                No main prizes yet — add at least one before going live.
-              </p>
-            )}
+            {prizes.length === 0 ? (
+              <AdminEmptyState
+                title="No main prizes"
+                description="Add at least one prize for the end-of-raffle draw."
+              />
+            ) : null}
             {prizes.map((p) => (
-              <div key={p.key} className="admin-form-grid" style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid var(--admin-border)" }}>
+              <div key={p.key} className="admin-form-grid admin-form-grid__full" style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid var(--admin-border)" }}>
                 <label>
                   Name
                   <input value={p.name} onChange={(e) => setPrizes((rows) => rows.map((r) => r.key === p.key ? { ...r, name: e.target.value } : r))} />
@@ -833,6 +918,11 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                   Value (KES)
                   <input type="number" value={p.value_kes} onChange={(e) => setPrizes((rows) => rows.map((r) => r.key === p.key ? { ...r, value_kes: e.target.value } : r))} />
                 </label>
+                <div className="admin-form-actions">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrizes((rows) => rows.filter((r) => r.key !== p.key))}>
+                    Remove
+                  </button>
+                </div>
               </div>
             ))}
             <form
@@ -882,13 +972,18 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               </div>
             </div>
             <div className="admin-panel__body">
-            {discountTiers.length === 0 && (
-              <p className="muted" style={{ marginBottom: 16 }}>No discount tiers — optional.</p>
-            )}
+            {discountTiers.length === 0 ? (
+              <AdminEmptyState title="No discount tiers" description="Optional bulk-buy discounts for players." />
+            ) : null}
             {discountTiers.map((t) => (
-              <p key={t.key} className="muted">
-                {t.min_quantity}+ tickets · {t.discount_type} {t.discount_value}
-              </p>
+              <div key={t.key} className="admin-form-actions" style={{ marginBottom: 8 }}>
+                <span className="muted">
+                  {t.min_quantity}+ tickets · {t.discount_type} {t.discount_value}
+                </span>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setDiscountTiers((rows) => rows.filter((r) => r.key !== t.key))}>
+                  Remove
+                </button>
+              </div>
             ))}
             <form
               className="admin-form-grid"
@@ -941,15 +1036,43 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               </div>
             </div>
             <div className="admin-panel__body">
-            {raffle.ticket_counts && (
+            <ul className="admin-publish-checklist">
+              <li className={setupComplete ? "admin-publish-checklist__done" : "admin-publish-checklist__pending"}>
+                {setupComplete ? "✓" : "○"} Title, price, and ticket pool size configured
+              </li>
+              <li className={ticketsGenerated ? "admin-publish-checklist__done" : "admin-publish-checklist__pending"}>
+                {ticketsGenerated ? "✓" : "○"} Ticket pool generated
+              </li>
+              <li className={featuredUrl ? "admin-publish-checklist__done" : "admin-publish-checklist__pending"}>
+                {featuredUrl ? "✓" : "○"} Featured image (recommended)
+              </li>
+              <li className={prizes.length > 0 ? "admin-publish-checklist__done" : "admin-publish-checklist__pending"}>
+                {prizes.length > 0 ? "✓" : "○"} Main prizes (recommended)
+              </li>
+            </ul>
+            {raffle.ticket_counts ? (
               <p className="muted">
                 Tickets — available {raffle.ticket_counts.available}, reserved {raffle.ticket_counts.reserved},
                 purchased {raffle.ticket_counts.purchased}, total {raffle.ticket_counts.total}
               </p>
+            ) : (
+              <p className="muted">Ticket pool not generated yet.</p>
+            )}
+            {status === "listed" && (
+              <p className="muted">Listed — visible but not selling. Use Go live to start sales.</p>
+            )}
+            {status === "active" && (
+              <p className="muted">This raffle is live and accepting ticket purchases.</p>
+            )}
+            {status === "drawn" && (
+              <p className="muted">Draw complete. Winners are recorded in the admin.</p>
+            )}
+            {status === "cancelled" && (
+              <p className="muted">This raffle was cancelled.</p>
             )}
             <div className="admin-form-actions">
               {!ticketsGenerated && (
-                <button type="button" className="btn btn-secondary" disabled={loading} onClick={generateTickets}>
+                <button type="button" className="btn btn-secondary" disabled={busy} onClick={generateTickets}>
                   Generate tickets only
                 </button>
               )}
@@ -961,14 +1084,14 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                   onConfirm={goLive}
                 >
                   {(open) => (
-                    <button type="button" className="btn" disabled={loading} onClick={open}>
+                    <button type="button" className="btn" disabled={busy} onClick={open}>
                       Go live
                     </button>
                   )}
                 </AdminConfirm>
               ) : null}
               {ticketsGenerated && status === "draft" && (
-                <button type="button" className="btn btn-secondary" disabled={loading} onClick={() => setStatus("listed")}>
+                <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => setStatus("listed")}>
                   List without selling
                 </button>
               )}
@@ -985,7 +1108,7 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                   }}
                 >
                   {(open) => (
-                    <button type="button" className="btn" disabled={loading} onClick={open}>
+                    <button type="button" className="btn" disabled={busy} onClick={open}>
                       Run draw
                     </button>
                   )}
@@ -1000,7 +1123,7 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                   onConfirm={() => setStatus("cancelled")}
                 >
                   {(open) => (
-                    <button type="button" className="btn btn-secondary" disabled={loading} onClick={open}>
+                    <button type="button" className="btn btn-secondary" disabled={busy} onClick={open}>
                       Cancel raffle
                     </button>
                   )}
@@ -1018,7 +1141,7 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                   }}
                 >
                   {(open) => (
-                    <button type="button" className="btn btn-danger" disabled={loading} onClick={open}>
+                    <button type="button" className="btn btn-danger" disabled={busy} onClick={open}>
                       Delete draft
                     </button>
                   )}
@@ -1031,9 +1154,15 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       )}
 
       <div className="admin-sticky-footer">
-        <button type="button" className="btn" disabled={loading} onClick={saveAll}>
-          {loading ? "Saving…" : isCreate ? "Create raffle" : "Save changes"}
+        {dirty && <span className="admin-sticky-footer__dirty">Unsaved changes</span>}
+        <button type="button" className="btn" disabled={busy} onClick={saveAll}>
+          {saving ? "Saving…" : isCreate ? "Create raffle" : "Save changes"}
         </button>
+        {!isCreate && tab === "publish" && ticketsGenerated && status !== "active" && (
+          <button type="button" className="btn btn-secondary" disabled={busy} onClick={goLive}>
+            Go live
+          </button>
+        )}
         <Link href="/admin/raffles" className="btn btn-secondary">
           Cancel
         </Link>

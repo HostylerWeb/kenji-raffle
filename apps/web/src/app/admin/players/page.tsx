@@ -125,6 +125,9 @@ export default function AdminPlayersPage() {
               </td>
               <td>
                 <div className="admin-row-actions">
+                  <Link href={`/admin/players/${p.id}`} className="btn btn-secondary btn-sm">
+                    View
+                  </Link>
                 {p.kyc_status === "pending" && (
                   <button
                     type="button"

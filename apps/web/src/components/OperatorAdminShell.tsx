@@ -7,119 +7,18 @@ import {
   getOperatorToken,
   getOperatorUser,
   clearOperatorSession,
-  type OperatorStaffRole,
 } from "@/lib/api";
 import {
-  IconDashboard,
-  IconTicket,
-  IconCart,
-  IconCreditCard,
-  IconChart,
-  IconUsers,
-  IconGift,
-  IconWallet,
-  IconTrophy,
-  IconImage,
-  IconShield,
-  IconGlobe,
-  IconSettings,
-  IconTag,
-  IconFolder,
-  IconClipboard,
-  IconExternal,
-  IconMenu,
-  IconLogout,
-} from "@/components/admin/AdminIcons";
+  ADMIN_NAV_SECTIONS,
+  adminSectionEyebrow,
+  isAdminNavActive,
+} from "@/components/admin/adminNavigation";
+import { IconExternal, IconLogout, IconMenu } from "@/components/admin/AdminIcons";
 
 type Branding = {
   primary_color?: string;
   name?: string;
 };
-
-type NavItem = {
-  href: string;
-  label: string;
-  roles: OperatorStaffRole[];
-  icon: React.ReactNode;
-  exact?: boolean;
-};
-
-type NavSection = {
-  label: string;
-  items: NavItem[];
-};
-
-const NAV_SECTIONS: NavSection[] = [
-  {
-    label: "Overview",
-    items: [
-      {
-        href: "/admin",
-        label: "Dashboard",
-        roles: ["owner", "manager", "support", "finance"],
-        icon: <IconDashboard />,
-        exact: true,
-      },
-    ],
-  },
-  {
-    label: "Commerce",
-    items: [
-      { href: "/admin/raffles", label: "Raffles", roles: ["owner", "manager"], icon: <IconTicket /> },
-      { href: "/admin/orders", label: "Orders", roles: ["owner", "manager", "finance"], icon: <IconCart /> },
-      { href: "/admin/payments", label: "Payments", roles: ["owner", "manager", "finance"], icon: <IconCreditCard /> },
-      { href: "/admin/reports", label: "Reports", roles: ["owner", "manager", "finance"], icon: <IconChart /> },
-      { href: "/admin/coupons", label: "Coupons", roles: ["owner", "manager", "finance"], icon: <IconTag /> },
-    ],
-  },
-  {
-    label: "Players",
-    items: [
-      { href: "/admin/players", label: "Players", roles: ["owner", "manager", "support"], icon: <IconUsers /> },
-      { href: "/admin/prize-claims", label: "Prize claims", roles: ["owner", "manager", "support"], icon: <IconGift /> },
-      { href: "/admin/withdrawals", label: "Withdrawals", roles: ["owner", "manager", "finance"], icon: <IconWallet /> },
-      { href: "/admin/winners", label: "Winners", roles: ["owner", "manager", "support"], icon: <IconTrophy /> },
-    ],
-  },
-  {
-    label: "Site",
-    items: [
-      { href: "/admin/categories", label: "Categories", roles: ["owner", "manager"], icon: <IconFolder /> },
-      { href: "/admin/media", label: "Media", roles: ["owner", "manager"], icon: <IconImage /> },
-      { href: "/admin/domains", label: "Domains", roles: ["owner", "manager"], icon: <IconGlobe /> },
-    ],
-  },
-  {
-    label: "Compliance",
-    items: [
-      { href: "/admin/gra-events", label: "GRA events", roles: ["owner", "manager", "support"], icon: <IconShield /> },
-      { href: "/admin/audit", label: "Audit log", roles: ["owner", "manager"], icon: <IconClipboard /> },
-    ],
-  },
-  {
-    label: "Team",
-    items: [
-      { href: "/admin/staff", label: "Staff", roles: ["owner", "manager"], icon: <IconUsers /> },
-      { href: "/admin/settings", label: "Settings", roles: ["owner", "manager"], icon: <IconSettings /> },
-    ],
-  },
-];
-
-function isActive(pathname: string, href: string, exact?: boolean) {
-  if (exact) return pathname === href;
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function sectionEyebrow(pathname: string): string {
-  if (pathname.startsWith("/admin/raffles")) return "Commerce";
-  if (pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/payments") || pathname.startsWith("/admin/reports") || pathname.startsWith("/admin/coupons")) return "Commerce";
-  if (pathname.startsWith("/admin/players") || pathname.startsWith("/admin/prize-claims") || pathname.startsWith("/admin/withdrawals") || pathname.startsWith("/admin/winners")) return "Players";
-  if (pathname.startsWith("/admin/categories") || pathname.startsWith("/admin/media") || pathname.startsWith("/admin/domains")) return "Site";
-  if (pathname.startsWith("/admin/gra-events") || pathname.startsWith("/admin/audit")) return "Compliance";
-  if (pathname.startsWith("/admin/staff") || pathname.startsWith("/admin/settings")) return "Team";
-  return "Overview";
-}
 
 export function OperatorAdminShell({
   title,
@@ -172,7 +71,7 @@ export function OperatorAdminShell({
     router.replace("/admin/login");
   }
 
-  const visibleSections = NAV_SECTIONS.map((section) => ({
+  const visibleSections = ADMIN_NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter((item) => item.roles.includes(role)),
   })).filter((section) => section.items.length > 0);
@@ -205,7 +104,7 @@ export function OperatorAdminShell({
                   key={item.href}
                   href={item.href}
                   className={`admin-sidebar__link${
-                    isActive(pathname, item.href, item.exact)
+                    isAdminNavActive(pathname, item.href, item.exact)
                       ? " admin-sidebar__link--active"
                       : ""
                   }`}
@@ -260,7 +159,7 @@ export function OperatorAdminShell({
           <header className="admin-page-header">
             <div className="admin-page-header__row">
               <div>
-                <p className="admin-page-header__eyebrow">{sectionEyebrow(pathname)}</p>
+                <p className="admin-page-header__eyebrow">{adminSectionEyebrow(pathname)}</p>
                 <h1 className="admin-page-header__title">{title}</h1>
                 {description && (
                   <p className="admin-page-header__description">{description}</p>

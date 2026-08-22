@@ -32,6 +32,10 @@ export default function OperatorLoginPage() {
     const root = document.querySelector(".admin-root") as HTMLElement | null;
     if (root) {
       root.style.setProperty("--admin-accent", accent);
+      root.style.setProperty(
+        "--admin-accent-soft",
+        `color-mix(in srgb, ${accent} 14%, transparent)`,
+      );
     }
   }, [accent]);
 

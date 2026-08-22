@@ -155,7 +155,9 @@ export default function AdminOrdersPage() {
               <td className="muted">{new Date(o.created_at).toLocaleString()}</td>
               <td>
                 <div className="admin-row-actions">
-                  <Link href={`/admin/orders/${o.id}`}>View</Link>
+                  <Link href={`/admin/orders/${o.id}`} className="btn btn-secondary btn-sm">
+                    View
+                  </Link>
                   {o.status === "completed" && (
                     <AdminConfirm
                       title="Refund this order?"

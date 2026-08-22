@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
+import { AdminConfirm } from "@/components/admin/AdminConfirm";
+import { AdminDrawer } from "@/components/admin/AdminDrawer";
 import { AdminFilters } from "@/components/admin/AdminFilters";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
@@ -53,6 +55,7 @@ export default function AdminCouponsPage() {
   const [validFrom, setValidFrom] = useState("");
   const [validUntil, setValidUntil] = useState("");
   const [loading, setLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const load = useCallback(async () => {
     const params = new URLSearchParams();
@@ -91,6 +94,7 @@ export default function AdminCouponsPage() {
       });
       setCode("");
       setPage(1);
+      setCreateOpen(false);
       await load();
       toast("Coupon created");
     } finally {
@@ -108,6 +112,22 @@ export default function AdminCouponsPage() {
     toast(`Coupon ${next}`);
   }
 
+  function resetCreateForm() {
+    setCode("");
+    setDiscountType("percent");
+    setDiscountValue("10");
+    setMinOrder("");
+    setMaxUses("");
+    setMaxUsesPerUser("");
+    setValidFrom("");
+    setValidUntil("");
+  }
+
+  function closeCreateDrawer() {
+    setCreateOpen(false);
+    resetCreateForm();
+  }
+
   const items = data?.items ?? [];
 
   return (
@@ -118,6 +138,11 @@ export default function AdminCouponsPage() {
         name: settings?.name,
         primary_color: settings?.branding?.primary_color,
       }}
+      actions={
+        <button type="button" className="btn" onClick={() => setCreateOpen(true)}>
+          New coupon
+        </button>
+      }
     >
       <div className="admin-panel">
         <div className="admin-panel__header">
@@ -146,7 +171,12 @@ export default function AdminCouponsPage() {
           columns={["Code", "Type", "Value", "Min order", "Uses", "Per user", "Valid", "Status", ""]}
           isEmpty={items.length === 0}
           emptyTitle="No coupons yet"
-          emptyDescription="Create a discount code below to offer promotions at checkout."
+          emptyDescription="Create a discount code to offer promotions at checkout."
+          emptyAction={
+            <button type="button" className="btn" onClick={() => setCreateOpen(true)}>
+              New coupon
+            </button>
+          }
         >
           {items.map((c) => (
             <tr key={c.id}>
@@ -166,9 +196,23 @@ export default function AdminCouponsPage() {
               </td>
               <td><AdminStatusBadge status={c.status} /></td>
               <td>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => toggleStatus(c)}>
-                  {c.status === "active" ? "Disable" : "Enable"}
-                </button>
+                <AdminConfirm
+                  title={c.status === "active" ? "Disable this coupon?" : "Enable this coupon?"}
+                  body={
+                    c.status === "active"
+                      ? "Players will no longer be able to use this code at checkout."
+                      : "This code will become active again at checkout."
+                  }
+                  confirmLabel={c.status === "active" ? "Disable" : "Enable"}
+                  danger={c.status === "active"}
+                  onConfirm={() => toggleStatus(c)}
+                >
+                  {(open) => (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={open}>
+                      {c.status === "active" ? "Disable" : "Enable"}
+                    </button>
+                  )}
+                </AdminConfirm>
               </td>
             </tr>
           ))}
@@ -176,14 +220,22 @@ export default function AdminCouponsPage() {
         {data && <AdminPagination page={data.page} total={data.total} limit={data.limit} onPage={setPage} />}
       </div>
 
-      <div className="admin-panel">
-        <div className="admin-panel__header">
-          <div>
-            <h3 className="admin-panel__title">New coupon</h3>
-            <p className="admin-panel__subtitle">Codes are case-sensitive at checkout.</p>
-          </div>
-        </div>
-        <form className="admin-form-grid" onSubmit={onCreate} style={{ paddingBottom: 22 }}>
+      <AdminDrawer
+        open={createOpen}
+        title="New coupon"
+        onClose={closeCreateDrawer}
+        footer={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={closeCreateDrawer}>
+              Cancel
+            </button>
+            <button type="submit" form="coupon-create-form" className="btn" disabled={loading}>
+              {loading ? "Creating…" : "Create coupon"}
+            </button>
+          </>
+        }
+      >
+        <form id="coupon-create-form" className="admin-form-grid" onSubmit={onCreate}>
           <label>
             Code
             <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="SUMMER20" required />
@@ -215,17 +267,15 @@ export default function AdminCouponsPage() {
             Valid from
             <input type="datetime-local" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
           </label>
-          <label>
+          <label className="admin-form-grid__full">
             Valid until
             <input type="datetime-local" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
           </label>
-          <div className="admin-form-grid__full admin-form-actions" style={{ padding: 0 }}>
-            <button type="submit" className="btn" disabled={loading}>
-              {loading ? "Creating…" : "Create coupon"}
-            </button>
-          </div>
+          <p className="muted admin-form-grid__full" style={{ margin: 0, fontSize: 13 }}>
+            Codes are case-sensitive at checkout.
+          </p>
         </form>
-      </div>
+      </AdminDrawer>
     </OperatorAdminShell>
   );
 }

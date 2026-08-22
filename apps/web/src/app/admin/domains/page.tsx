@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
+import { AdminConfirm } from "@/components/admin/AdminConfirm";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { useAdminToast } from "@/components/admin/AdminToast";
@@ -119,6 +121,12 @@ export default function OperatorDomainsPage() {
       description="Connect a custom hostname after you preview on staging."
       branding={branding}
     >
+      <AdminPageHeader
+        crumbs={[
+          { href: "/admin", label: "Dashboard" },
+          { label: "Domains & go live" },
+        ]}
+      />
       {data && (
         <>
           <div className="admin-callout">
@@ -196,14 +204,23 @@ export default function OperatorDomainsPage() {
                   </td>
                   <td>
                     {domain.domain_type === "custom" && domain.verification_status !== "verified" && (
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        disabled={loading}
-                        onClick={() => verifyDns(domain.id)}
+                      <AdminConfirm
+                        title="Verify DNS records?"
+                        body="We'll check that your CNAME and TXT records are configured at your DNS provider. Propagation can take 15–30 minutes."
+                        confirmLabel="Verify DNS"
+                        onConfirm={() => verifyDns(domain.id)}
                       >
-                        Verify DNS
-                      </button>
+                        {(open) => (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={loading}
+                            onClick={open}
+                          >
+                            Verify DNS
+                          </button>
+                        )}
+                      </AdminConfirm>
                     )}
                   </td>
                 </tr>

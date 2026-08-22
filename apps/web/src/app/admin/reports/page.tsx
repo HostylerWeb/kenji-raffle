@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminFilters } from "@/components/admin/AdminFilters";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatCard } from "@/components/admin/AdminStatCard";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { IconChart, IconCreditCard, IconTicket } from "@/components/admin/AdminIcons";
@@ -39,8 +40,11 @@ export default function AdminReportsPage() {
   const [ggr, setGgr] = useState<Ggr | null>(null);
   const [tax, setTax] = useState<TaxSummary | null>(null);
   const [sales, setSales] = useState<RaffleSales[]>([]);
+  const [salesPage, setSalesPage] = useState(1);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+
+  const SALES_PAGE_SIZE = 10;
 
   const loadReports = useCallback(() => {
     const params = new URLSearchParams();
@@ -55,8 +59,14 @@ export default function AdminReportsPage() {
       setGgr(g);
       setTax(t);
       setSales(s);
+      setSalesPage(1);
     });
   }, [from, to]);
+
+  const paginatedSales = sales.slice(
+    (salesPage - 1) * SALES_PAGE_SIZE,
+    salesPage * SALES_PAGE_SIZE,
+  );
 
   useEffect(() => {
     if (!getOperatorToken()) {
@@ -171,7 +181,7 @@ export default function AdminReportsPage() {
           isEmpty={sales.length === 0}
           emptyTitle="No raffle sales in this range"
         >
-          {sales.map((r) => (
+          {paginatedSales.map((r) => (
             <tr key={r.raffle_id}>
               <td>
                 <Link href={`/admin/raffles/${r.raffle_id}`}>
@@ -183,6 +193,14 @@ export default function AdminReportsPage() {
             </tr>
           ))}
         </AdminTable>
+        {sales.length > 0 && (
+          <AdminPagination
+            page={salesPage}
+            total={sales.length}
+            limit={SALES_PAGE_SIZE}
+            onPage={setSalesPage}
+          />
+        )}
       </div>
     </OperatorAdminShell>
   );

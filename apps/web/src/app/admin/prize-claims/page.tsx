@@ -149,7 +149,9 @@ export default function PrizeClaimsPage() {
               <td><AdminStatusBadge status={c.status} /></td>
               <td>
                 <div className="admin-row-actions">
-                  <Link href={`/admin/prize-claims/${c.id}`}>View</Link>
+                  <Link href={`/admin/prize-claims/${c.id}`} className="btn btn-secondary btn-sm">
+                    View
+                  </Link>
                   {c.prize_type === "physical" && c.status === "pending" && (
                     <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(c.id, "shipped")}>
                       Ship

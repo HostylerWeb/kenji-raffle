@@ -1,5 +1,4 @@
 import "./admin.css";
-import "./admin-modern.css";
 import { AdminToastProvider } from "@/components/admin/AdminToast";
 
 export default function AdminLayout({

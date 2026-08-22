@@ -67,6 +67,9 @@ export function InstantWinPrizesEditor({
             disabled={readOnly}
             onChange={(e) => {
               const on = e.target.checked;
+              if (!on && rows.length > 0 && !window.confirm("Disable instant wins and remove all prize rows?")) {
+                return;
+              }
               onEnabledChange(on);
               if (on && rows.length === 0) onRowsChange([emptyInstantWinRow(1)]);
               if (!on) onRowsChange([]);
@@ -286,20 +289,8 @@ export function InstantWinPrizesEditor({
 
       {!enabled && (
         <p className="muted" style={{ margin: 0 }}>
-          Turn on instant wins to add prize groups and configure how they are drawn on
-          this raffle.
+          Turn on instant wins using the toggle above to add prize groups.
         </p>
-      )}
-
-      {!enabled && !readOnly && (
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ marginTop: 12 }}
-          onClick={ensureEnabledWithRow}
-        >
-          Enable instant wins
-        </button>
       )}
     </div>
   );

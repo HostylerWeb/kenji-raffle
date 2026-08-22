@@ -142,7 +142,11 @@ export default function AdminRafflesPage() {
               <td>KES {r.ticket_price.toLocaleString()}</td>
               <td>{r.is_featured ? "Yes" : "—"}</td>
               <td>
-                <Link href={`/admin/raffles/${r.id}`}>Edit</Link>
+                <div className="admin-row-actions">
+                  <Link href={`/admin/raffles/${r.id}`} className="btn btn-secondary btn-sm">
+                    Edit
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}

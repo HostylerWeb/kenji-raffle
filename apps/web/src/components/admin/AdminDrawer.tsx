@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 
 export function AdminDrawer({
   open,
   title,
   onClose,
   children,
+  footer,
 }: {
   open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  footer?: ReactNode;
 }) {
   useEffect(() => {
     if (!open) return;
@@ -33,6 +35,7 @@ export function AdminDrawer({
         aria-label={title}
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="admin-drawer__accent" />
         <div className="admin-drawer__header">
           <h3>{title}</h3>
           <button type="button" className="admin-drawer__close" onClick={onClose} aria-label="Close">
@@ -40,6 +43,7 @@ export function AdminDrawer({
           </button>
         </div>
         <div className="admin-drawer__body">{children}</div>
+        {footer && <div className="admin-drawer__footer">{footer}</div>}
       </aside>
     </div>
   );

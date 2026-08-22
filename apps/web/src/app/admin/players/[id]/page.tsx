@@ -426,7 +426,7 @@ export default function AdminPlayerDetailPage() {
                       <td>{o.site_credit_applied > 0 ? `KES ${o.site_credit_applied.toLocaleString()}` : "—"}</td>
                       <td><AdminStatusBadge status={o.status} /></td>
                       <td>
-                        <Link href={`/admin/orders/${o.id}`}>View</Link>
+                        <Link href={`/admin/orders/${o.id}`} className="btn btn-secondary btn-sm">View</Link>
                       </td>
                     </tr>
                   ))}
@@ -578,7 +578,7 @@ export default function AdminPlayerDetailPage() {
                       </td>
                       <td className="muted">{r.note ?? "—"}</td>
                       <td>
-                        {r.order_id ? <Link href={`/admin/orders/${r.order_id}`}>View</Link> : "—"}
+                        {r.order_id ? <Link href={`/admin/orders/${r.order_id}`} className="btn btn-secondary btn-sm">View</Link> : "—"}
                       </td>
                     </tr>
                   ))}

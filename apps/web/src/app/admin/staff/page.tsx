@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminAuditEntity } from "@/components/admin/AdminAuditEntity";
+import { AdminConfirm } from "@/components/admin/AdminConfirm";
 import { AdminDrawer } from "@/components/admin/AdminDrawer";
+import { AdminFilters } from "@/components/admin/AdminFilters";
 import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
@@ -88,6 +90,8 @@ function StaffPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("support");
+  const [search, setSearch] = useState("");
+  const [editRole, setEditRole] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -123,7 +127,10 @@ function StaffPageContent() {
       return;
     }
     operatorFetch<StaffDetail>(`/v1/admin/staff/${selectedId}`)
-      .then(setDetail)
+      .then((d) => {
+        setDetail(d);
+        setEditRole(d.role);
+      })
       .catch(() => {
         setSelectedId(null);
         toast("Could not load staff details", "error");
@@ -132,6 +139,7 @@ function StaffPageContent() {
 
   function closeDrawer() {
     setSelectedId(null);
+    setEditRole("");
     if (searchParams.get("member")) {
       router.replace("/admin/staff");
     }
@@ -157,7 +165,7 @@ function StaffPageContent() {
     }
   }
 
-  async function updateRole(staffId: string, newRole: string) {
+  async function updateRole(staffId: string, newRole: string): Promise<boolean> {
     setLoading(true);
     setError("");
     try {
@@ -167,18 +175,55 @@ function StaffPageContent() {
       });
       await loadStaff();
       if (selectedId === staffId) {
-        setDetail(await operatorFetch<StaffDetail>(`/v1/admin/staff/${staffId}`));
+        const refreshed = await operatorFetch<StaffDetail>(`/v1/admin/staff/${staffId}`);
+        setDetail(refreshed);
+        setEditRole(refreshed.role);
       }
       toast("Role updated");
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Update failed");
+      return false;
     } finally {
       setLoading(false);
     }
   }
 
+  async function removeStaff(staffId: string) {
+    setLoading(true);
+    setError("");
+    try {
+      await operatorFetch(`/v1/admin/staff/${staffId}`, { method: "DELETE" });
+      closeDrawer();
+      await loadStaff();
+      toast("Staff member removed");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Remove failed");
+      toast("Could not remove staff member", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function saveDrawerRole() {
+    if (!selectedId || !detail) return;
+    if (editRole === detail.role) {
+      closeDrawer();
+      return;
+    }
+    const ok = await updateRole(selectedId, editRole);
+    if (ok) closeDrawer();
+  }
+
+  const filteredStaff = staff.filter((row) => {
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    return row.email.toLowerCase().includes(q);
+  });
+
   const selectedRow = staff.find((s) => s.id === selectedId);
   const isSelf = selectedId === sessionUserId;
+  const roleDirty = Boolean(detail && editRole !== detail.role);
 
   return (
     <OperatorAdminShell
@@ -196,13 +241,20 @@ function StaffPageContent() {
             <p className="admin-panel__subtitle">{staff.length} staff account{staff.length === 1 ? "" : "s"}</p>
           </div>
         </div>
+        <AdminFilters
+          search={search}
+          onSearch={setSearch}
+          searchPlaceholder="Search email…"
+          hasActive={Boolean(search)}
+          onClear={() => setSearch("")}
+        />
         <AdminTable
           columns={["Email", "Role", "Last login", ""]}
-          isEmpty={staff.length === 0}
-          emptyTitle="No staff yet"
-          emptyDescription="Invite your first team member below."
+          isEmpty={filteredStaff.length === 0}
+          emptyTitle={search ? "No matches" : "No staff yet"}
+          emptyDescription={search ? "Try a different email." : "Invite your first team member below."}
         >
-          {staff.map((row) => (
+          {filteredStaff.map((row) => (
             <tr key={row.id}>
               <td>
                 <button type="button" className="admin-link-btn" onClick={() => setSelectedId(row.id)}>
@@ -213,16 +265,7 @@ function StaffPageContent() {
                 )}
               </td>
               <td>
-                <select
-                  value={row.role}
-                  onChange={(e) => updateRole(row.id, e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="owner">Owner</option>
-                  <option value="manager">Manager</option>
-                  <option value="support">Support</option>
-                  <option value="finance">Finance</option>
-                </select>
+                <span>{ROLE_LABELS[row.role]?.split(" — ")[0] ?? row.role}</span>
               </td>
               <td className="muted">
                 {row.last_login_at ? new Date(row.last_login_at).toLocaleString() : "Never"}
@@ -276,13 +319,64 @@ function StaffPageContent() {
         open={Boolean(selectedId)}
         title={selectedRow?.email ?? "Staff member"}
         onClose={closeDrawer}
+        footer={
+          detail ? (
+            <>
+              {!isSelf && (
+                <AdminConfirm
+                  title="Remove staff member?"
+                  body="They will lose access to this operator dashboard immediately."
+                  confirmLabel="Remove"
+                  danger
+                  onConfirm={() => removeStaff(detail.id)}
+                >
+                  {(open) => (
+                    <button type="button" className="btn btn-danger btn-sm" disabled={loading} onClick={open}>
+                      Remove
+                    </button>
+                  )}
+                </AdminConfirm>
+              )}
+              <div className="admin-form-actions" style={{ marginLeft: "auto", padding: 0 }}>
+                <button type="button" className="btn btn-secondary" onClick={closeDrawer} disabled={loading}>
+                  Cancel
+                </button>
+                {!isSelf && (
+                  <button
+                    type="button"
+                    className="btn"
+                    disabled={loading || !roleDirty}
+                    onClick={saveDrawerRole}
+                  >
+                    {loading ? "Saving…" : "Save"}
+                  </button>
+                )}
+              </div>
+            </>
+          ) : undefined
+        }
       >
         {!detail ? (
           <p className="muted">Loading…</p>
         ) : (
           <>
+            {error && <p className="error">{error}</p>}
             <div className="admin-detail-grid" style={{ marginBottom: 24 }}>
-              <DetailItem label="Role">{ROLE_LABELS[detail.role] ?? detail.role}</DetailItem>
+              {!isSelf ? (
+                <div className="admin-form-grid__full">
+                  <label>
+                    Role
+                    <select value={editRole} onChange={(e) => setEditRole(e.target.value)} disabled={loading}>
+                      <option value="owner">Owner — full access</option>
+                      <option value="manager">Manager — raffles, site, staff</option>
+                      <option value="support">Support — players & claims</option>
+                      <option value="finance">Finance — orders, payments, reports</option>
+                    </select>
+                  </label>
+                </div>
+              ) : (
+                <DetailItem label="Role">{ROLE_LABELS[detail.role] ?? detail.role}</DetailItem>
+              )}
               <DetailItem label="Joined">{formatDate(detail.created_at)}</DetailItem>
               <DetailItem label="Last login">{formatDate(detail.last_login_at)}</DetailItem>
             </div>
