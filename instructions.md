@@ -89,7 +89,10 @@ Custom domains: set `CUSTOM_DOMAIN_CNAME_TARGET` in `.env` (default ingress targ
 
 | Issue | Fix |
 |-------|-----|
-| Operator stuck in onboarding | Ensure `npm run dev:worker` is running; check System page for failed jobs |
+| Operator stuck in onboarding | Ensure `npm run dev:worker` is running; check **System** page for failed jobs |
+| **System → Worker “Not running”** | Start `npm run dev:worker` from repo root. Heartbeat expires after ~2 min if the process stops. Page auto-refreshes every 30s. |
+| **System → Queue failed (high count)** | Usually the worker ran **without `.env`** (`PLATFORM_DATABASE_URL`, `CREDENTIALS_ENCRYPTION_KEY`). Restart worker (it loads `.env` via `--env-file`). On **System**, admins can **Clear failed jobs** after fixing. |
+| **System → Queue waiting `-1`** | Fixed in API — refresh; should show `0`+. If not, restart `dev:api`. |
 | Platform 500 / `Cannot find module` after build | `rm -rf apps/platform/.next` then restart `dev:platform` |
 | API missing routes (404 on cart/checkout) | Restart `dev:api` |
 | Rollups show zero | Run worker or wait for nightly job; sales update on payment complete |
@@ -149,7 +152,11 @@ See [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md).
 | Operator `/admin` | Operator staff | Only their tenant DB |
 | Public site | Players | Only their tenant branding and raffles |
 
-Per-tenant GRA API keys and tenant DB credentials live in the **platform database** (encrypted), not in `.env`. Integration details: [IMPORTANT.md](IMPORTANT.md).
+Per-tenant GRA API keys and tenant DB credentials live in the **platform database** (encrypted), not in `.env`. Integration details: [IMPORTANT.md](IMPORTANT.md), [docs/GRA_INTEGRATION_ARCHITECTURE.md](docs/GRA_INTEGRATION_ARCHITECTURE.md), [docs/GRA_RELAY_RUNBOOK.md](docs/GRA_RELAY_RUNBOOK.md).
+
+**GRA egress:** Only `npm run dev:worker` POSTs to GRA ingest (`:4001`). Tenant API enqueues events only.
+
+**GRA tests:** `npm run test:gra-outbound` or `npm run test:gra-relay-integration`
 
 ## Scaling
 

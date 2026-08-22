@@ -45,6 +45,17 @@ type GraHealthRow = {
   status: string;
   gra_credentials_configured: boolean;
   failed_gra_events_total: number;
+  pending_queue_depth: number;
+  failed_queue_count: number;
+  oldest_pending_at: string | null;
+  oldest_pending_age_minutes: number | null;
+  last_successful_send_at: string | null;
+  gra_last_heartbeat_at: string | null;
+  gra_last_heartbeat_status: string | null;
+  gra_last_heartbeat_error: string | null;
+  alert_stale_pending: boolean;
+  alert_failed_events: boolean;
+  alert_heartbeat_failed: boolean;
 };
 
 export default function ReportsPage() {
@@ -155,17 +166,46 @@ export default function ReportsPage() {
             <tr>
               <th>Operator</th>
               <th>Credentials</th>
+              <th>Pending</th>
+              <th>Oldest pending</th>
+              <th>Last send</th>
+              <th>Heartbeat</th>
               <th>Failed GRA (rollup)</th>
             </tr>
           </thead>
           <tbody>
             {graHealth.map((row) => (
-              <tr key={row.operator_id}>
+              <tr
+                key={row.operator_id}
+                className={
+                  row.alert_stale_pending || row.alert_heartbeat_failed
+                    ? "row-alert"
+                    : undefined
+                }
+              >
                 <td>
                   <Link href={`/operators/${row.operator_id}`}>{row.name}</Link>
                 </td>
                 <td>
                   {row.gra_credentials_configured ? "Configured" : "Missing"}
+                </td>
+                <td>{row.pending_queue_depth}</td>
+                <td>
+                  {row.oldest_pending_age_minutes != null
+                    ? `${row.oldest_pending_age_minutes} min`
+                    : "—"}
+                </td>
+                <td className="muted">
+                  {row.last_successful_send_at
+                    ? new Date(row.last_successful_send_at).toLocaleString()
+                    : "—"}
+                </td>
+                <td>
+                  {row.gra_last_heartbeat_status === "ok"
+                    ? "OK"
+                    : row.gra_last_heartbeat_status === "failed"
+                      ? "Failed"
+                      : "—"}
                 </td>
                 <td>{row.failed_gra_events_total}</td>
               </tr>

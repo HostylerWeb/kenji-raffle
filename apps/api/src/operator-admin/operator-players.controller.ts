@@ -54,11 +54,70 @@ export class OperatorPlayersController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
   ) {
-    return this.players.list(
-      tenant.operatorId,
+    return this.players.list(tenant.operatorId, {
       search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 50,
+    });
+  }
+
+  @Get(":id/orders")
+  getOrders(
+    @TenantCtx() tenant: TenantContext,
+    @Param("id") id: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.players.getOrders(
+      tenant.operatorId,
+      id,
       Number(page) || 1,
-      Number(limit) || 50,
+      Number(limit) || 20,
+    );
+  }
+
+  @Get(":id/tickets")
+  getTickets(
+    @TenantCtx() tenant: TenantContext,
+    @Param("id") id: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.players.getTickets(
+      tenant.operatorId,
+      id,
+      Number(page) || 1,
+      Number(limit) || 25,
+    );
+  }
+
+  @Get(":id/prizes")
+  getPrizes(
+    @TenantCtx() tenant: TenantContext,
+    @Param("id") id: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.players.getPrizes(
+      tenant.operatorId,
+      id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
+  }
+
+  @Get(":id/activity")
+  getActivity(
+    @TenantCtx() tenant: TenantContext,
+    @Param("id") id: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.players.getActivity(
+      tenant.operatorId,
+      id,
+      Number(page) || 1,
+      Number(limit) || 25,
     );
   }
 

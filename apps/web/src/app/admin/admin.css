@@ -29,13 +29,23 @@
   min-height: 100vh;
 }
 
-.admin-root a {
+.admin-main a:not(.admin-sidebar__link):not(.admin-topbar__preview):not(.btn):not(.admin-quick-action-v2) {
   color: var(--admin-accent);
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
-.admin-root a:hover {
+.admin-main a:not(.admin-sidebar__link):not(.admin-topbar__preview):not(.btn):not(.admin-quick-action-v2):hover {
+  color: color-mix(in srgb, var(--admin-accent) 80%, #000);
+}
+
+.admin-login a {
+  color: var(--admin-accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.admin-login a:hover {
   color: color-mix(in srgb, var(--admin-accent) 80%, #000);
 }
 
@@ -48,7 +58,7 @@
 .admin-sidebar {
   width: var(--admin-sidebar-width);
   background: var(--admin-sidebar);
-  color: #e2e8f0;
+  color: var(--admin-text);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -56,7 +66,7 @@
   left: 0;
   bottom: 0;
   z-index: 50;
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 1px solid var(--admin-border);
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -111,9 +121,10 @@
   gap: 10px;
   padding: 9px 12px;
   border-radius: var(--admin-radius-sm);
-  color: #cbd5e1;
+  color: inherit;
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
   margin-bottom: 2px;
 }
@@ -122,22 +133,14 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  opacity: 0.75;
 }
 
 .admin-sidebar__link:hover {
-  background: var(--admin-sidebar-hover);
-  color: #f1f5f9;
+  text-decoration: none;
 }
 
 .admin-sidebar__link--active {
-  background: var(--admin-sidebar-active);
-  color: #fff;
-}
-
-.admin-sidebar__link--active svg {
-  opacity: 1;
-  color: var(--admin-accent);
+  font-weight: 600;
 }
 
 .admin-sidebar__footer {

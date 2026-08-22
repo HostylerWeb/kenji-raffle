@@ -105,6 +105,9 @@ model operator_settings {
   social_links                Json?
   gra_api_key_encrypted       String?
   gra_hmac_secret_encrypted   String?
+  gra_last_heartbeat_at       DateTime? @db.Timestamptz(6)
+  gra_last_heartbeat_status   String?
+  gra_last_heartbeat_error    String?
   payment_merchant_ref_encrypted String?
   feature_flags                Json     @default("{}")
   ga4_measurement_id           String?

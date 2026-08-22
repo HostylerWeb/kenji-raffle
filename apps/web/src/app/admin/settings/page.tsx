@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminTabs } from "@/components/admin/AdminTabs";
+import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
 import { useAdminToast } from "@/components/admin/AdminToast";
 import { getOperatorToken, operatorFetch, operatorUpload } from "@/lib/api";
 
@@ -54,10 +55,6 @@ export default function SettingsPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
-  const [mfaSetupUrl, setMfaSetupUrl] = useState("");
-  const [mfaCode, setMfaCode] = useState("");
-  const [mfaDisableCode, setMfaDisableCode] = useState("");
-  const [mfaDisablePassword, setMfaDisablePassword] = useState("");
 
   useEffect(() => {
     if (!getOperatorToken()) {
@@ -143,7 +140,12 @@ export default function SettingsPage() {
   }
 
   if (!settings) {
-    return <p className="muted">Loading…</p>;
+    return (
+      <div className="admin-loading">
+        <div className="admin-loading__spinner" />
+        Loading settings…
+      </div>
+    );
   }
 
   return (
@@ -168,6 +170,21 @@ export default function SettingsPage() {
 
       {tab !== "security" && (
         <form className="admin-panel" onSubmit={onSubmit}>
+          <div className="admin-panel__header">
+            <div>
+              <h3 className="admin-panel__title">
+                {tab === "branding" && "Branding & site identity"}
+                {tab === "analytics" && "Analytics & tracking"}
+                {tab === "legal" && "Legal pages"}
+              </h3>
+              <p className="admin-panel__subtitle">
+                {tab === "branding" && "Logo, colours, and social links shown on your public site."}
+                {tab === "analytics" && "Optional GA4 and Facebook Pixel integration."}
+                {tab === "legal" && "FAQ, terms, and privacy content for players."}
+              </p>
+            </div>
+          </div>
+          <div className="admin-panel__body">
           {tab === "branding" && (
             <div className="admin-form-grid">
               <label>
@@ -182,20 +199,24 @@ export default function SettingsPage() {
                 Primary color
                 <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
               </label>
-              <label>
+              <div>
                 Logo
                 {logoUrl && <img src={logoUrl} alt="Logo" className="admin-media-preview" />}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    const uploaded = await operatorUpload("/v1/admin/media/upload", file);
-                    setLogoUrl(uploaded.url);
-                  }}
-                />
-              </label>
+                <label className="admin-file-upload" style={{ marginTop: 8 }}>
+                  <span className="admin-file-upload__label">Upload logo</span>
+                  <span className="admin-file-upload__hint">PNG or SVG recommended</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const uploaded = await operatorUpload("/v1/admin/media/upload", file);
+                      setLogoUrl(uploaded.url);
+                    }}
+                  />
+                </label>
+              </div>
               <label className="admin-form-grid__full">
                 Footer licence text
                 <input value={footerLicence} onChange={(e) => setFooterLicence(e.target.value)} />
@@ -247,7 +268,8 @@ export default function SettingsPage() {
             </div>
           )}
           {error && <p className="error">{error}</p>}
-          <div className="admin-form-actions">
+          </div>
+          <div className="admin-form-actions" style={{ padding: "0 22px 22px" }}>
             <button type="submit" className="btn" disabled={loading}>
               {loading ? "Saving…" : "Save settings"}
             </button>
@@ -262,77 +284,24 @@ export default function SettingsPage() {
               <div>
                 <h3 className="admin-panel__title">Two-factor authentication</h3>
                 <p className="admin-panel__subtitle">
-                  {mfaEnabled ? "MFA is enabled on your staff account." : "MFA is not enabled."}
+                  {mfaEnabled ? "MFA is enabled on your staff account." : "Protect your account with an authenticator app."}
                 </p>
               </div>
             </div>
-            {!mfaEnabled && (
-              <div className="admin-form-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={async () => {
-                    const res = await operatorFetch<{ otpauth_url: string }>(
-                      "/v1/admin/auth/mfa/setup",
-                      { method: "POST" },
-                    );
-                    setMfaSetupUrl(res.otpauth_url);
-                  }}
-                >
-                  Generate setup QR
-                </button>
-                {mfaSetupUrl && <p className="muted">Scan in your authenticator app, then enter the code below.</p>}
-                <input value={mfaCode} onChange={(e) => setMfaCode(e.target.value)} placeholder="6-digit code" />
-                <button
-                  type="button"
-                  className="btn"
-                  onClick={async () => {
-                    await operatorFetch("/v1/admin/auth/mfa/enable", {
-                      method: "POST",
-                      body: JSON.stringify({ code: mfaCode }),
-                    });
-                    setMfaEnabled(true);
-                    setMfaCode("");
-                    toast("MFA enabled");
-                  }}
-                >
-                  Enable MFA
-                </button>
-              </div>
-            )}
-            {mfaEnabled && (
-              <div className="admin-form-actions">
-                <input value={mfaDisableCode} onChange={(e) => setMfaDisableCode(e.target.value)} placeholder="MFA code" />
-                <input
-                  type="password"
-                  value={mfaDisablePassword}
-                  onChange={(e) => setMfaDisablePassword(e.target.value)}
-                  placeholder="Password"
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={async () => {
-                    await operatorFetch("/v1/admin/auth/mfa/disable", {
-                      method: "POST",
-                      body: JSON.stringify({
-                        code: mfaDisableCode,
-                        password: mfaDisablePassword,
-                      }),
-                    });
-                    setMfaEnabled(false);
-                    setMfaDisableCode("");
-                    setMfaDisablePassword("");
-                    toast("MFA disabled");
-                  }}
-                >
-                  Disable MFA
-                </button>
-              </div>
-            )}
+            <AdminMfaPanel
+              mfaEnabled={mfaEnabled}
+              onStatusChange={setMfaEnabled}
+              showSettingsLink={false}
+            />
           </div>
           <form className="admin-panel" onSubmit={changePassword}>
-            <h3 className="admin-panel__title">Change password</h3>
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">Change password</h3>
+                <p className="admin-panel__subtitle">Update your staff account password.</p>
+              </div>
+            </div>
+            <div className="admin-panel__body">
             <div className="admin-form-grid">
               <label>
                 Current password
@@ -343,7 +312,8 @@ export default function SettingsPage() {
                 <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
               </label>
             </div>
-            <div className="admin-form-actions">
+            </div>
+            <div className="admin-form-actions" style={{ padding: "0 22px 22px" }}>
               <button type="submit" className="btn btn-secondary">Update password</button>
             </div>
           </form>

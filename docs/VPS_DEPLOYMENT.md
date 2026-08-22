@@ -180,10 +180,13 @@ JWT_REFRESH_EXPIRES_IN="7d"
 
 # --- GRA (operator outbound events — not card processing) ---
 GRA_INGEST_URL="https://srv1781529.hstgr.cloud:4001/v1"   # or your ingest host
+# GRA_RELAY_BATCH_SIZE=50          # events per relay run (default 50)
+# GRA_RELAY_MAX_PER_MINUTE=50      # per-operator cap (GRA limit is 60/min)
+# GRA_RELAY_OPERATOR_CONCURRENCY=3 # parallel tenants during sweep
 
 # --- Payments (payment gateway — NOT GRA ingest) ---
 HARAMBE_PAYMENT_MODE="live"
-# HARAMBE_GATEWAY_URL="https://payments.your-domain/v1/pay"
+# HARAMBE_GATEWAY_URL="https://payments.your-domain/v1/charge"   # kenji-gateway :4003 locally
 
 # --- Email (alerts, password reset) ---
 SMTP_HOST="smtp.example.com"
@@ -252,6 +255,18 @@ WantedBy=multi-user.target
 ```
 
 ### Worker (required)
+
+**GRA egress:** Only this service needs outbound HTTPS to `GRA_INGEST_URL`. The API enqueues `gra_outbound_events` in tenant DBs and schedules BullMQ jobs — it does not POST to GRA on checkout. Exception: platform **Test GRA connection** (admin diagnostic).
+
+Scheduled GRA jobs (BullMQ, in `apps/worker`):
+
+| Job | Schedule | Purpose |
+|-----|----------|---------|
+| `process-gra-outbound` | On demand after purchase/refund | Per-operator relay |
+| `gra-outbound-sweep` | Every 5 min | Safety net for all tenants |
+| `gra-heartbeat` | Daily 06:00 UTC | Credential + connectivity check |
+
+Relay logs (JSON): `journalctl -u kenji-raffle-worker | grep gra_relay_run`
 
 ```ini
 # /etc/systemd/system/kenji-raffle-worker.service
@@ -573,9 +588,18 @@ Ensure `npm run dev:worker` equivalent (`kenji-raffle-worker.service`) is always
 
 ### GRA connection / ingest failures
 
-**Cause:** `GRA_INGEST_URL` wrong, GRA service down, or operator GRA keys missing.
+**Cause:** `GRA_INGEST_URL` wrong, GRA service down, operator GRA keys missing, worker not running, or rate limit (429).
 
-**Fix:** Test GRA ingest from VPS: `curl -s "$GRA_INGEST_URL/health"`. Set keys on operator detail in platform console (must match GRA **Operator API Credentials** for the same `gra_registry_id`). See [IMPORTANT.md](../IMPORTANT.md) for event mapping.
+**Fix:**
+
+1. `systemctl status kenji-raffle-worker` — relay only runs here
+2. `journalctl -u kenji-raffle-worker | grep gra_relay_run` — check `gra_relay_backlog`, `gra_relay_http_429_total`
+3. Platform **Reports → GRA health** — pending age, heartbeat status
+4. Test ingest: platform console → operator → **Test GRA connection**
+5. Retry failed rows: platform drill-down or operator `/admin/gra-events` (resets to `pending`, enqueues job — no API HTTP to GRA)
+6. If GRA IP allowlist enabled: whitelist **worker egress IP**, not API pods
+
+See [docs/GRA_RELAY_RUNBOOK.md](GRA_RELAY_RUNBOOK.md). Event mapping: [IMPORTANT.md](../IMPORTANT.md).
 
 ---
 
@@ -647,10 +671,16 @@ npm run generate -w @kenji-raffle/database-platform
 npm run generate -w @kenji-raffle/database-tenant
 ```
 
-3. Run tenant migrations when tenant schema changed:
+3. Run tenant migrations when tenant schema changed (includes `gra_outbound_events.next_attempt_at` for relay backoff):
 
 ```bash
 npm run migrate:tenants
+```
+
+4. After pull that adds platform heartbeat columns (`operator_settings.gra_last_heartbeat_*`):
+
+```bash
+cd /var/www/Kenji-raffle/packages/database-platform && npx prisma migrate deploy
 ```
 
 ### Environment variables (tenant API + worker)
@@ -659,11 +689,15 @@ npm run migrate:tenants
 |----------|---------|
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Transactional email (Mailpit in dev, real SMTP in prod) |
 | `PLAYER_AUTO_VERIFY_EMAIL` | `true` in dev; **`false` on VPS** so players must verify email before purchase |
-| `GRA_INGEST_URL` | Kenji Government ingest base (e.g. `https://gra.example.com/v1`) — outbound events only |
+| `GRA_INGEST_URL` | Kenji Government ingest base — **set on worker**; API uses only for Test GRA button |
+| `GRA_RELAY_BATCH_SIZE` | Max events per relay batch (default `50`) |
+| `GRA_RELAY_MAX_PER_MINUTE` | Per-operator send cap (default `50`, GRA hard limit `60`) |
+| `GRA_RELAY_OPERATOR_CONCURRENCY` | Parallel tenants during sweep (default `3`) |
 | `CREDENTIALS_ENCRYPTION_KEY` | Decrypt tenant DB URLs + operator GRA keys |
 | `HARAMBE_PAYMENT_MODE` | `mock` (default) or `live` when gateway is deployed |
-| `HARAMBE_CALLBACK_SECRET` | Required for live callback `POST /v1/payments/harambe/callback` |
-| `REDIS_URL` | Worker queues (GRA outbound, auto-draw, cart expiry) |
+| `HARAMBE_GATEWAY_URL` | **kenji-gateway** checkout URL (port **4003** locally) — not GRA `:4001` |
+| `HARAMBE_CALLBACK_SECRET` | Shared secret for gateway → raffle callback |
+| `REDIS_URL` | Worker queues (GRA relay, auto-draw, cart expiry) |
 
 ### Operator configuration (per tenant)
 
@@ -676,14 +710,28 @@ npm run migrate:tenants
 
 The worker must process:
 
-- `process-gra-outbound` — triggered after each purchase; retries failed GRA ingest rows
+- `process-gra-outbound` — relay queued events to GRA (HMAC-signed); triggered after each purchase
+- `gra-outbound-sweep` — every 5 minutes, all active tenants
+- `gra-heartbeat` — daily credential check; status on platform Reports → GRA health
 - `auto-draw-check` — every 15 minutes for `draw_type=automatic` raffles past `end_date`
 - `cart-expiry` — every 5 minutes
+
+**Payment ledger:** Raffle relay does **not** populate GRA `payment_transactions`. Deploy **kenji-gateway** (`/var/www/kenji-gateway`, port **4003**) or use `kenji-government/tools/gateway-simulator/simulate-charge.sh` for regulatory ledger rows via `POST /v1/gateway/notify`.
+
+Ops runbook: [docs/GRA_RELAY_RUNBOOK.md](GRA_RELAY_RUNBOOK.md) · Architecture: [docs/GRA_INTEGRATION_ARCHITECTURE.md](GRA_INTEGRATION_ARCHITECTURE.md)
 
 ```bash
 systemctl status kenji-raffle-worker
 journalctl -u kenji-raffle-worker -n 50 --no-pager
 ```
+
+### GRA smoke test (relay)
+
+1. Platform console → operator → **Test GRA connection**
+2. Complete a purchase on tenant site
+3. Operator `/admin/gra-events` — rows move `pending` → `sent` within ~1 min (worker running)
+4. Platform **Reports → GRA health** — pending depth `0`, heartbeat OK after daily job or manual test
+5. For payment **ledger** in GRA staff console: run gateway simulator or `kenji-gateway` charge (separate from raffle relay)
 
 ### Smoke test
 

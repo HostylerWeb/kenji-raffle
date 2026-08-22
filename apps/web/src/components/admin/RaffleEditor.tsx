@@ -191,7 +191,9 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
       return;
     }
     operatorFetch<Settings>("/v1/admin/settings").then(setSettings);
-    operatorFetch<Category[]>("/v1/admin/categories").then(setCategories);
+    operatorFetch<{ items: Category[] }>("/v1/admin/categories?limit=100").then((res) =>
+      setCategories(res.items),
+    );
     if (raffleId) load(raffleId).catch(() => router.replace("/admin/raffles"));
   }, [router, raffleId, load]);
 
@@ -540,11 +542,21 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
 
       {error && <p className="error">{error}</p>}
 
-      <RaffleWorkflowBanner
-        status={status}
-        ticketsGenerated={ticketsGenerated}
-        hasInstantWins={instantWinCount > 0}
-      />
+      {isCreate ? (
+        <div className="admin-callout">
+          <div>
+            <strong>Creating a new raffle</strong>
+            Fill in the basics on <em>Setup</em>, add instant wins or media if you want, then click{" "}
+            <strong>Create raffle</strong> at the bottom. You can generate tickets and go live after saving.
+          </div>
+        </div>
+      ) : (
+        <RaffleWorkflowBanner
+          status={status}
+          ticketsGenerated={ticketsGenerated}
+          hasInstantWins={instantWinCount > 0}
+        />
+      )}
 
       <AdminTabs active={tab} onChange={setTab} tabs={editorTabs} />
 
@@ -553,88 +565,151 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
           <div className="admin-panel">
             <div className="admin-panel__header">
               <div>
-                <h3 className="admin-panel__title">Details</h3>
-                <p className="admin-panel__subtitle">Shown on the public raffle page.</p>
+                <h3 className="admin-panel__title">Raffle details</h3>
+                <p className="admin-panel__subtitle">Title and description shown on your public site.</p>
               </div>
             </div>
-            <div className="admin-form-grid">
-              <label className="admin-form-grid__full">
-                Title
-                <input value={title} onChange={(e) => setTitle(e.target.value)} required />
-              </label>
-              {!isCreate && (
-                <label className="admin-form-grid__full">
-                  Slug
-                  <input value={slug} onChange={(e) => setSlug(e.target.value)} required />
-                </label>
-              )}
-              <label className="admin-form-grid__full">
-                Description
-                <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
-              </label>
-              <label>
-                Ticket price (KES)
-                <input type="number" min={1} value={ticketPrice} onChange={(e) => setTicketPrice(e.target.value)} />
-              </label>
-              <label>
-                Max entries
-                <input type="number" min={1} value={maxEntries} onChange={(e) => setMaxEntries(e.target.value)} />
-              </label>
-              <label>
-                Min tickets before draw
-                <input type="number" min={0} value={minTickets} onChange={(e) => setMinTickets(e.target.value)} />
-              </label>
-              <label>
-                Max tickets per user
-                <input
-                  type="number"
-                  min={1}
-                  value={ticketLimitPerUser}
-                  onChange={(e) => setTicketLimitPerUser(e.target.value)}
-                  placeholder="No limit"
-                />
-              </label>
-              <label>
-                Draw type
-                <select value={drawType} onChange={(e) => setDrawType(e.target.value)}>
-                  <option value="manual">manual</option>
-                  <option value="automatic">automatic</option>
-                  <option value="scheduled">scheduled</option>
-                </select>
-              </label>
-              <label>
-                Number of winners
-                <input type="number" min={1} value={numberOfWinners} onChange={(e) => setNumberOfWinners(e.target.value)} />
-              </label>
-              {drawType === "scheduled" && (
+            <div className="admin-panel__body">
+              <div className="admin-form-section">
+                <div className="admin-form-grid">
+                  <label className="admin-form-grid__full">
+                    Title
+                    <input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g. Win a brand new SUV"
+                      required
+                    />
+                    <span className="field-hint">Keep it short and clear for players.</span>
+                  </label>
+                  {!isCreate && (
+                    <label className="admin-form-grid__full">
+                      URL slug
+                      <input value={slug} onChange={(e) => setSlug(e.target.value)} required />
+                      <span className="field-hint">Used in the public raffle link.</span>
+                    </label>
+                  )}
+                  <label className="admin-form-grid__full">
+                    Description
+                    <textarea
+                      rows={4}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Prize details, draw rules, and what makes this raffle special…"
+                    />
+                  </label>
+                  {categories.length > 0 && (
+                    <label>
+                      Category
+                      <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                        <option value="">None</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  <label className="admin-form-grid__checkbox">
+                    <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
+                    Feature on home page
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-panel">
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">Tickets &amp; draw</h3>
+                <p className="admin-panel__subtitle">Pricing, limits, and when the draw runs.</p>
+              </div>
+            </div>
+            <div className="admin-panel__body">
+              <div className="admin-form-grid admin-form-grid--3">
                 <label>
-                  Scheduled draw at
-                  <input type="datetime-local" value={scheduledDrawAt} onChange={(e) => setScheduledDrawAt(e.target.value)} />
+                  Ticket price (KES)
+                  <input
+                    type="number"
+                    min={1}
+                    value={ticketPrice}
+                    onChange={(e) => setTicketPrice(e.target.value)}
+                  />
                 </label>
-              )}
-              {categories.length > 0 && (
                 <label>
-                  Category
-                  <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                    <option value="">None</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                  Total tickets
+                  <input
+                    type="number"
+                    min={1}
+                    value={maxEntries}
+                    onChange={(e) => setMaxEntries(e.target.value)}
+                  />
+                  <span className="field-hint">Size of the ticket pool.</span>
+                </label>
+                <label>
+                  Min tickets to draw
+                  <input
+                    type="number"
+                    min={0}
+                    value={minTickets}
+                    onChange={(e) => setMinTickets(e.target.value)}
+                  />
+                  <span className="field-hint">0 = no minimum.</span>
+                </label>
+                <label>
+                  Max per player
+                  <input
+                    type="number"
+                    min={1}
+                    value={ticketLimitPerUser}
+                    onChange={(e) => setTicketLimitPerUser(e.target.value)}
+                    placeholder="No limit"
+                  />
+                </label>
+                <label>
+                  Draw type
+                  <select value={drawType} onChange={(e) => setDrawType(e.target.value)}>
+                    <option value="manual">Manual — you run the draw</option>
+                    <option value="automatic">Automatic — when raffle ends</option>
+                    <option value="scheduled">Scheduled — fixed date/time</option>
                   </select>
                 </label>
-              )}
-              <label>
-                Start date
-                <input type="datetime-local" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-              </label>
-              <label>
-                End date
-                <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </label>
-              <label className="admin-form-grid__checkbox">
-                <input type="checkbox" checked={isFeatured} onChange={(e) => setIsFeatured(e.target.checked)} />
-                Featured on home
-              </label>
+                <label>
+                  Number of winners
+                  <input
+                    type="number"
+                    min={1}
+                    value={numberOfWinners}
+                    onChange={(e) => setNumberOfWinners(e.target.value)}
+                  />
+                </label>
+                {drawType === "scheduled" && (
+                  <label>
+                    Scheduled draw at
+                    <input
+                      type="datetime-local"
+                      value={scheduledDrawAt}
+                      onChange={(e) => setScheduledDrawAt(e.target.value)}
+                    />
+                  </label>
+                )}
+                <label>
+                  Sale starts
+                  <input
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                  />
+                </label>
+                <label>
+                  Sale ends
+                  <input
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                  />
+                </label>
+              </div>
             </div>
           </div>
         </div>
@@ -672,33 +747,55 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
             <div className="admin-panel__header">
               <div>
                 <h3 className="admin-panel__title">Featured image</h3>
-                <p className="admin-panel__subtitle">Hero and card image.</p>
+                <p className="admin-panel__subtitle">Main image on the raffle card and detail page.</p>
               </div>
             </div>
-            {featuredUrl && <img src={featuredUrl} alt="" className="admin-media-preview" />}
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) uploadFeatured(file);
-            }} />
+            <div className="admin-panel__body">
+              {featuredUrl && <img src={featuredUrl} alt="" className="admin-media-preview" />}
+              <label className="admin-file-upload">
+                <span className="admin-file-upload__label">Upload featured image</span>
+                <span className="admin-file-upload__hint">JPG or PNG, up to 10 MB</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadFeatured(file);
+                  }}
+                />
+              </label>
+            </div>
           </div>
           <div className="admin-panel">
             <div className="admin-panel__header">
               <div>
                 <h3 className="admin-panel__title">Gallery</h3>
-                <p className="admin-panel__subtitle">Additional photos on the public page.</p>
+                <p className="admin-panel__subtitle">Extra photos on the public raffle page.</p>
               </div>
             </div>
-            <div className="admin-gallery-grid">
-              {gallery.map((img) => (
-                <div key={img.id} className="admin-gallery-item">
-                  <img src={img.image_url} alt="" />
+            <div className="admin-panel__body">
+              {gallery.length > 0 && (
+                <div className="admin-gallery-grid">
+                  {gallery.map((img) => (
+                    <div key={img.id} className="admin-gallery-item">
+                      <img src={img.image_url} alt="" />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              <label className="admin-file-upload">
+                <span className="admin-file-upload__label">Add gallery image</span>
+                <span className="admin-file-upload__hint">You can upload multiple images one at a time</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) addGallery(file);
+                  }}
+                />
+              </label>
             </div>
-            <input type="file" accept="image/*" onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) addGallery(file);
-            }} />
           </div>
         </div>
       )}
@@ -709,11 +806,17 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
             <div className="admin-panel__header">
               <div>
                 <h3 className="admin-panel__title">Main prizes</h3>
-                <p className="admin-panel__subtitle">Awarded at the end-of-raffle draw.</p>
+                <p className="admin-panel__subtitle">Awarded at the end-of-raffle draw (not instant wins).</p>
               </div>
             </div>
+            <div className="admin-panel__body">
+            {prizes.length === 0 && (
+              <p className="muted" style={{ marginBottom: 16 }}>
+                No main prizes yet — add at least one before going live.
+              </p>
+            )}
             {prizes.map((p) => (
-              <div key={p.key} className="admin-form-grid" style={{ marginBottom: 12 }}>
+              <div key={p.key} className="admin-form-grid" style={{ marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid var(--admin-border)" }}>
                 <label>
                   Name
                   <input value={p.name} onChange={(e) => setPrizes((rows) => rows.map((r) => r.key === p.key ? { ...r, name: e.target.value } : r))} />
@@ -764,6 +867,7 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                 <button type="submit" className="btn btn-secondary">Add prize</button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
@@ -774,9 +878,13 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
             <div className="admin-panel__header">
               <div>
                 <h3 className="admin-panel__title">Quantity discounts</h3>
-                <p className="admin-panel__subtitle">Applied automatically in the cart.</p>
+                <p className="admin-panel__subtitle">Automatic cart discounts when players buy in bulk.</p>
               </div>
             </div>
+            <div className="admin-panel__body">
+            {discountTiers.length === 0 && (
+              <p className="muted" style={{ marginBottom: 16 }}>No discount tiers — optional.</p>
+            )}
             {discountTiers.map((t) => (
               <p key={t.key} className="muted">
                 {t.min_quantity}+ tickets · {t.discount_type} {t.discount_value}
@@ -816,6 +924,7 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                 <button type="submit" className="btn btn-secondary">Add tier</button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
@@ -827,10 +936,11 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
               <div>
                 <h3 className="admin-panel__title">Go live</h3>
                 <p className="admin-panel__subtitle">
-                  Generate the ticket pool, then publish. One click can do both.
+                  Generate the ticket pool, then publish so players can buy.
                 </p>
               </div>
             </div>
+            <div className="admin-panel__body">
             {raffle.ticket_counts && (
               <p className="muted">
                 Tickets — available {raffle.ticket_counts.available}, reserved {raffle.ticket_counts.reserved},
@@ -915,17 +1025,23 @@ export function RaffleEditor({ raffleId }: { raffleId?: string }) {
                 </AdminConfirm>
               )}
             </div>
+            </div>
           </div>
         </div>
       )}
 
       <div className="admin-sticky-footer">
         <button type="button" className="btn" disabled={loading} onClick={saveAll}>
-          {loading ? "Saving…" : isCreate ? "Create raffle" : "Save"}
+          {loading ? "Saving…" : isCreate ? "Create raffle" : "Save changes"}
         </button>
         <Link href="/admin/raffles" className="btn btn-secondary">
-          Back to raffles
+          Cancel
         </Link>
+        {!isCreate && tab !== "publish" && (
+          <span className="muted" style={{ marginLeft: "auto", fontSize: 13 }}>
+            Use the <strong>Go live</strong> tab when you are ready to sell tickets.
+          </span>
+        )}
       </div>
     </OperatorAdminShell>
   );

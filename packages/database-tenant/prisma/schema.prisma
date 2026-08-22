@@ -572,10 +572,12 @@ model gra_outbound_events {
   status      gra_event_status @default(pending)
   retry_count Int              @default(0)
   last_error  String?
+  next_attempt_at DateTime?    @db.Timestamptz(6)
   created_at  DateTime         @default(now()) @db.Timestamptz(6)
   processed_at DateTime?        @db.Timestamptz(6)
 
   @@index([status, created_at])
+  @@index([status, next_attempt_at, created_at])
 }
 
 model media {

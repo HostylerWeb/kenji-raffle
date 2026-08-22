@@ -12,7 +12,7 @@ export function AdminPageHeader({
 }) {
   if (!crumbs?.length && !extra) return null;
   return (
-    <div className="admin-page-header">
+    <div className="admin-subheader">
       {crumbs && crumbs.length > 0 && (
         <p className="admin-breadcrumb">
           {crumbs.map((c, i) => (

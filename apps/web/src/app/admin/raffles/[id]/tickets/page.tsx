@@ -132,11 +132,17 @@ export default function RaffleTicketsPage() {
       {error && <p className="error">{error}</p>}
 
       <div className="admin-panel">
-        <p>
-          Pool size: <strong>{raffle.max_entries}</strong>
-        </p>
+        <div className="admin-panel__header">
+          <div>
+            <h3 className="admin-panel__title">Pool overview</h3>
+            <p className="admin-panel__subtitle">
+              Pool size: <strong>{raffle.max_entries.toLocaleString()}</strong> tickets
+            </p>
+          </div>
+        </div>
+        <div className="admin-panel__body">
         {summary && (
-          <p className="muted">
+          <p className="muted" style={{ marginTop: 0 }}>
             Available {summary.available} · Reserved {summary.reserved} ·
             Purchased {summary.purchased} · Cancelled {summary.cancelled} ·
             Winning {summary.winning} · Total {summary.total}
@@ -147,9 +153,13 @@ export default function RaffleTicketsPage() {
             Generate ticket pool
           </button>
         )}
+        </div>
       </div>
 
       <div className="admin-panel">
+        <div className="admin-panel__header">
+          <h3 className="admin-panel__title">Ticket list</h3>
+        </div>
         <AdminFilters>
           <select
             value={statusFilter}
@@ -185,16 +195,16 @@ export default function RaffleTicketsPage() {
           ))}
         </AdminTable>
         {tickets && tickets.total > tickets.limit && (
-          <div className="admin-form-actions">
-            <button type="button" className="btn btn-secondary" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}>
+          <div className="admin-pagination">
+            <button type="button" className="btn btn-secondary btn-sm" disabled={page <= 1 || loading} onClick={() => setPage((p) => p - 1)}>
               Previous
             </button>
-            <span className="muted">
+            <span className="admin-pagination__info">
               Page {tickets.page} of {Math.ceil(tickets.total / tickets.limit)}
             </span>
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn btn-secondary btn-sm"
               disabled={page >= Math.ceil(tickets.total / tickets.limit) || loading}
               onClick={() => setPage((p) => p + 1)}
             >

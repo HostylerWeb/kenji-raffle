@@ -19,6 +19,7 @@ import { TenantCtx } from "../tenant/tenant.decorators";
 import { OperatorTenantGuard } from "./operator-tenant.guard";
 import { OperatorRolesGuard } from "./operator-roles.guard";
 import { CurrentOperatorStaff, OperatorRoles } from "./operator.decorators";
+import { paginate } from "../common/pagination";
 
 @ApiTags("operator-media")
 @ApiBearerAuth()
@@ -37,8 +38,11 @@ export class OperatorMediaController {
     @Query("limit") limit?: string,
   ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
-    const take = Math.min(Number(limit) || 50, 100);
-    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+    const { take, skip, page: currentPage, limit: currentLimit } = paginate(
+      Number(page) || 1,
+      Number(limit) || 50,
+      100,
+    );
 
     const [rows, total] = await Promise.all([
       client.media.findMany({
@@ -59,8 +63,8 @@ export class OperatorMediaController {
         created_at: m.created_at.toISOString(),
       })),
       total,
-      page: Math.max(Number(page) || 1, 1),
-      limit: take,
+      page: currentPage,
+      limit: currentLimit,
     };
   }
 

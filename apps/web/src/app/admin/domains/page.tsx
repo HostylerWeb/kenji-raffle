@@ -4,6 +4,9 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
+import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { AdminTable } from "@/components/admin/AdminTable";
+import { useAdminToast } from "@/components/admin/AdminToast";
 import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type DomainRow = {
@@ -43,14 +46,13 @@ type DomainsResponse = {
 
 export default function OperatorDomainsPage() {
   const router = useRouter();
+  const { toast } = useAdminToast();
   const [data, setData] = useState<DomainsResponse | null>(null);
   const [hostname, setHostname] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [branding, setBranding] = useState<{ name?: string; primary_color?: string }>(
-    {},
-  );
+  const [branding, setBranding] = useState<{ name?: string; primary_color?: string }>({});
 
   async function load() {
     const res = await operatorFetch<DomainsResponse>("/v1/admin/domains");
@@ -62,12 +64,8 @@ export default function OperatorDomainsPage() {
       router.replace("/admin/login");
       return;
     }
-    operatorFetch<{ name: string; branding: { primary_color?: string } }>(
-      "/v1/admin/settings",
-    )
-      .then((s) =>
-        setBranding({ name: s.name, primary_color: s.branding.primary_color }),
-      )
+    operatorFetch<{ name: string; branding: { primary_color?: string } }>("/v1/admin/settings")
+      .then((s) => setBranding({ name: s.name, primary_color: s.branding.primary_color }))
       .catch(() => undefined);
     load().catch(() => router.replace("/admin/login"));
   }, [router]);
@@ -85,6 +83,7 @@ export default function OperatorDomainsPage() {
       setHostname("");
       setMessage("Domain added. Add the DNS records below at Cloudflare, then verify.");
       await load();
+      toast("Domain added");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add domain");
     } finally {
@@ -101,11 +100,11 @@ export default function OperatorDomainsPage() {
         `/v1/admin/domains/${domainId}/verify-dns`,
         { method: "POST" },
       );
-      setMessage(
-        result.verified
-          ? "DNS verified. Your domain should be live within a few minutes."
-          : "DNS not detected yet. Wait 15–30 minutes and try again.",
-      );
+      const msg = result.verified
+        ? "DNS verified. Your domain should be live within a few minutes."
+        : "DNS not detected yet. Wait 15–30 minutes and try again.";
+      setMessage(msg);
+      toast(result.verified ? "DNS verified" : "DNS not ready yet", result.verified ? "success" : "info");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
@@ -115,92 +114,114 @@ export default function OperatorDomainsPage() {
   }
 
   return (
-    <OperatorAdminShell title="Domains & go live" description="Connect a custom hostname after you preview on staging." branding={branding}>
+    <OperatorAdminShell
+      title="Domains & go live"
+      description="Connect a custom hostname after you preview on staging."
+      branding={branding}
+    >
       {data && (
         <>
-          <div className="admin-panel">
-            <h2 style={{ marginTop: 0 }}>How go-live works</h2>
-            <p className="muted">
-              DNS is set at <strong>Cloudflare</strong> (or your registrar), not in
-              this dashboard. We show the records to add; you paste them in
-              Cloudflare → DNS.
-            </p>
-            <ol className="checklist">
-              {data.go_live_steps.map((step) => (
-                <li key={step.step}>
-                  <strong>{step.title}</strong> — {step.detail}
-                  {step.href && (
-                    <>
-                      {" "}
-                      <Link href={step.href}>Open</Link>
-                    </>
-                  )}
-                </li>
-              ))}
-            </ol>
-            {data.staging_hostname && (
-              <p className="muted">
-                Staging / preview:{" "}
-                <a href={`http://${data.staging_hostname}:3002`} target="_blank" rel="noreferrer">
-                  {data.staging_hostname}
-                </a>
-              </p>
-            )}
+          <div className="admin-callout">
+            <div>
+              <strong>How go-live works</strong>
+              DNS is configured at Cloudflare (or your registrar), not in this dashboard.
+              Add the records below in Cloudflare → DNS, then click Verify.
+            </div>
           </div>
 
           <div className="admin-panel">
-            <h2 style={{ marginTop: 0 }}>Your domains</h2>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Hostname</th>
-                  <th>Type</th>
-                  <th>DNS</th>
-                  <th>SSL</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.domains.map((domain) => (
-                  <tr key={domain.id}>
-                    <td>{domain.hostname}</td>
-                    <td>{domain.domain_type}</td>
-                    <td>{domain.verification_status}</td>
-                    <td>{domain.ssl_status}</td>
-                    <td>
-                      {domain.domain_type === "custom" &&
-                        domain.verification_status !== "verified" && (
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            disabled={loading}
-                            onClick={() => verifyDns(domain.id)}
-                          >
-                            Verify DNS
-                          </button>
-                        )}
-                    </td>
-                  </tr>
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">Go-live steps</h3>
+                <p className="admin-panel__subtitle">Follow these in order for a smooth launch.</p>
+              </div>
+            </div>
+            <div className="admin-panel__body">
+              <ol className="admin-checklist">
+                {data.go_live_steps.map((step) => (
+                  <li key={step.step}>
+                    <span className="admin-checklist__step">{step.step}</span>
+                    <span>
+                      <strong>{step.title}</strong> — {step.detail}
+                      {step.href && (
+                        <>
+                          {" "}
+                          <Link href={step.href}>Open →</Link>
+                        </>
+                      )}
+                    </span>
+                  </li>
                 ))}
-              </tbody>
-            </table>
+              </ol>
+              {data.staging_hostname && (
+                <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
+                  Staging preview:{" "}
+                  <a href={`http://${data.staging_hostname}:3002`} target="_blank" rel="noreferrer">
+                    {data.staging_hostname}
+                  </a>
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="admin-panel">
-            <h2 style={{ marginTop: 0 }}>DNS records to add (Cloudflare)</h2>
-            <p className="muted">
-              CNAME target: <code>{data.dns_instructions.cname_target}</code>
-            </p>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Name</th>
-                  <th>Value</th>
-                  <th>Note</th>
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">Your domains</h3>
+                <p className="admin-panel__subtitle">{data.domains.length} hostname{data.domains.length === 1 ? "" : "s"}</p>
+              </div>
+            </div>
+            <AdminTable
+              columns={["Hostname", "Type", "DNS", "SSL", ""]}
+              isEmpty={data.domains.length === 0}
+              emptyTitle="No domains"
+              emptyDescription="Add a custom hostname below."
+            >
+              {data.domains.map((domain) => (
+                <tr key={domain.id}>
+                  <td>
+                    <strong>{domain.hostname}</strong>
+                    {domain.is_primary && (
+                      <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>
+                        Primary
+                      </span>
+                    )}
+                  </td>
+                  <td>{domain.domain_type}</td>
+                  <td>
+                    <AdminStatusBadge status={domain.verification_status} />
+                  </td>
+                  <td>
+                    <AdminStatusBadge status={domain.ssl_status} />
+                  </td>
+                  <td>
+                    {domain.domain_type === "custom" && domain.verification_status !== "verified" && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        disabled={loading}
+                        onClick={() => verifyDns(domain.id)}
+                      >
+                        Verify DNS
+                      </button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
+              ))}
+            </AdminTable>
+          </div>
+
+          <div className="admin-panel">
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">DNS records to add</h3>
+                <p className="admin-panel__subtitle">
+                  CNAME target: <code>{data.dns_instructions.cname_target}</code>
+                </p>
+              </div>
+            </div>
+            <div className="admin-dns-table">
+              <AdminTable columns={["Type", "Name", "Value", "Note"]} isEmpty={data.dns_instructions.records.length === 0}>
                 {data.dns_instructions.records.map((row) => (
                   <tr key={`${row.type}-${row.name}`}>
                     <td>{row.type}</td>
@@ -209,23 +230,30 @@ export default function OperatorDomainsPage() {
                     <td className="muted">{row.note}</td>
                   </tr>
                 ))}
-              </tbody>
-            </table>
-            <ul className="muted">
-              {data.dns_instructions.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
+              </AdminTable>
+            </div>
+            {data.dns_instructions.warnings.length > 0 && (
+              <div className="admin-panel__body" style={{ paddingTop: 0 }}>
+                <ul className="muted" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                  {data.dns_instructions.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="admin-panel">
-            <h2 style={{ marginTop: 0 }}>Add custom domain</h2>
-            <p className="muted">
-              Example: <code>www.yourbrand.co.ke</code> or{" "}
-              <code>raffles.yourbrand.co.ke</code>
-            </p>
-            <form className="form" onSubmit={addDomain}>
-              <label>
+            <div className="admin-panel__header">
+              <div>
+                <h3 className="admin-panel__title">Add custom domain</h3>
+                <p className="admin-panel__subtitle">
+                  Example: <code>www.yourbrand.co.ke</code>
+                </p>
+              </div>
+            </div>
+            <form className="admin-form-grid" onSubmit={addDomain} style={{ paddingBottom: 22 }}>
+              <label className="admin-form-grid__full">
                 Hostname
                 <input
                   value={hostname}
@@ -234,11 +262,13 @@ export default function OperatorDomainsPage() {
                   required
                 />
               </label>
-              {error && <p className="error">{error}</p>}
-              {message && <p className="muted">{message}</p>}
-              <button type="submit" className="btn" disabled={loading}>
-                Add domain
-              </button>
+              {error && <p className="error admin-form-grid__full">{error}</p>}
+              {message && <p className="muted admin-form-grid__full" style={{ margin: 0 }}>{message}</p>}
+              <div className="admin-form-grid__full admin-form-actions" style={{ padding: 0 }}>
+                <button type="submit" className="btn" disabled={loading}>
+                  {loading ? "Adding…" : "Add domain"}
+                </button>
+              </div>
             </form>
           </div>
         </>

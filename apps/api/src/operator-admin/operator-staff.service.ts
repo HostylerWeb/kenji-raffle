@@ -11,6 +11,10 @@ import { PlatformPrismaService } from "../platform-prisma/platform-prisma.servic
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
 import { EmailService } from "../email/email.service";
+import {
+  buildRaffleLookupForAudit,
+  resolveAuditEntityHref,
+} from "../common/audit-entity-links";
 
 const INVITE_ROLES: Record<OperatorStaffRole, OperatorStaffRole[]> = {
   owner: ["owner", "manager", "support", "finance"],
@@ -47,6 +51,62 @@ export class OperatorStaffService {
       last_login_at: row.last_login_at?.toISOString(),
       created_at: row.created_at.toISOString(),
     }));
+  }
+
+  async get(operatorId: string, staffId: string) {
+    const client = await this.tenantConnection.getClient(operatorId);
+    const staff = await client.operator_staff.findUnique({
+      where: { id: staffId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        mfa_enabled: true,
+        mfa_secret_encrypted: true,
+        last_login_at: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+    if (!staff) throw new NotFoundException("Staff member not found");
+
+    const recent_activity = await client.tenant_audit_logs.findMany({
+      where: { operator_staff_id: staffId },
+      orderBy: { created_at: "desc" },
+      take: 25,
+      select: {
+        id: true,
+        action: true,
+        entity_type: true,
+        entity_id: true,
+        created_at: true,
+      },
+    });
+
+    const raffleLookup = await buildRaffleLookupForAudit(client, recent_activity);
+
+    return {
+      id: staff.id,
+      email: staff.email,
+      role: staff.role,
+      mfa_enabled: staff.mfa_enabled,
+      mfa_pending: Boolean(staff.mfa_secret_encrypted) && !staff.mfa_enabled,
+      last_login_at: staff.last_login_at?.toISOString() ?? null,
+      created_at: staff.created_at.toISOString(),
+      updated_at: staff.updated_at.toISOString(),
+      recent_activity: recent_activity.map((row) => ({
+        id: row.id,
+        action: row.action,
+        entity_type: row.entity_type,
+        entity_id: row.entity_id,
+        entity_href: resolveAuditEntityHref(
+          row.entity_type,
+          row.entity_id,
+          raffleLookup,
+        ),
+        created_at: row.created_at.toISOString(),
+      })),
+    };
   }
 
   async invite(

@@ -5242,6 +5242,9 @@ export namespace Prisma {
     footer_licence_text: string | null
     gra_api_key_encrypted: string | null
     gra_hmac_secret_encrypted: string | null
+    gra_last_heartbeat_at: Date | null
+    gra_last_heartbeat_status: string | null
+    gra_last_heartbeat_error: string | null
     payment_merchant_ref_encrypted: string | null
     ga4_measurement_id: string | null
     facebook_pixel_id: string | null
@@ -5262,6 +5265,9 @@ export namespace Prisma {
     footer_licence_text: string | null
     gra_api_key_encrypted: string | null
     gra_hmac_secret_encrypted: string | null
+    gra_last_heartbeat_at: Date | null
+    gra_last_heartbeat_status: string | null
+    gra_last_heartbeat_error: string | null
     payment_merchant_ref_encrypted: string | null
     ga4_measurement_id: string | null
     facebook_pixel_id: string | null
@@ -5283,6 +5289,9 @@ export namespace Prisma {
     social_links: number
     gra_api_key_encrypted: number
     gra_hmac_secret_encrypted: number
+    gra_last_heartbeat_at: number
+    gra_last_heartbeat_status: number
+    gra_last_heartbeat_error: number
     payment_merchant_ref_encrypted: number
     feature_flags: number
     ga4_measurement_id: number
@@ -5306,6 +5315,9 @@ export namespace Prisma {
     footer_licence_text?: true
     gra_api_key_encrypted?: true
     gra_hmac_secret_encrypted?: true
+    gra_last_heartbeat_at?: true
+    gra_last_heartbeat_status?: true
+    gra_last_heartbeat_error?: true
     payment_merchant_ref_encrypted?: true
     ga4_measurement_id?: true
     facebook_pixel_id?: true
@@ -5326,6 +5338,9 @@ export namespace Prisma {
     footer_licence_text?: true
     gra_api_key_encrypted?: true
     gra_hmac_secret_encrypted?: true
+    gra_last_heartbeat_at?: true
+    gra_last_heartbeat_status?: true
+    gra_last_heartbeat_error?: true
     payment_merchant_ref_encrypted?: true
     ga4_measurement_id?: true
     facebook_pixel_id?: true
@@ -5347,6 +5362,9 @@ export namespace Prisma {
     social_links?: true
     gra_api_key_encrypted?: true
     gra_hmac_secret_encrypted?: true
+    gra_last_heartbeat_at?: true
+    gra_last_heartbeat_status?: true
+    gra_last_heartbeat_error?: true
     payment_merchant_ref_encrypted?: true
     feature_flags?: true
     ga4_measurement_id?: true
@@ -5442,6 +5460,9 @@ export namespace Prisma {
     social_links: JsonValue | null
     gra_api_key_encrypted: string | null
     gra_hmac_secret_encrypted: string | null
+    gra_last_heartbeat_at: Date | null
+    gra_last_heartbeat_status: string | null
+    gra_last_heartbeat_error: string | null
     payment_merchant_ref_encrypted: string | null
     feature_flags: JsonValue
     ga4_measurement_id: string | null
@@ -5481,6 +5502,9 @@ export namespace Prisma {
     social_links?: boolean
     gra_api_key_encrypted?: boolean
     gra_hmac_secret_encrypted?: boolean
+    gra_last_heartbeat_at?: boolean
+    gra_last_heartbeat_status?: boolean
+    gra_last_heartbeat_error?: boolean
     payment_merchant_ref_encrypted?: boolean
     feature_flags?: boolean
     ga4_measurement_id?: boolean
@@ -5504,6 +5528,9 @@ export namespace Prisma {
     social_links?: boolean
     gra_api_key_encrypted?: boolean
     gra_hmac_secret_encrypted?: boolean
+    gra_last_heartbeat_at?: boolean
+    gra_last_heartbeat_status?: boolean
+    gra_last_heartbeat_error?: boolean
     payment_merchant_ref_encrypted?: boolean
     feature_flags?: boolean
     ga4_measurement_id?: boolean
@@ -5527,6 +5554,9 @@ export namespace Prisma {
     social_links?: boolean
     gra_api_key_encrypted?: boolean
     gra_hmac_secret_encrypted?: boolean
+    gra_last_heartbeat_at?: boolean
+    gra_last_heartbeat_status?: boolean
+    gra_last_heartbeat_error?: boolean
     payment_merchant_ref_encrypted?: boolean
     feature_flags?: boolean
     ga4_measurement_id?: boolean
@@ -5550,6 +5580,9 @@ export namespace Prisma {
     social_links?: boolean
     gra_api_key_encrypted?: boolean
     gra_hmac_secret_encrypted?: boolean
+    gra_last_heartbeat_at?: boolean
+    gra_last_heartbeat_status?: boolean
+    gra_last_heartbeat_error?: boolean
     payment_merchant_ref_encrypted?: boolean
     feature_flags?: boolean
     ga4_measurement_id?: boolean
@@ -5562,7 +5595,7 @@ export namespace Prisma {
     updated_at?: boolean
   }
 
-  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "primary_color" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
+  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "primary_color" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "gra_last_heartbeat_at" | "gra_last_heartbeat_status" | "gra_last_heartbeat_error" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
   export type operator_settingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
   }
@@ -5588,6 +5621,9 @@ export namespace Prisma {
       social_links: Prisma.JsonValue | null
       gra_api_key_encrypted: string | null
       gra_hmac_secret_encrypted: string | null
+      gra_last_heartbeat_at: Date | null
+      gra_last_heartbeat_status: string | null
+      gra_last_heartbeat_error: string | null
       payment_merchant_ref_encrypted: string | null
       feature_flags: Prisma.JsonValue
       ga4_measurement_id: string | null
@@ -6031,6 +6067,9 @@ export namespace Prisma {
     readonly social_links: FieldRef<"operator_settings", 'Json'>
     readonly gra_api_key_encrypted: FieldRef<"operator_settings", 'String'>
     readonly gra_hmac_secret_encrypted: FieldRef<"operator_settings", 'String'>
+    readonly gra_last_heartbeat_at: FieldRef<"operator_settings", 'DateTime'>
+    readonly gra_last_heartbeat_status: FieldRef<"operator_settings", 'String'>
+    readonly gra_last_heartbeat_error: FieldRef<"operator_settings", 'String'>
     readonly payment_merchant_ref_encrypted: FieldRef<"operator_settings", 'String'>
     readonly feature_flags: FieldRef<"operator_settings", 'Json'>
     readonly ga4_measurement_id: FieldRef<"operator_settings", 'String'>
@@ -11017,6 +11056,9 @@ export namespace Prisma {
     social_links: 'social_links',
     gra_api_key_encrypted: 'gra_api_key_encrypted',
     gra_hmac_secret_encrypted: 'gra_hmac_secret_encrypted',
+    gra_last_heartbeat_at: 'gra_last_heartbeat_at',
+    gra_last_heartbeat_status: 'gra_last_heartbeat_status',
+    gra_last_heartbeat_error: 'gra_last_heartbeat_error',
     payment_merchant_ref_encrypted: 'payment_merchant_ref_encrypted',
     feature_flags: 'feature_flags',
     ga4_measurement_id: 'ga4_measurement_id',
@@ -11595,6 +11637,9 @@ export namespace Prisma {
     social_links?: JsonNullableFilter<"operator_settings">
     gra_api_key_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     gra_hmac_secret_encrypted?: StringNullableFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_last_heartbeat_status?: StringNullableFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_error?: StringNullableFilter<"operator_settings"> | string | null
     payment_merchant_ref_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     feature_flags?: JsonFilter<"operator_settings">
     ga4_measurement_id?: StringNullableFilter<"operator_settings"> | string | null
@@ -11618,6 +11663,9 @@ export namespace Prisma {
     social_links?: SortOrderInput | SortOrder
     gra_api_key_encrypted?: SortOrderInput | SortOrder
     gra_hmac_secret_encrypted?: SortOrderInput | SortOrder
+    gra_last_heartbeat_at?: SortOrderInput | SortOrder
+    gra_last_heartbeat_status?: SortOrderInput | SortOrder
+    gra_last_heartbeat_error?: SortOrderInput | SortOrder
     payment_merchant_ref_encrypted?: SortOrderInput | SortOrder
     feature_flags?: SortOrder
     ga4_measurement_id?: SortOrderInput | SortOrder
@@ -11644,6 +11692,9 @@ export namespace Prisma {
     social_links?: JsonNullableFilter<"operator_settings">
     gra_api_key_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     gra_hmac_secret_encrypted?: StringNullableFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_last_heartbeat_status?: StringNullableFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_error?: StringNullableFilter<"operator_settings"> | string | null
     payment_merchant_ref_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     feature_flags?: JsonFilter<"operator_settings">
     ga4_measurement_id?: StringNullableFilter<"operator_settings"> | string | null
@@ -11667,6 +11718,9 @@ export namespace Prisma {
     social_links?: SortOrderInput | SortOrder
     gra_api_key_encrypted?: SortOrderInput | SortOrder
     gra_hmac_secret_encrypted?: SortOrderInput | SortOrder
+    gra_last_heartbeat_at?: SortOrderInput | SortOrder
+    gra_last_heartbeat_status?: SortOrderInput | SortOrder
+    gra_last_heartbeat_error?: SortOrderInput | SortOrder
     payment_merchant_ref_encrypted?: SortOrderInput | SortOrder
     feature_flags?: SortOrder
     ga4_measurement_id?: SortOrderInput | SortOrder
@@ -11695,6 +11749,9 @@ export namespace Prisma {
     social_links?: JsonNullableWithAggregatesFilter<"operator_settings">
     gra_api_key_encrypted?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     gra_hmac_secret_encrypted?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_at?: DateTimeNullableWithAggregatesFilter<"operator_settings"> | Date | string | null
+    gra_last_heartbeat_status?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    gra_last_heartbeat_error?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     payment_merchant_ref_encrypted?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     feature_flags?: JsonWithAggregatesFilter<"operator_settings">
     ga4_measurement_id?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
@@ -12309,6 +12366,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: string | null
     gra_hmac_secret_encrypted?: string | null
+    gra_last_heartbeat_at?: Date | string | null
+    gra_last_heartbeat_status?: string | null
+    gra_last_heartbeat_error?: string | null
     payment_merchant_ref_encrypted?: string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: string | null
@@ -12332,6 +12392,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: string | null
     gra_hmac_secret_encrypted?: string | null
+    gra_last_heartbeat_at?: Date | string | null
+    gra_last_heartbeat_status?: string | null
+    gra_last_heartbeat_error?: string | null
     payment_merchant_ref_encrypted?: string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: string | null
@@ -12353,6 +12416,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12376,6 +12442,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12398,6 +12467,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: string | null
     gra_hmac_secret_encrypted?: string | null
+    gra_last_heartbeat_at?: Date | string | null
+    gra_last_heartbeat_status?: string | null
+    gra_last_heartbeat_error?: string | null
     payment_merchant_ref_encrypted?: string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: string | null
@@ -12419,6 +12491,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null
@@ -12441,6 +12516,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null
@@ -13313,6 +13391,9 @@ export namespace Prisma {
     social_links?: SortOrder
     gra_api_key_encrypted?: SortOrder
     gra_hmac_secret_encrypted?: SortOrder
+    gra_last_heartbeat_at?: SortOrder
+    gra_last_heartbeat_status?: SortOrder
+    gra_last_heartbeat_error?: SortOrder
     payment_merchant_ref_encrypted?: SortOrder
     feature_flags?: SortOrder
     ga4_measurement_id?: SortOrder
@@ -13334,6 +13415,9 @@ export namespace Prisma {
     footer_licence_text?: SortOrder
     gra_api_key_encrypted?: SortOrder
     gra_hmac_secret_encrypted?: SortOrder
+    gra_last_heartbeat_at?: SortOrder
+    gra_last_heartbeat_status?: SortOrder
+    gra_last_heartbeat_error?: SortOrder
     payment_merchant_ref_encrypted?: SortOrder
     ga4_measurement_id?: SortOrder
     facebook_pixel_id?: SortOrder
@@ -13354,6 +13438,9 @@ export namespace Prisma {
     footer_licence_text?: SortOrder
     gra_api_key_encrypted?: SortOrder
     gra_hmac_secret_encrypted?: SortOrder
+    gra_last_heartbeat_at?: SortOrder
+    gra_last_heartbeat_status?: SortOrder
+    gra_last_heartbeat_error?: SortOrder
     payment_merchant_ref_encrypted?: SortOrder
     ga4_measurement_id?: SortOrder
     facebook_pixel_id?: SortOrder
@@ -14553,6 +14640,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: string | null
     gra_hmac_secret_encrypted?: string | null
+    gra_last_heartbeat_at?: Date | string | null
+    gra_last_heartbeat_status?: string | null
+    gra_last_heartbeat_error?: string | null
     payment_merchant_ref_encrypted?: string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: string | null
@@ -14574,6 +14664,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: string | null
     gra_hmac_secret_encrypted?: string | null
+    gra_last_heartbeat_at?: Date | string | null
+    gra_last_heartbeat_status?: string | null
+    gra_last_heartbeat_error?: string | null
     payment_merchant_ref_encrypted?: string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: string | null
@@ -14746,6 +14839,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null
@@ -14767,6 +14863,9 @@ export namespace Prisma {
     social_links?: NullableJsonNullValueInput | InputJsonValue
     gra_api_key_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     gra_hmac_secret_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_last_heartbeat_status?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_last_heartbeat_error?: NullableStringFieldUpdateOperationsInput | string | null
     payment_merchant_ref_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     feature_flags?: JsonNullValueInput | InputJsonValue
     ga4_measurement_id?: NullableStringFieldUpdateOperationsInput | string | null

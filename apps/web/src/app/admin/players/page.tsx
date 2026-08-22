@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminFilters } from "@/components/admin/AdminFilters";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { useAdminToast } from "@/components/admin/AdminToast";
@@ -26,6 +27,8 @@ type Player = {
 type ListResponse = {
   items: Player[];
   total: number;
+  page: number;
+  limit: number;
 };
 
 export default function AdminPlayersPage() {
@@ -35,7 +38,7 @@ export default function AdminPlayersPage() {
   const [search, setSearch] = useState("");
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const limit = 50;
+  const [limit, setLimit] = useState(50);
 
   async function load(q?: string, pageNum = page) {
     const params = new URLSearchParams();
@@ -45,7 +48,8 @@ export default function AdminPlayersPage() {
     const data = await operatorFetch<ListResponse>(`/v1/admin/players?${params.toString()}`);
     setPlayers(data.items);
     setTotal(data.total);
-    setPage(pageNum);
+    setPage(data.page);
+    setLimit(data.limit);
   }
 
   useEffect(() => {
@@ -74,6 +78,12 @@ export default function AdminPlayersPage() {
       description={`${total} registered player${total === 1 ? "" : "s"}.`}
     >
       <div className="admin-panel">
+        <div className="admin-panel__header">
+          <div>
+            <h3 className="admin-panel__title">Players</h3>
+            <p className="admin-panel__subtitle">{total} registered player{total === 1 ? "" : "s"}</p>
+          </div>
+        </div>
         <AdminFilters
           search={search}
           onSearch={setSearch}
@@ -114,10 +124,11 @@ export default function AdminPlayersPage() {
                 {p.last_login_at ? new Date(p.last_login_at).toLocaleString() : "—"}
               </td>
               <td>
+                <div className="admin-row-actions">
                 {p.kyc_status === "pending" && (
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-sm"
                     onClick={() => updatePlayer(p.id, { kyc_status: "verified" })}
                   >
                     Verify KYC
@@ -125,39 +136,20 @@ export default function AdminPlayersPage() {
                 )}
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-secondary btn-sm"
                   onClick={() =>
                     updatePlayer(p.id, { account_disabled: !p.account_disabled })
                   }
                 >
                   {p.account_disabled ? "Enable" : "Disable"}
                 </button>
+                </div>
               </td>
             </tr>
           ))}
         </AdminTable>
         {total > limit && (
-          <div className="admin-form-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={page <= 1}
-              onClick={() => load(search, page - 1)}
-            >
-              Previous
-            </button>
-            <span className="muted">
-              Page {page} of {Math.ceil(total / limit)}
-            </span>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              disabled={page >= Math.ceil(total / limit)}
-              onClick={() => load(search, page + 1)}
-            >
-              Next
-            </button>
-          </div>
+          <AdminPagination page={page} total={total} limit={limit} onPage={(p) => load(search, p)} />
         )}
       </div>
     </OperatorAdminShell>

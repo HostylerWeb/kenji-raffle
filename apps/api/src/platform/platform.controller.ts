@@ -117,6 +117,26 @@ export class PlatformController {
       });
     }
 
+    const graHealth = await this.reportsService.graHealth();
+    for (const row of graHealth) {
+      if (row.alert_stale_pending) {
+        alerts.push({
+          type: "gra_stale_pending",
+          message: `${row.name}: GRA queue pending > 15 min (${row.oldest_pending_age_minutes} min)`,
+          operator_id: row.operator_id,
+          operator_slug: row.slug,
+        });
+      }
+      if (row.alert_heartbeat_failed) {
+        alerts.push({
+          type: "gra_heartbeat_failed",
+          message: `${row.name}: GRA daily heartbeat failed`,
+          operator_id: row.operator_id,
+          operator_slug: row.slug,
+        });
+      }
+    }
+
     return {
       operators_total: operators,
       operators_active: active,

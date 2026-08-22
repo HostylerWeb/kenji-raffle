@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
@@ -106,6 +107,12 @@ export default function AdminReportsPage() {
       }
     >
       <form className="admin-panel" onSubmit={applyRange}>
+        <div className="admin-panel__header">
+          <div>
+            <h3 className="admin-panel__title">Date range</h3>
+            <p className="admin-panel__subtitle">Filter reports by period.</p>
+          </div>
+        </div>
         <AdminFilters hasActive={Boolean(from || to)} onClear={() => { setFrom(""); setTo(""); }}>
           <label>
             From
@@ -166,7 +173,11 @@ export default function AdminReportsPage() {
         >
           {sales.map((r) => (
             <tr key={r.raffle_id}>
-              <td>{r.title}</td>
+              <td>
+                <Link href={`/admin/raffles/${r.raffle_id}`}>
+                  <strong>{r.title}</strong>
+                </Link>
+              </td>
               <td>{r.tickets}</td>
               <td>KES {r.revenue.toLocaleString()}</td>
             </tr>

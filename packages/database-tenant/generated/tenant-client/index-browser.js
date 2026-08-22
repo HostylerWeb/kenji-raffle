@@ -435,6 +435,7 @@ exports.Prisma.Gra_outbound_eventsScalarFieldEnum = {
   status: 'status',
   retry_count: 'retry_count',
   last_error: 'last_error',
+  next_attempt_at: 'next_attempt_at',
   created_at: 'created_at',
   processed_at: 'processed_at'
 };

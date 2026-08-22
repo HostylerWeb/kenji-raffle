@@ -10,6 +10,7 @@ import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { fulfillPrize } from "../prizes/prize-fulfillment";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
 import { PlatformQueueService } from "../platform/platform-queue.service";
+import { paginate } from "../common/pagination";
 
 function decimal(value: Prisma.Decimal | number): number {
   return Number(value);
@@ -198,93 +199,226 @@ export class DrawService {
     }));
   }
 
-  async listAdminWinners(operatorId: string, raffleId?: string) {
+  async listAdminWinners(
+    operatorId: string,
+    options?: { raffleId?: string; search?: string; page?: number; limit?: number },
+  ) {
     const client = await this.tenantConnection.getClient(operatorId);
-    const rows = await client.winners.findMany({
-      where: raffleId ? { raffle_id: raffleId } : undefined,
-      orderBy: { announced_at: "desc" },
-      take: 100,
-      include: {
-        raffle: { select: { title: true } },
-        user: { select: { email: true, full_name: true } },
-        ticket: { select: { ticket_number: true } },
-        prize: { select: { name: true } },
-      },
-    });
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
 
-    return rows.map((w) => ({
-      id: w.id,
-      raffle_id: w.raffle_id,
-      raffle_title: w.raffle.title,
-      user_email: w.user.email,
-      user_name: w.user.full_name,
-      ticket_number: w.ticket.ticket_number,
-      prize_name: w.prize?.name,
-      announced_at: w.announced_at.toISOString(),
-    }));
+    const where: Prisma.winnersWhereInput = {};
+    if (options?.raffleId) where.raffle_id = options.raffleId;
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { full_name: { contains: q, mode: "insensitive" } } },
+        { raffle: { title: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.winners.findMany({
+        where,
+        orderBy: { announced_at: "desc" },
+        skip,
+        take,
+        include: {
+          raffle: { select: { id: true, title: true } },
+          user: { select: { id: true, email: true, full_name: true } },
+          ticket: { select: { ticket_number: true } },
+          prize: { select: { name: true } },
+        },
+      }),
+      client.winners.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((w) => ({
+        id: w.id,
+        raffle_id: w.raffle_id,
+        raffle_title: w.raffle.title,
+        user_id: w.user.id,
+        user_email: w.user.email,
+        user_name: w.user.full_name,
+        ticket_number: w.ticket.ticket_number,
+        prize_name: w.prize?.name,
+        announced_at: w.announced_at.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
-  async listPrizeClaims(operatorId: string) {
+  async listPrizeClaims(
+    operatorId: string,
+    options?: { status?: string; search?: string; page?: number; limit?: number },
+  ) {
     const client = await this.tenantConnection.getClient(operatorId);
-    const rows = await client.prize_claims.findMany({
-      orderBy: { created_at: "desc" },
-      take: 100,
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
+
+    const where: Prisma.prize_claimsWhereInput = {};
+    if (options?.status) {
+      where.status = options.status as Prisma.prize_claimsWhereInput["status"];
+    }
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { full_name: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.prize_claims.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+        include: this.claimInclude(),
+      }),
+      client.prize_claims.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((c) => this.serializeClaim(c)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getPrizeClaim(operatorId: string, claimId: string) {
+    const client = await this.tenantConnection.getClient(operatorId);
+    const claim = await client.prize_claims.findUnique({
+      where: { id: claimId },
       include: {
-        user: { select: { email: true, full_name: true } },
-        withdrawals: {
-          orderBy: { created_at: "desc" },
-          take: 1,
-        },
-        winner: {
-          include: {
-            raffle: { select: { title: true } },
-            prize: { select: { name: true, prize_type: true, value_kes: true } },
-          },
-        },
-        award: {
-          include: {
-            prize: { select: { name: true, prize_type: true, prize_value: true } },
-            ticket: { select: { ticket_number: true } },
-          },
-        },
+        ...this.claimInclude(),
+        withdrawals: { orderBy: { created_at: "desc" } },
       },
     });
+    if (!claim) throw new NotFoundException("Claim not found");
+    return this.serializeClaim(claim, true);
+  }
 
-    return rows.map((c) => {
-      const prizeType =
-        c.winner?.prize?.prize_type ?? c.award?.prize.prize_type ?? "physical";
-      const prizeValue =
-        c.winner?.prize?.value_kes ?? c.award?.prize.prize_value;
-      const withdrawal = c.withdrawals[0];
+  private claimInclude() {
+    return {
+      user: { select: { id: true, email: true, full_name: true, phone: true } },
+      withdrawals: {
+        orderBy: { created_at: "desc" as const },
+        take: 1,
+      },
+      winner: {
+        include: {
+          raffle: { select: { id: true, title: true, slug: true } },
+          prize: { select: { name: true, prize_type: true, value_kes: true } },
+          ticket: { select: { ticket_number: true } },
+        },
+      },
+      award: {
+        include: {
+          prize: { select: { name: true, prize_type: true, prize_value: true } },
+          ticket: { select: { ticket_number: true } },
+        },
+      },
+    };
+  }
 
-      return {
-        id: c.id,
-        status: c.status,
-        prize_type: prizeType,
-        prize_value: prizeValue ? Number(prizeValue) : null,
-        user_email: c.user.email,
-        user_name: c.user.full_name,
-        county: c.county,
-        town: c.town,
-        address_line: c.address_line,
-        postal_code: c.postal_code,
-        withdrawal: withdrawal
-          ? {
-              id: withdrawal.id,
-              status: withdrawal.status,
-              method: withdrawal.method,
-              amount: Number(withdrawal.amount),
-            }
-          : null,
-        source: c.winner
-          ? `Main prize — ${c.winner.raffle.title}`
-          : `Instant win — ${c.award?.prize.name}`,
-        prize_name: c.winner?.prize?.name ?? c.award?.prize.name,
-        ticket_number: c.award?.ticket.ticket_number,
-        created_at: c.created_at.toISOString(),
-        updated_at: c.updated_at.toISOString(),
-      };
-    });
+  private serializeClaim(
+    c: {
+      id: string;
+      status: string;
+      county: string | null;
+      town: string | null;
+      address_line: string | null;
+      postal_code: string | null;
+      created_at: Date;
+      updated_at: Date;
+      user: { id: string; email: string; full_name: string | null; phone: string | null };
+      withdrawals: {
+        id: string;
+        status: string;
+        method: string;
+        amount: Prisma.Decimal;
+        account_name?: string | null;
+        account_number?: string | null;
+        bank_name?: string | null;
+        admin_note?: string | null;
+        created_at?: Date;
+        processed_at?: Date | null;
+      }[];
+      winner: {
+        raffle: { id: string; title: string; slug: string };
+        prize: { name: string; prize_type: string; value_kes: Prisma.Decimal | null } | null;
+        ticket: { ticket_number: number };
+      } | null;
+      award: {
+        prize: { name: string; prize_type: string; prize_value: Prisma.Decimal };
+        ticket: { ticket_number: number };
+      } | null;
+    },
+    includeAllWithdrawals = false,
+  ) {
+    const prizeType =
+      c.winner?.prize?.prize_type ?? c.award?.prize.prize_type ?? "physical";
+    const prizeValue =
+      c.winner?.prize?.value_kes ?? c.award?.prize.prize_value;
+    const withdrawal = c.withdrawals[0];
+
+    return {
+      id: c.id,
+      user_id: c.user.id,
+      status: c.status,
+      prize_type: prizeType,
+      prize_value: prizeValue ? decimal(prizeValue) : null,
+      user_email: c.user.email,
+      user_name: c.user.full_name,
+      user_phone: c.user.phone,
+      county: c.county,
+      town: c.town,
+      address_line: c.address_line,
+      postal_code: c.postal_code,
+      withdrawal: withdrawal
+        ? {
+            id: withdrawal.id,
+            status: withdrawal.status,
+            method: withdrawal.method,
+            amount: decimal(withdrawal.amount),
+            account_name: withdrawal.account_name ?? null,
+            account_number: withdrawal.account_number ?? null,
+            bank_name: withdrawal.bank_name ?? null,
+            admin_note: withdrawal.admin_note ?? null,
+            created_at: withdrawal.created_at?.toISOString(),
+            processed_at: withdrawal.processed_at?.toISOString() ?? null,
+          }
+        : null,
+      withdrawals: includeAllWithdrawals
+        ? c.withdrawals.map((w) => ({
+            id: w.id,
+            status: w.status,
+            method: w.method,
+            amount: decimal(w.amount),
+            account_name: w.account_name ?? null,
+            account_number: w.account_number ?? null,
+            bank_name: w.bank_name ?? null,
+            admin_note: w.admin_note ?? null,
+            created_at: w.created_at?.toISOString(),
+            processed_at: w.processed_at?.toISOString() ?? null,
+          }))
+        : undefined,
+      source: c.winner
+        ? `Main prize — ${c.winner.raffle.title}`
+        : `Instant win — ${c.award?.prize.name}`,
+      prize_name: c.winner?.prize?.name ?? c.award?.prize.name,
+      raffle_id: c.winner?.raffle.id ?? null,
+      raffle_title: c.winner?.raffle.title ?? null,
+      raffle_slug: c.winner?.raffle.slug ?? null,
+      ticket_number:
+        c.winner?.ticket?.ticket_number ?? c.award?.ticket.ticket_number ?? null,
+      created_at: c.created_at.toISOString(),
+      updated_at: c.updated_at.toISOString(),
+    };
   }
 
   async updatePrizeClaim(

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import { enqueueProcessGraOutbound as enqueueGraRelay } from "@kenji-raffle/shared";
 import {
   PLATFORM_LAST_PROVISION_KEY,
   PLATFORM_LAST_ROLLUP_KEY,
@@ -80,27 +81,7 @@ export class PlatformQueueService {
   }
 
   async enqueueProcessGraOutbound(operatorId: string) {
-    const jobId = `process-gra-outbound-${operatorId}`;
-    const existing = await this.queue.getJob(jobId);
-    if (existing) {
-      const state = await existing.getState();
-      if (state === "active" || state === "waiting" || state === "delayed") {
-        return;
-      }
-      await existing.remove();
-    }
-
-    await this.queue.add(
-      "process-gra-outbound",
-      { operatorId },
-      {
-        jobId,
-        removeOnComplete: true,
-        removeOnFail: false,
-        attempts: 3,
-        backoff: { type: "exponential", delay: 3000 },
-      },
-    );
+    await enqueueGraRelay(operatorId);
   }
 
   async enqueueAutoDraw(operatorId: string, raffleId: string) {
@@ -204,6 +185,36 @@ export class PlatformQueueService {
     }
 
     return jobs;
+  }
+
+  async getQueueCounts() {
+    const counts = await this.queue.getJobCounts(
+      "active",
+      "completed",
+      "delayed",
+      "failed",
+      "paused",
+      "prioritized",
+      "waiting",
+      "waiting-children",
+    );
+    return {
+      waiting_jobs: counts.waiting ?? 0,
+      active_jobs: counts.active ?? 0,
+      failed_jobs: counts.failed ?? 0,
+      delayed_jobs: counts.delayed ?? 0,
+    };
+  }
+
+  async cleanFailedJobs(limit = 5000) {
+    let removed = 0;
+    while (true) {
+      const batch = await this.queue.clean(0, limit, "failed");
+      if (!batch.length) break;
+      removed += batch.length;
+      if (batch.length < limit) break;
+    }
+    return { removed };
   }
 
   async getWorkerStatus() {

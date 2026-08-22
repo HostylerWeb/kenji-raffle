@@ -54,6 +54,25 @@ export type OperatorLoginResponse = {
 export { encryptSecret, decryptSecret, requireEnv, slugifyDatabaseName } from "./crypto";
 export { slugify } from "./slug";
 export { fisherYatesShuffle, pickRandomItems } from "./random";
+export { enqueueProcessGraOutbound, PLATFORM_QUEUE_NAME } from "./gra-relay-queue";
+export {
+  GRA_RELAY_MAX_RETRIES,
+  GRA_RELAY_BACKOFF_MS,
+  graRelayConfig,
+  GraOperatorRateLimiter,
+  getGraRelayRateLimiter,
+  classifyGraHttpResponse,
+  computeNextAttemptAt,
+  graIdempotencyKey,
+  emptyGraRelayMetrics,
+  logGraRelayRun,
+  mapWithConcurrency,
+} from "./gra-relay";
+export type {
+  GraRelayConfig,
+  GraIngestPostResult,
+  GraRelayRunMetrics,
+} from "./gra-relay";
 export {
   GRA_STAKE_BANDS,
   emptyGraStakeBandDistribution,
@@ -63,5 +82,13 @@ export {
   testGraIngestConnection,
   processGraOutboundForOperator,
   processGraOutboundForAllTenants,
+  runGraHeartbeatForOperator,
+  runGraHeartbeatForAllOperators,
+  getGraQueueStatsForOperator,
 } from "./gra-outbound";
-export type { GraStakeBand, GraIngestBuildResult } from "./gra-outbound";
+export type {
+  GraStakeBand,
+  GraIngestBuildResult,
+  GraOutboundProcessResult,
+  GraOperatorQueueStats,
+} from "./gra-outbound";

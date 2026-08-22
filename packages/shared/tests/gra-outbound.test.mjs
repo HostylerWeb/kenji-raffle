@@ -1,10 +1,19 @@
 import assert from "node:assert/strict";
+import { createHmac } from "node:crypto";
+import { createServer } from "node:http";
 import { describe, it } from "node:test";
 import {
   buildGraIngestRequest,
   emptyGraStakeBandDistribution,
   graStakeBandForAmount,
+  postGraIngestRequest,
 } from "../dist/gra-outbound.js";
+import {
+  classifyGraHttpResponse,
+  computeNextAttemptAt,
+  graIdempotencyKey,
+  GraOperatorRateLimiter,
+} from "../dist/gra-relay.js";
 
 describe("buildGraIngestRequest", () => {
   it("maps payment.completed to GRA payment event", () => {
@@ -87,5 +96,99 @@ describe("graStakeBandForAmount", () => {
     assert.equal(graStakeBandForAmount(50), "0-50");
     assert.equal(graStakeBandForAmount(51), "51-100");
     assert.equal(graStakeBandForAmount(1001), "1001+");
+  });
+});
+
+describe("gra relay helpers", () => {
+  it("classifies HTTP responses for retry policy", () => {
+    const tooMany = classifyGraHttpResponse(429, "rate limited", "30");
+    assert.equal(tooMany.ok, false);
+    if (tooMany.ok) return;
+    assert.equal(tooMany.retryable, true);
+    assert.equal(tooMany.retryAfterMs, 30_000);
+
+    const validation = classifyGraHttpResponse(400, "bad request");
+    assert.equal(validation.ok, false);
+    if (validation.ok) return;
+    assert.equal(validation.retryable, false);
+
+    const server = classifyGraHttpResponse(503, "unavailable");
+    assert.equal(server.ok, false);
+    if (server.ok) return;
+    assert.equal(server.retryable, true);
+  });
+
+  it("uses stable ticket idempotency keys", () => {
+    assert.equal(
+      graIdempotencyKey({
+        id: "evt-1",
+        event_type: "ticket.purchased",
+        payload: { ticket_id: "t-99" },
+      }),
+      "gra-ticket-t-99",
+    );
+    assert.equal(
+      graIdempotencyKey({
+        id: "evt-2",
+        event_type: "payment.completed",
+        payload: { payment_id: "p-1" },
+      }),
+      "gra-evt-2",
+    );
+  });
+
+  it("computes exponential backoff schedule", () => {
+    const first = computeNextAttemptAt(0);
+    const later = computeNextAttemptAt(4);
+    assert.ok(later.getTime() > first.getTime());
+  });
+
+  it("rate limiter caps per-operator throughput", () => {
+    const limiter = new GraOperatorRateLimiter(2);
+    assert.equal(limiter.tryConsume("op-a"), true);
+    assert.equal(limiter.tryConsume("op-a"), true);
+    assert.equal(limiter.tryConsume("op-a"), false);
+    assert.equal(limiter.tryConsume("op-b"), true);
+  });
+});
+
+describe("postGraIngestRequest HMAC", () => {
+  it("signs raw JSON body like GRA ingest guard", async () => {
+    const secret = "sandbox_hmac_op001_secret_32chars_min";
+    const apiKey = "gra_sandbox_op001_devkey0001";
+    const body = { action: "completed", payment_id: "p-1", amount: 100 };
+
+    const server = createServer((req, res) => {
+      let raw = "";
+      req.on("data", (chunk) => {
+        raw += chunk;
+      });
+      req.on("end", () => {
+        const expected = createHmac("sha256", secret).update(raw).digest("hex");
+        const signature = req.headers["x-signature"];
+        const idem = req.headers["x-idempotency-key"];
+        assert.equal(signature, expected);
+        assert.equal(idem, "gra-test-hmac");
+        assert.equal(req.headers["x-api-key"], apiKey);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end('{"ok":true}');
+      });
+    });
+
+    await new Promise((resolve) => server.listen(0, resolve));
+    const address = server.address();
+    const port = typeof address === "object" && address ? address.port : 0;
+
+    const result = await postGraIngestRequest({
+      ingestBase: `http://127.0.0.1:${port}/v1`,
+      apiKey,
+      hmacSecret: secret,
+      idempotencyKey: "gra-test-hmac",
+      path: "/events/payment",
+      body,
+    });
+
+    server.close();
+    assert.equal(result.ok, true);
   });
 });

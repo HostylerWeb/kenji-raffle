@@ -23,8 +23,8 @@ type Dashboard = {
   staff_count: number;
   raffle_count: number;
   active_raffles: number;
-  low_ticket_raffles: number;
-  low_ticket_threshold: number;
+  almost_sold_out_raffles: number;
+  almost_sold_out_threshold: number;
   orders_today: number;
   pending_claims: number;
   pending_withdrawals: number;
@@ -82,19 +82,19 @@ export default function OperatorAdminPage() {
         primary_color: settings?.branding?.primary_color,
       }}
     >
-      {dashboard.low_ticket_raffles > 0 && (
-        <div className="admin-alert admin-alert--warning">
+      {dashboard.almost_sold_out_raffles > 0 && (
+        <div className="admin-alert admin-alert--success">
           <svg className="admin-alert__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <path d="M12 9v4M12 17h.01" />
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <path d="M22 4 12 14.01l-3-3" />
           </svg>
           <div>
-            <div className="admin-alert__title">Low ticket inventory</div>
+            <div className="admin-alert__title">Selling well</div>
             <div className="admin-alert__body">
-              {dashboard.low_ticket_raffles} active raffle
-              {dashboard.low_ticket_raffles === 1 ? "" : "s"} have ≤{" "}
-              {dashboard.low_ticket_threshold} tickets left.{" "}
-              <Link href="/admin/raffles">Review raffles →</Link>
+              {dashboard.almost_sold_out_raffles} active raffle
+              {dashboard.almost_sold_out_raffles === 1 ? " is" : "s are"} almost sold out (≤{" "}
+              {dashboard.almost_sold_out_threshold} tickets left).{" "}
+              <Link href="/admin/raffles">View raffles →</Link>
             </div>
           </div>
         </div>
@@ -168,6 +168,7 @@ export default function OperatorAdminPage() {
         />
       </div>
 
+      <div className="admin-dashboard-grid">
       <div className="admin-panel">
         <div className="admin-panel__header">
           <div>
@@ -258,6 +259,7 @@ export default function OperatorAdminPage() {
             </span>
           </li>
         </ol>
+      </div>
       </div>
     </OperatorAdminShell>
   );

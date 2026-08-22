@@ -9,6 +9,7 @@ import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
 import { queueGraTicketVoided } from "../gra/gra-outbound.service";
 import { PlatformQueueService } from "../platform/platform-queue.service";
+import { paginate } from "../common/pagination";
 
 function decimal(value: Prisma.Decimal | number): number {
   return Number(value);
@@ -22,32 +23,158 @@ export class OperatorOrdersService {
     private readonly queue: PlatformQueueService,
   ) {}
 
-  async listOrders(operatorId: string, status?: string) {
+  async listOrders(
+    operatorId: string,
+    options?: { status?: string; search?: string; page?: number; limit?: number },
+  ) {
     const client = await this.tenantConnection.getClient(operatorId);
-    const rows = await client.orders.findMany({
-      where: status ? { status: status as "pending" | "completed" } : undefined,
-      orderBy: { created_at: "desc" },
-      take: 100,
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
+
+    const where: Prisma.ordersWhereInput = {};
+    if (options?.status) {
+      where.status = options.status as Prisma.ordersWhereInput["status"];
+    }
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      const uuidLike = /^[0-9a-f-]{8,}$/i.test(q);
+      where.OR = [
+        ...(uuidLike ? [{ id: q }] : []),
+        { user: { email: { contains: q, mode: "insensitive" } } },
+        { user: { full_name: { contains: q, mode: "insensitive" } } },
+        { transaction_id: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.orders.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+        select: {
+          id: true,
+          sub_total: true,
+          discount: true,
+          total: true,
+          coupon_code: true,
+          site_credit_applied: true,
+          status: true,
+          payment_method: true,
+          transaction_id: true,
+          created_at: true,
+          user: { select: { id: true, email: true, full_name: true } },
+          payments: { select: { status: true }, take: 1, orderBy: { created_at: "desc" } },
+        },
+      }),
+      client.orders.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        user_id: row.user.id,
+        user_email: row.user.email,
+        user_name: row.user.full_name,
+        sub_total: decimal(row.sub_total),
+        discount: decimal(row.discount),
+        total: decimal(row.total),
+        site_credit_applied: decimal(row.site_credit_applied),
+        coupon_code: row.coupon_code,
+        status: row.status,
+        payment_method: row.payment_method,
+        transaction_id: row.transaction_id,
+        created_at: row.created_at.toISOString(),
+        payment_status: row.payments[0]?.status,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  async getOrder(operatorId: string, orderId: string) {
+    const client = await this.tenantConnection.getClient(operatorId);
+    const order = await client.orders.findUnique({
+      where: { id: orderId },
       include: {
-        user: { select: { email: true, full_name: true } },
-        payments: { select: { id: true, status: true, amount: true } },
+        user: {
+          select: { id: true, email: true, full_name: true, phone: true, county: true },
+        },
+        items: {
+          include: {
+            raffle: { select: { id: true, title: true, slug: true } },
+          },
+        },
+        payments: { orderBy: { created_at: "desc" } },
+        tickets: {
+          select: {
+            id: true,
+            ticket_number: true,
+            status: true,
+            raffle_id: true,
+            raffle: { select: { title: true, slug: true } },
+          },
+          orderBy: { ticket_number: "asc" },
+        },
       },
     });
 
-    return rows.map((row) => ({
-      id: row.id,
-      user_email: row.user.email,
-      user_name: row.user.full_name,
-      sub_total: decimal(row.sub_total),
-      discount: decimal(row.discount),
-      total: decimal(row.total),
-      coupon_code: row.coupon_code,
-      status: row.status,
-      payment_method: row.payment_method,
-      transaction_id: row.transaction_id,
-      created_at: row.created_at.toISOString(),
-      payment_status: row.payments[0]?.status,
-    }));
+    if (!order) throw new NotFoundException("Order not found");
+
+    return {
+      id: order.id,
+      status: order.status,
+      sub_total: decimal(order.sub_total),
+      discount: decimal(order.discount),
+      total: decimal(order.total),
+      site_credit_applied: decimal(order.site_credit_applied),
+      coupon_code: order.coupon_code,
+      payment_method: order.payment_method,
+      transaction_id: order.transaction_id,
+      created_at: order.created_at.toISOString(),
+      updated_at: order.updated_at.toISOString(),
+      customer: {
+        id: order.user.id,
+        email: order.user.email,
+        full_name: order.user.full_name,
+        phone: order.user.phone,
+        county: order.user.county,
+      },
+      items: order.items.map((item) => ({
+        id: item.id,
+        raffle_id: item.raffle_id,
+        raffle_title: item.raffle.title,
+        raffle_slug: item.raffle.slug,
+        quantity: item.quantity,
+        unit_price: decimal(item.unit_price),
+        subtotal: decimal(item.subtotal),
+        discount: decimal(item.discount),
+        total: decimal(item.total),
+        ticket_numbers: item.ticket_numbers,
+      })),
+      tickets: order.tickets.map((t) => ({
+        id: t.id,
+        ticket_number: t.ticket_number,
+        status: t.status,
+        raffle_id: t.raffle_id,
+        raffle_title: t.raffle.title,
+        raffle_slug: t.raffle.slug,
+      })),
+      payments: order.payments.map((p) => ({
+        id: p.id,
+        amount: decimal(p.amount),
+        operator_amount: decimal(p.operator_amount),
+        tax_amount: decimal(p.tax_amount),
+        tax_rate: decimal(p.tax_rate),
+        gateway_fee_amount: decimal(p.gateway_fee_amount),
+        status: p.status,
+        payment_method: p.payment_method,
+        transaction_id: p.transaction_id,
+        gateway_transaction_id: p.gateway_transaction_id,
+        gateway_mode: p.gateway_mode,
+        created_at: p.created_at.toISOString(),
+      })),
+    };
   }
 
   async exportOrdersCsv(operatorId: string, status?: string) {
@@ -88,40 +215,88 @@ export class OperatorOrdersService {
     return `${header}\n${lines.join("\n")}`;
   }
 
-  async listPayments(operatorId: string) {
+  async listPayments(
+    operatorId: string,
+    options?: { search?: string; page?: number; limit?: number },
+  ) {
     const client = await this.tenantConnection.getClient(operatorId);
-    const rows = await client.payments.findMany({
-      orderBy: { created_at: "desc" },
-      take: 100,
-      include: {
-        user: { select: { email: true } },
-        order: { select: { id: true, status: true } },
-      },
-    });
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
 
-    return rows.map((row) => {
-      const gatewayFee = decimal(row.gateway_fee_amount);
-      const operatorAmount = decimal(row.operator_amount);
-      return {
-      id: row.id,
-      order_id: row.order_id,
-      user_email: row.user.email,
-      amount: decimal(row.amount),
-      operator_amount: operatorAmount,
-      gateway_fee_rate: decimal(row.gateway_fee_rate),
-      gateway_fee_amount: gatewayFee,
-      operator_net: Math.max(0, operatorAmount - gatewayFee),
-      tax_amount: decimal(row.tax_amount),
-      tax_rate: decimal(row.tax_rate),
-      status: row.status,
-      payment_method: row.payment_method,
-      transaction_id: row.transaction_id,
-      gateway_transaction_id: row.gateway_transaction_id,
-      gateway_mode: row.gateway_mode,
-      created_at: row.created_at.toISOString(),
-      order_status: row.order.status,
+    const where: Prisma.paymentsWhereInput = {};
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { transaction_id: { contains: q, mode: "insensitive" } },
+        { gateway_transaction_id: { contains: q, mode: "insensitive" } },
+        { user: { email: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+
+    const completedWhere: Prisma.paymentsWhereInput = { ...where, status: "completed" };
+
+    const [rows, total, agg, completedCount] = await Promise.all([
+      client.payments.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+        include: {
+          user: { select: { id: true, email: true } },
+          order: { select: { id: true, status: true } },
+        },
+      }),
+      client.payments.count({ where }),
+      client.payments.aggregate({
+        where: completedWhere,
+        _sum: {
+          amount: true,
+          operator_amount: true,
+          gateway_fee_amount: true,
+          tax_amount: true,
+        },
+      }),
+      client.payments.count({ where: completedWhere }),
+    ]);
+
+    const operatorShare = decimal(agg._sum.operator_amount ?? 0);
+    const gatewayFees = decimal(agg._sum.gateway_fee_amount ?? 0);
+
+    return {
+      items: rows.map((row) => {
+        const gatewayFee = decimal(row.gateway_fee_amount);
+        const operatorAmount = decimal(row.operator_amount);
+        return {
+          id: row.id,
+          order_id: row.order_id,
+          user_id: row.user_id,
+          user_email: row.user.email,
+          amount: decimal(row.amount),
+          operator_amount: operatorAmount,
+          gateway_fee_rate: decimal(row.gateway_fee_rate),
+          gateway_fee_amount: gatewayFee,
+          operator_net: Math.max(0, operatorAmount - gatewayFee),
+          tax_amount: decimal(row.tax_amount),
+          tax_rate: decimal(row.tax_rate),
+          status: row.status,
+          payment_method: row.payment_method,
+          transaction_id: row.transaction_id,
+          gateway_transaction_id: row.gateway_transaction_id,
+          gateway_mode: row.gateway_mode,
+          created_at: row.created_at.toISOString(),
+          order_status: row.order.status,
+        };
+      }),
+      total,
+      page,
+      limit,
+      summary: {
+        completed_count: completedCount,
+        gross: decimal(agg._sum.amount ?? 0),
+        operator_net: Math.max(0, operatorShare - gatewayFees),
+        gateway_fees: gatewayFees,
+        tax_collected: decimal(agg._sum.tax_amount ?? 0),
+      },
     };
-    });
   }
 
   async refundOrder(
@@ -248,12 +423,33 @@ export class OperatorCouponsService {
     private readonly audit: TenantAuditService,
   ) {}
 
-  async list(operatorId: string) {
+  async list(
+    operatorId: string,
+    options?: { search?: string; status?: string; page?: number; limit?: number },
+  ) {
     const client = await this.tenantConnection.getClient(operatorId);
-    const rows = await client.coupons.findMany({
-      orderBy: { created_at: "desc" },
-    });
-    return rows.map((row) => ({
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
+
+    const where: Prisma.couponsWhereInput = {};
+    if (options?.search?.trim()) {
+      where.code = { contains: options.search.trim(), mode: "insensitive" };
+    }
+    if (options?.status) {
+      where.status = options.status as Prisma.couponsWhereInput["status"];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.coupons.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+      }),
+      client.coupons.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((row) => ({
       id: row.id,
       code: row.code,
       discount_type: row.discount_type,
@@ -268,7 +464,11 @@ export class OperatorCouponsService {
       valid_until: row.valid_until?.toISOString() ?? null,
       status: row.status,
       created_at: row.created_at.toISOString(),
-    }));
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
   async create(

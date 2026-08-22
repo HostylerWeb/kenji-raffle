@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
@@ -30,6 +31,12 @@ import {
   OperatorStaffService,
 } from "./operator-staff.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
+import { paginate } from "../common/pagination";
+import {
+  buildRaffleLookupForAudit,
+  resolveAuditEntityHref,
+} from "../common/audit-entity-links";
+import type { Prisma } from "@kenji-raffle/database-tenant";
 
 class InviteStaffDto {
   @IsEmail()
@@ -113,7 +120,9 @@ export class OperatorAdminController {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
-    const lowTicketThreshold = Number(process.env.LOW_TICKET_THRESHOLD ?? 50);
+    const almostSoldOutThreshold = Number(
+      process.env.ALMOST_SOLD_OUT_THRESHOLD ?? process.env.LOW_TICKET_THRESHOLD ?? 50,
+    );
 
     const [
       staffCount,
@@ -168,7 +177,7 @@ export class OperatorAdminController {
     ]);
 
     const activeIds = activeRaffleRows.map((r) => r.id);
-    let lowTicketRaffles = 0;
+    let almostSoldOutRaffles = 0;
     if (activeIds.length > 0) {
       const availableByRaffle = await client.tickets.groupBy({
         by: ["raffle_id"],
@@ -178,8 +187,8 @@ export class OperatorAdminController {
         },
         _count: { _all: true },
       });
-      lowTicketRaffles = availableByRaffle.filter(
-        (row) => row._count._all > 0 && row._count._all <= lowTicketThreshold,
+      almostSoldOutRaffles = availableByRaffle.filter(
+        (row) => row._count._all > 0 && row._count._all <= almostSoldOutThreshold,
       ).length;
     }
 
@@ -189,8 +198,8 @@ export class OperatorAdminController {
       staff_count: staffCount,
       raffle_count: raffleCount,
       active_raffles: activeRaffleCount,
-      low_ticket_raffles: lowTicketRaffles,
-      low_ticket_threshold: lowTicketThreshold,
+      almost_sold_out_raffles: almostSoldOutRaffles,
+      almost_sold_out_threshold: almostSoldOutThreshold,
       orders_today: ordersToday,
       pending_claims: pendingClaims,
       pending_withdrawals: pendingWithdrawals,
@@ -206,6 +215,11 @@ export class OperatorAdminController {
   @Get("staff")
   listStaff(@TenantCtx() tenant: TenantContext) {
     return this.staffService.list(tenant.operatorId);
+  }
+
+  @Get("staff/:id")
+  getStaff(@TenantCtx() tenant: TenantContext, @Param("id") id: string) {
+    return this.staffService.get(tenant.operatorId, id);
   }
 
   @OperatorRoles("owner", "manager")
@@ -253,20 +267,60 @@ export class OperatorAdminController {
   }
 
   @Get("audit-logs")
-  async auditLogs(@TenantCtx() tenant: TenantContext) {
+  async auditLogs(
+    @TenantCtx() tenant: TenantContext,
+    @Query("search") search?: string,
+    @Query("entity_type") entityType?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
-    const rows = await client.tenant_audit_logs.findMany({
-      orderBy: { created_at: "desc" },
-      take: 50,
-      include: { staff: { select: { email: true } } },
-    });
-    return rows.map((row) => ({
-      id: row.id,
-      action: row.action,
-      entity_type: row.entity_type,
-      entity_id: row.entity_id,
-      staff_email: row.staff?.email,
-      created_at: row.created_at.toISOString(),
-    }));
+    const { take, skip, page: p, limit: l } = paginate(Number(page) || 1, Number(limit) || 25, 50);
+
+    const where: Prisma.tenant_audit_logsWhereInput = {};
+    if (search?.trim()) {
+      const q = search.trim();
+      where.OR = [
+        { action: { contains: q, mode: "insensitive" } },
+        { entity_type: { contains: q, mode: "insensitive" } },
+        { staff: { email: { contains: q, mode: "insensitive" } } },
+      ];
+    }
+    if (entityType?.trim()) {
+      where.entity_type = entityType.trim();
+    }
+
+    const [rows, total] = await Promise.all([
+      client.tenant_audit_logs.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+        include: { staff: { select: { id: true, email: true } } },
+      }),
+      client.tenant_audit_logs.count({ where }),
+    ]);
+
+    const raffleLookup = await buildRaffleLookupForAudit(client, rows);
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        entity_type: row.entity_type,
+        entity_id: row.entity_id,
+        entity_href: resolveAuditEntityHref(
+          row.entity_type,
+          row.entity_id,
+          raffleLookup,
+        ),
+        staff_id: row.operator_staff_id,
+        staff_email: row.staff?.email,
+        created_at: row.created_at.toISOString(),
+      })),
+      total,
+      page: p,
+      limit: l,
+    };
   }
 }

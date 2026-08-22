@@ -25,18 +25,19 @@ export class PlatformSystemService {
     let queueWaiting = 0;
     let queueFailed = 0;
     let queueActive = 0;
+    let queueDelayed = 0;
     if (redis.ok) {
       try {
-        const connection = new IORedis(
-          process.env.REDIS_URL ?? "redis://localhost:6383",
-          { maxRetriesPerRequest: null },
-        );
-        queueWaiting = await connection.llen("bull:raffle-platform-jobs:wait");
-        queueFailed = await connection.llen("bull:raffle-platform-jobs:failed");
-        queueActive = await connection.llen("bull:raffle-platform-jobs:active");
-        await connection.quit();
+        const counts = await this.queueService.getQueueCounts();
+        queueWaiting = counts.waiting_jobs;
+        queueFailed = counts.failed_jobs;
+        queueActive = counts.active_jobs;
+        queueDelayed = counts.delayed_jobs;
       } catch {
-        queueWaiting = -1;
+        queueWaiting = 0;
+        queueFailed = 0;
+        queueActive = 0;
+        queueDelayed = 0;
       }
     }
 
@@ -53,6 +54,7 @@ export class PlatformSystemService {
         waiting_jobs: queueWaiting,
         failed_jobs: queueFailed,
         active_jobs: queueActive,
+        delayed_jobs: queueDelayed,
       },
       worker,
       status:
@@ -67,6 +69,10 @@ export class PlatformSystemService {
 
   async getWorker() {
     return this.queueService.getWorkerStatus();
+  }
+
+  async cleanFailedQueue() {
+    return this.queueService.cleanFailedJobs();
   }
 
   async getSettings() {

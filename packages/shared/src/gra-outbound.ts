@@ -5,6 +5,19 @@ import {
 } from "@kenji-raffle/database-tenant";
 import { platformPrisma } from "@kenji-raffle/database-platform";
 import { decryptSecret, requireEnv } from "./crypto";
+import {
+  classifyGraHttpResponse,
+  computeNextAttemptAt,
+  emptyGraRelayMetrics,
+  getGraRelayRateLimiter,
+  graIdempotencyKey,
+  graRelayConfig,
+  GRA_RELAY_MAX_RETRIES,
+  logGraRelayRun,
+  mapWithConcurrency,
+  type GraIngestPostResult,
+  type GraRelayRunMetrics,
+} from "./gra-relay";
 
 export const GRA_STAKE_BANDS = [
   "0-50",
@@ -215,7 +228,7 @@ export async function postGraIngestRequest(input: {
   idempotencyKey: string;
   path: string;
   body: Record<string, unknown>;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<GraIngestPostResult> {
   const bodyJson = JSON.stringify(input.body);
   const signature = createHmac("sha256", input.hmacSecret)
     .update(bodyJson)
@@ -238,10 +251,11 @@ export async function postGraIngestRequest(input: {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return {
-        ok: false,
-        error: `GRA ingest ${res.status}: ${text.slice(0, 200)}`,
-      };
+      return classifyGraHttpResponse(
+        res.status,
+        text,
+        res.headers.get("retry-after"),
+      );
     }
 
     return { ok: true };
@@ -249,8 +263,23 @@ export async function postGraIngestRequest(input: {
     return {
       ok: false,
       error: err instanceof Error ? err.message : String(err),
+      retryable: true,
     };
   }
+}
+
+/** @deprecated Use postGraIngestRequest result directly; kept for callers expecting boolean error shape. */
+export async function postGraIngestRequestLegacy(input: {
+  ingestBase: string;
+  apiKey: string;
+  hmacSecret: string;
+  idempotencyKey: string;
+  path: string;
+  body: Record<string, unknown>;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const result = await postGraIngestRequest(input);
+  if (result.ok) return { ok: true };
+  return { ok: false, error: result.error };
 }
 
 export async function testGraIngestConnection(input: {
@@ -264,7 +293,7 @@ export async function testGraIngestConnection(input: {
     site_version: "kenji-raffle",
   };
 
-  return postGraIngestRequest({
+  const result = await postGraIngestRequest({
     ingestBase,
     apiKey: input.apiKey,
     hmacSecret: input.hmacSecret,
@@ -272,6 +301,9 @@ export async function testGraIngestConnection(input: {
     path: "/heartbeat",
     body,
   });
+
+  if (result.ok) return { ok: true };
+  return { ok: false, error: result.error };
 }
 
 type GraEventRow = {
@@ -281,13 +313,23 @@ type GraEventRow = {
   retry_count: number;
 };
 
+type SendGraEventResult = "sent" | "skipped" | "failed" | "rate_limited" | "deferred";
+
 async function sendGraEvent(
   client: TenantPrismaClient,
   event: GraEventRow,
+  operatorId: string,
   ingestBase: string,
   apiKey: string,
   hmacSecret: string,
-): Promise<boolean> {
+  metrics: GraRelayRunMetrics,
+): Promise<SendGraEventResult> {
+  const rateLimiter = getGraRelayRateLimiter();
+  if (!rateLimiter.tryConsume(operatorId)) {
+    metrics.events_rate_limited += 1;
+    return "rate_limited";
+  }
+
   const raw = (event.payload ?? {}) as Record<string, unknown>;
   const payload = { ...raw };
 
@@ -315,30 +357,60 @@ async function sendGraEvent(
         status: "failed",
         last_error: built.reason,
         processed_at: new Date(),
+        next_attempt_at: null,
       },
     });
-    return false;
+    metrics.events_skipped += 1;
+    return "skipped";
   }
 
   const result = await postGraIngestRequest({
     ingestBase,
     apiKey,
     hmacSecret,
-    idempotencyKey: `gra-${event.id}`,
+    idempotencyKey: graIdempotencyKey({
+      id: event.id,
+      event_type: event.event_type,
+      payload,
+    }),
     path: built.path,
     body: built.body,
   });
 
   if (!result.ok) {
+    if (result.httpStatus === 429) {
+      metrics.http_429_total += 1;
+    }
+
+    if (!result.retryable || event.retry_count >= GRA_RELAY_MAX_RETRIES - 1) {
+      await client.gra_outbound_events.update({
+        where: { id: event.id },
+        data: {
+          status: "failed",
+          retry_count: { increment: 1 },
+          last_error: result.error,
+          processed_at: new Date(),
+          next_attempt_at: null,
+        },
+      });
+      metrics.events_failed += 1;
+      return "failed";
+    }
+
+    const nextAttempt = computeNextAttemptAt(
+      event.retry_count,
+      result.retryAfterMs,
+    );
     await client.gra_outbound_events.update({
       where: { id: event.id },
       data: {
-        status: event.retry_count >= 4 ? "failed" : "pending",
+        status: "pending",
         retry_count: { increment: 1 },
         last_error: result.error,
+        next_attempt_at: nextAttempt,
       },
     });
-    return false;
+    return "deferred";
   }
 
   await client.gra_outbound_events.update({
@@ -347,6 +419,7 @@ async function sendGraEvent(
       status: "sent",
       processed_at: new Date(),
       last_error: null,
+      next_attempt_at: null,
     },
   });
 
@@ -362,10 +435,21 @@ async function sendGraEvent(
       .catch(() => undefined);
   }
 
-  return true;
+  metrics.events_sent += 1;
+  return "sent";
 }
 
-export async function processGraOutboundForOperator(operatorId: string) {
+export type GraOutboundProcessResult = {
+  processed: number;
+  operator_id?: string;
+  skipped?: boolean;
+  reason?: string;
+  metrics?: GraRelayRunMetrics;
+};
+
+export async function processGraOutboundForOperator(
+  operatorId: string,
+): Promise<GraOutboundProcessResult> {
   const settings = await platformPrisma.operator_settings.findUnique({
     where: { operator_id: operatorId },
   });
@@ -391,27 +475,49 @@ export async function processGraOutboundForOperator(operatorId: string) {
 
   const url = decryptSecret(db.connection_url_encrypted, encKey);
   const client = createTenantPrismaClient(url);
+  const config = graRelayConfig();
+  const metrics = emptyGraRelayMetrics();
+  const now = new Date();
 
   try {
     const events = await client.gra_outbound_events.findMany({
-      where: { status: "pending" },
+      where: {
+        status: "pending",
+        OR: [{ next_attempt_at: null }, { next_attempt_at: { lte: now } }],
+      },
       orderBy: { created_at: "asc" },
-      take: 50,
+      take: config.batchSize,
     });
 
-    let processed = 0;
     for (const event of events) {
-      const ok = await sendGraEvent(
+      const outcome = await sendGraEvent(
         client,
         event,
+        operatorId,
         ingestBase,
         apiKey,
         hmacSecret,
+        metrics,
       );
-      if (ok) processed += 1;
+      if (outcome === "rate_limited") {
+        break;
+      }
     }
 
-    return { processed, operator_id: operatorId };
+    metrics.backlog_remaining = await client.gra_outbound_events.count({
+      where: {
+        status: "pending",
+        OR: [{ next_attempt_at: null }, { next_attempt_at: { lte: new Date() } }],
+      },
+    });
+
+    logGraRelayRun(operatorId, metrics, { job: "process-gra-outbound" });
+
+    return {
+      processed: metrics.events_sent,
+      operator_id: operatorId,
+      metrics,
+    };
   } finally {
     await client.$disconnect();
   }
@@ -420,11 +526,117 @@ export async function processGraOutboundForOperator(operatorId: string) {
 export async function processGraOutboundForAllTenants() {
   const databases = await platformPrisma.tenant_databases.findMany({
     where: { status: "active" },
+    select: { operator_id: true },
+  });
+
+  const config = graRelayConfig();
+  return mapWithConcurrency(
+    databases,
+    config.operatorConcurrency,
+    async (db) => processGraOutboundForOperator(db.operator_id),
+  );
+}
+
+export async function runGraHeartbeatForOperator(
+  operatorId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const settings = await platformPrisma.operator_settings.findUnique({
+    where: { operator_id: operatorId },
+  });
+
+  if (
+    !settings?.gra_api_key_encrypted ||
+    !settings.gra_hmac_secret_encrypted
+  ) {
+    return { ok: false, error: "no_gra_keys" };
+  }
+
+  const encKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
+  const apiKey = decryptSecret(settings.gra_api_key_encrypted, encKey);
+  const hmacSecret = decryptSecret(settings.gra_hmac_secret_encrypted, encKey);
+
+  const result = await testGraIngestConnection({ apiKey, hmacSecret });
+  const at = new Date();
+
+  await platformPrisma.operator_settings.update({
+    where: { operator_id: operatorId },
+    data: {
+      gra_last_heartbeat_at: at,
+      gra_last_heartbeat_status: result.ok ? "ok" : "failed",
+      gra_last_heartbeat_error: result.ok ? null : result.error,
+    },
+  });
+
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
+}
+
+export async function runGraHeartbeatForAllOperators() {
+  const operators = await platformPrisma.operators.findMany({
+    where: { status: "active" },
+    select: { id: true },
   });
 
   const results = [];
-  for (const db of databases) {
-    results.push(await processGraOutboundForOperator(db.operator_id));
+  for (const op of operators) {
+    results.push({
+      operator_id: op.id,
+      ...(await runGraHeartbeatForOperator(op.id)),
+    });
   }
   return results;
+}
+
+export type GraOperatorQueueStats = {
+  pending_count: number;
+  failed_count: number;
+  oldest_pending_at: string | null;
+  oldest_pending_age_minutes: number | null;
+  last_successful_at: string | null;
+};
+
+export async function getGraQueueStatsForOperator(
+  operatorId: string,
+): Promise<GraOperatorQueueStats | null> {
+  const db = await platformPrisma.tenant_databases.findUnique({
+    where: { operator_id: operatorId },
+  });
+  if (!db || db.status !== "active") return null;
+
+  const encKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
+  const url = decryptSecret(db.connection_url_encrypted, encKey);
+  const client = createTenantPrismaClient(url);
+
+  try {
+    const [pendingCount, failedCount, oldestPending, lastSuccess] =
+      await Promise.all([
+        client.gra_outbound_events.count({ where: { status: "pending" } }),
+        client.gra_outbound_events.count({ where: { status: "failed" } }),
+        client.gra_outbound_events.findFirst({
+          where: { status: "pending" },
+          orderBy: { created_at: "asc" },
+          select: { created_at: true },
+        }),
+        client.gra_outbound_events.findFirst({
+          where: { status: "sent" },
+          orderBy: { processed_at: "desc" },
+          select: { processed_at: true },
+        }),
+      ]);
+
+    const oldestAt = oldestPending?.created_at ?? null;
+    const ageMinutes =
+      oldestAt != null
+        ? Math.round((Date.now() - oldestAt.getTime()) / 60_000)
+        : null;
+
+    return {
+      pending_count: pendingCount,
+      failed_count: failedCount,
+      oldest_pending_at: oldestAt?.toISOString() ?? null,
+      oldest_pending_age_minutes: ageMinutes,
+      last_successful_at: lastSuccess?.processed_at?.toISOString() ?? null,
+    };
+  } finally {
+    await client.$disconnect();
+  }
 }

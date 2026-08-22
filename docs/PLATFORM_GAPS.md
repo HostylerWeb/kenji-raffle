@@ -1,6 +1,6 @@
 # Platform — Remaining Work & Gap Analysis
 
-**Last updated:** 2026-08-21  
+**Last updated:** 2026-08-22  
 **Scope:** Platform control plane only — **not** the raffle public site or operator `/admin` (`apps/web`). Raffle product functional gaps → **`docs/RAFFLE_GAPS.md`**.
 
 ---
@@ -29,6 +29,7 @@ These are **not** missing platform-console features. They live outside this app:
 | Dashboard missing infra | Dashboard shows Postgres / Redis / worker strip |
 | `verify-dns-queue` unused | Buttons on operator detail + domains page |
 | GRA outbound “2/6 events” (stale) | All event types in `packages/shared/src/gra-outbound.ts` |
+| GRA platform relay (single egress) | Worker-only HTTP; rate limit + backoff; daily heartbeat; health report |
 
 ---
 

@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminConfirm } from "@/components/admin/AdminConfirm";
+import { AdminFilters } from "@/components/admin/AdminFilters";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { useAdminToast } from "@/components/admin/AdminToast";
@@ -11,6 +14,7 @@ import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type Withdrawal = {
   id: string;
+  user_id: string;
   user_email: string;
   user_name: string | null;
   amount: number;
@@ -25,14 +29,29 @@ type Withdrawal = {
   created_at: string;
 };
 
+type WithdrawalsResponse = {
+  items: Withdrawal[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export default function AdminWithdrawalsPage() {
   const router = useRouter();
   const { toast } = useAdminToast();
-  const [rows, setRows] = useState<Withdrawal[]>([]);
+  const [data, setData] = useState<WithdrawalsResponse | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
 
-  async function load() {
-    setRows(await operatorFetch<Withdrawal[]>("/v1/admin/withdrawals"));
-  }
+  const load = useCallback(async () => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "25");
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    setData(await operatorFetch<WithdrawalsResponse>(`/v1/admin/withdrawals?${params.toString()}`));
+  }, [page, search, status]);
 
   useEffect(() => {
     if (!getOperatorToken()) {
@@ -40,34 +59,70 @@ export default function AdminWithdrawalsPage() {
       return;
     }
     load();
-  }, [router]);
+  }, [router, load]);
 
-  async function update(id: string, status: "approved" | "paid" | "rejected", admin_note?: string) {
+  async function update(id: string, newStatus: "approved" | "paid" | "rejected", admin_note?: string) {
     await operatorFetch(`/v1/admin/withdrawals/${id}`, {
       method: "PATCH",
-      body: JSON.stringify({ status, admin_note }),
+      body: JSON.stringify({ status: newStatus, admin_note }),
     });
     await load();
-    toast(`Withdrawal ${status}`);
+    toast(`Withdrawal ${newStatus}`);
   }
+
+  const items = data?.items ?? [];
 
   return (
     <OperatorAdminShell title="Withdrawals" description="Approve and mark cash prize payouts.">
       <div className="admin-panel">
+        <div className="admin-panel__header">
+          <div>
+            <h3 className="admin-panel__title">Payout requests</h3>
+            <p className="admin-panel__subtitle">{data?.total ?? 0} request{(data?.total ?? 0) === 1 ? "" : "s"} total</p>
+          </div>
+        </div>
+        <AdminFilters
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          searchPlaceholder="Search player or account…"
+          hasActive={Boolean(search || status)}
+          onClear={() => { setSearch(""); setStatus(""); setPage(1); }}
+        >
+          <select
+            className="admin-select"
+            value={status}
+            onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          >
+            <option value="">All statuses</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="paid">Paid</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button type="button" className="btn btn-secondary" onClick={() => load()}>
+            Search
+          </button>
+        </AdminFilters>
         <AdminTable
           columns={["Player", "Prize", "Amount", "Method", "Account", "Status", ""]}
-          isEmpty={rows.length === 0}
+          isEmpty={items.length === 0}
           emptyTitle="No withdrawals"
         >
-          {rows.map((w) => (
+          {items.map((w) => (
             <tr key={w.id}>
               <td>
-                {w.user_name ?? w.user_email}
+                <Link href={`/admin/players/${w.user_id}`}>
+                  <strong>{w.user_name ?? w.user_email}</strong>
+                </Link>
                 <br />
                 <span className="muted">{w.source}</span>
               </td>
               <td>{w.prize_name ?? "—"}</td>
-              <td>KES {w.amount.toLocaleString()}</td>
+              <td>
+                <Link href={`/admin/withdrawals/${w.id}`}>
+                  <strong>KES {w.amount.toLocaleString()}</strong>
+                </Link>
+              </td>
               <td>{w.method}</td>
               <td>
                 {w.account_name && (
@@ -84,9 +139,10 @@ export default function AdminWithdrawalsPage() {
                 <AdminStatusBadge status={w.status} />
               </td>
               <td>
+                <div className="admin-row-actions">
                 {w.status === "pending" && (
                   <>
-                    <button type="button" className="btn btn-secondary" onClick={() => update(w.id, "approved")}>
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => update(w.id, "approved")}>
                       Approve
                     </button>
                     <AdminConfirm
@@ -97,7 +153,7 @@ export default function AdminWithdrawalsPage() {
                       onConfirm={() => update(w.id, "rejected")}
                     >
                       {(open) => (
-                        <button type="button" className="btn btn-secondary" onClick={open}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={open}>
                           Reject
                         </button>
                       )}
@@ -113,16 +169,18 @@ export default function AdminWithdrawalsPage() {
                     onConfirm={(ref) => update(w.id, "paid", ref || undefined)}
                   >
                     {(open) => (
-                      <button type="button" className="btn btn-secondary" onClick={open}>
+                      <button type="button" className="btn btn-secondary btn-sm" onClick={open}>
                         Mark paid
                       </button>
                     )}
                   </AdminConfirm>
                 )}
+                </div>
               </td>
             </tr>
           ))}
         </AdminTable>
+        {data && <AdminPagination page={data.page} total={data.total} limit={data.limit} onPage={setPage} />}
       </div>
     </OperatorAdminShell>
   );

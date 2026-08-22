@@ -3,10 +3,10 @@ import {
   decryptSecret,
   emptyGraStakeBandDistribution,
   graStakeBandForAmount,
-  processGraOutboundForOperator,
   requireEnv,
 } from "@kenji-raffle/shared";
 import { platformPrisma } from "@kenji-raffle/database-platform";
+import { enqueueProcessGraOutbound } from "./enqueue-gra-outbound";
 
 export async function runSessionAggregatesForAllTenants() {
   const encryptionKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
@@ -131,7 +131,7 @@ export async function runSessionAggregatesForAllTenants() {
         aggregates += 1;
       }
 
-      await processGraOutboundForOperator(db.operator_id);
+      await enqueueProcessGraOutbound(db.operator_id);
     } finally {
       await client.$disconnect();
     }

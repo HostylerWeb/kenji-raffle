@@ -2,10 +2,10 @@ import { createTenantPrismaClient } from "@kenji-raffle/database-tenant";
 import type { Prisma } from "@kenji-raffle/database-tenant";
 import {
   decryptSecret,
-  processGraOutboundForOperator,
   requireEnv,
 } from "@kenji-raffle/shared";
 import { platformPrisma } from "@kenji-raffle/database-platform";
+import { enqueueProcessGraOutbound } from "./enqueue-gra-outbound";
 
 function parseTicketNumbers(json: Prisma.JsonValue): number[] {
   if (!Array.isArray(json)) return [];
@@ -104,7 +104,7 @@ export async function expireStalePendingOrdersForAllTenants() {
       }
 
       if (staleOrders.length > 0) {
-        await processGraOutboundForOperator(db.operator_id);
+        await enqueueProcessGraOutbound(db.operator_id);
       }
     } finally {
       await client.$disconnect();

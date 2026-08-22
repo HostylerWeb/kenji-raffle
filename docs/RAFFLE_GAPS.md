@@ -2,7 +2,7 @@
 
 Functional scope for tenant raffle sites (`apps/web` + tenant API + worker). Platform control plane gaps live in `PLATFORM_GAPS.md`.
 
-**Last updated:** 2026-08-21 (gateway fee columns, unified callback, dev mock gateway)
+**Last updated:** 2026-08-22 (GRA platform relay, kenji-gateway scaffold)
 
 ---
 
@@ -12,12 +12,12 @@ What is **mock / temporary today**, what **ships in this repo now**, and what **
 
 | Gap | Status now | Mock / dev substitute | Replace with (production) |
 |-----|------------|----------------------|---------------------------|
-| **GRA payment ledger** (`POST /v1/gateway/notify`) | GRA handler **done** in `kenji-government` | `bash kenji-government/tools/gateway-simulator/simulate-charge.sh 1000` | **`kenji-gateway`** calls notify on every charge — raffle never calls this |
+| **kenji-gateway** scaffold | GRA handler **done** in `kenji-government` | `bash kenji-government/tools/gateway-simulator/simulate-charge.sh 1000` | **`kenji-gateway`** `POST /v1/charge` → `gateway/notify` (scaffold at `/var/www/kenji-gateway`) |
 | **Gateway fee on `payments`** | **Done** — columns + callback persistence | Mock checkout: fees = `0`; live callback stores real fees | Values from **`kenji-gateway`** webhook (`gateway_fee_rate`, `gateway_fee_amount`) |
 | **Live checkout redirect** | Redirect URL + **`POST /v1/payments/gateway/callback`** **done** | `GATEWAY_DEV_MOCK=true` + `HARAMBE_GATEWAY_URL=…/dev-mock-gateway/pay` | Real **`kenji-gateway`** pay page + M-Pesa/card |
 | **Raffle completes order** | Mock: `POST /v1/payments/harambe/complete` | Dev mock page or mock mode | Gateway webhook → `gateway/callback` only |
 | **Refund → GRA payment ledger** | **`ticket.voided`** per ticket (correct) | Same — no fake payment reversal | Future: gateway refund API + GRA schema (`refunded` or reversal notify) |
-| **GRA live feed tax on payment** | Outbound sends tax; ingest mapper is gross-focused | Optional follow-up on GRA ingest | GRA ingest accepts optional tax fields if needed |
+| **GRA live feed tax on payment** | `/events/payment` is gross-only (regulatory tax on `gateway/notify`) | N/A | Optional GRA schema extension only |
 
 ### Dev mock gateway (temporary)
 
@@ -142,7 +142,7 @@ Implementation: `packages/shared/src/gra-outbound.ts`. See [IMPORTANT.md](../IMP
 | `TENANT_RATE_LIMIT_PER_MINUTE` | Default 300/min per operator + IP |
 | `JWT_REFRESH_SECRET` | Player + operator refresh tokens |
 | `REDIS_URL` | Player + operator refresh revocation store |
-| `LOW_TICKET_THRESHOLD` | Dashboard low-ticket alert (default 50) |
+| `ALMOST_SOLD_OUT_THRESHOLD` | Dashboard “almost sold out” highlight (default 50; falls back to `LOW_TICKET_THRESHOLD`) |
 | `CART_RESERVATION_TTL_MINUTES` | Cart hold time (default 15) |
 | `CHECKOUT_PENDING_TTL_MINUTES` | Pending payment reservation + auto-fail (default 60) |
 | `HARAMBE_PAYMENT_MODE` | `mock` (default) or `live` |

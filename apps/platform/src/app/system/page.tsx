@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlatformShell } from "../../components/PlatformShell";
 import { isAuthenticated, platformFetch } from "../../lib/api";
+import { usePlatformSession } from "../../lib/use-platform-session";
 
 type SystemHealth = {
   status: string;
@@ -25,6 +26,7 @@ type SystemHealth = {
     waiting_jobs: number;
     failed_jobs: number;
     active_jobs: number;
+    delayed_jobs?: number;
   };
   worker: {
     worker_alive: boolean;
@@ -72,8 +74,22 @@ function StatusRow({
 
 export default function SystemPage() {
   const router = useRouter();
+  const { isAdmin: admin, ready } = usePlatformSession();
   const [health, setHealth] = useState<SystemHealth | null>(null);
   const [worker, setWorker] = useState<WorkerStatus | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [actionMessage, setActionMessage] = useState("");
+
+  const loadHealth = useCallback(async () => {
+    const [h, w] = await Promise.all([
+      platformFetch<SystemHealth>("/v1/platform/system/health"),
+      platformFetch<WorkerStatus>("/v1/platform/system/worker").catch(
+        () => null,
+      ),
+    ]);
+    setHealth(h);
+    setWorker(w);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -81,18 +97,37 @@ export default function SystemPage() {
       return;
     }
 
-    Promise.all([
-      platformFetch<SystemHealth>("/v1/platform/system/health"),
-      platformFetch<WorkerStatus>("/v1/platform/system/worker").catch(
-        () => null,
-      ),
-    ])
-      .then(([h, w]) => {
-        setHealth(h);
-        setWorker(w);
-      })
-      .catch(() => router.replace("/"));
-  }, [router]);
+    loadHealth().catch(() => router.replace("/"));
+    const timer = setInterval(() => {
+      loadHealth().catch(() => undefined);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, [loadHealth, router]);
+
+  async function cleanFailedJobs() {
+    setCleaning(true);
+    setActionMessage("");
+    try {
+      const result = await platformFetch<{ removed: number }>(
+        "/v1/platform/system/queue/clean-failed",
+        { method: "POST" },
+      );
+      setActionMessage(`Removed ${result.removed} failed job(s).`);
+      await loadHealth();
+    } catch (err) {
+      setActionMessage(
+        err instanceof Error ? err.message : "Failed to clean queue",
+      );
+    } finally {
+      setCleaning(false);
+    }
+  }
+
+  const heartbeatAt =
+    worker?.heartbeat?.at ?? health?.worker.heartbeat?.at ?? null;
+  const heartbeatAgeMs = heartbeatAt
+    ? Date.now() - new Date(String(heartbeatAt)).getTime()
+    : null;
 
   return (
     <PlatformShell title="System health">
@@ -179,13 +214,26 @@ export default function SystemPage() {
                           : "status-pill status-bad"
                       }
                     >
-                      {health.worker.worker_alive ? "Alive" : "Not responding"}
+                      {health.worker.worker_alive ? "Alive" : "Not running"}
                     </span>
+                    {heartbeatAt && (
+                      <span className="muted system-detail">
+                        {" "}
+                        last ping{" "}
+                        {heartbeatAgeMs !== null && heartbeatAgeMs < 120000
+                          ? `${Math.round(heartbeatAgeMs / 1000)}s ago`
+                          : String(heartbeatAt)}
+                      </span>
+                    )}
                   </strong>
                 </div>
                 <div className="metric-row">
                   <span>Queue waiting</span>
-                  <strong>{health.queue.waiting_jobs}</strong>
+                  <strong>{Math.max(0, health.queue.waiting_jobs)}</strong>
+                </div>
+                <div className="metric-row">
+                  <span>Queue delayed</span>
+                  <strong>{Math.max(0, health.queue.delayed_jobs ?? 0)}</strong>
                 </div>
                 <div className="metric-row">
                   <span>Queue active</span>
@@ -201,9 +249,28 @@ export default function SystemPage() {
                     {health.queue.failed_jobs}
                   </strong>
                 </div>
+                {ready && admin && health.queue.failed_jobs > 0 && (
+                  <div className="metric-row">
+                    <span>Failed jobs</span>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      disabled={cleaning}
+                      onClick={cleanFailedJobs}
+                    >
+                      {cleaning ? "Cleaning…" : "Clear failed jobs"}
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
           </div>
+
+          {actionMessage && (
+            <p className="muted" style={{ marginBottom: 16 }}>
+              {actionMessage}
+            </p>
+          )}
 
           {worker && (
             <section className="card dashboard-panel">
@@ -246,8 +313,23 @@ export default function SystemPage() {
           )}
 
           <p className="dashboard-footnote muted">
-            Run <code>npm run dev:worker</code> so tenant provisioning and
-            rollups complete. Checked{" "}
+            {!health.worker.worker_alive && (
+              <>
+                Worker is offline or heartbeat expired (&gt;2 min) — start it with{" "}
+                <code>npm run dev:worker</code> from the project root.
+                {health.queue.failed_jobs > 50 && (
+                  <>
+                    {" "}
+                    High failed count usually means the worker ran without{" "}
+                    <code>.env</code> loaded (missing{" "}
+                    <code>PLATFORM_DATABASE_URL</code> /{" "}
+                    <code>CREDENTIALS_ENCRYPTION_KEY</code>).
+                  </>
+                )}
+                <br />
+              </>
+            )}
+            Checked{" "}
             {new Date(health.checked_at).toLocaleString("en-KE")}.
           </p>
         </div>

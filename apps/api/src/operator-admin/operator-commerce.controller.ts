@@ -42,8 +42,21 @@ export class OperatorOrdersController {
   listOrders(
     @TenantCtx() tenant: TenantContext,
     @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.ordersService.listOrders(tenant.operatorId, status);
+    return this.ordersService.listOrders(tenant.operatorId, {
+      status,
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
+  }
+
+  @Get("orders/:id")
+  getOrder(@TenantCtx() tenant: TenantContext, @Param("id") id: string) {
+    return this.ordersService.getOrder(tenant.operatorId, id);
   }
 
   @OperatorRoles("owner", "manager", "finance")
@@ -58,8 +71,17 @@ export class OperatorOrdersController {
   }
 
   @Get("payments")
-  listPayments(@TenantCtx() tenant: TenantContext) {
-    return this.ordersService.listPayments(tenant.operatorId);
+  listPayments(
+    @TenantCtx() tenant: TenantContext,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.ordersService.listPayments(tenant.operatorId, {
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @OperatorRoles("owner", "manager", "finance")
@@ -123,8 +145,19 @@ export class OperatorCouponsController {
   constructor(private readonly couponsService: OperatorCouponsService) {}
 
   @Get()
-  list(@TenantCtx() tenant: TenantContext) {
-    return this.couponsService.list(tenant.operatorId);
+  list(
+    @TenantCtx() tenant: TenantContext,
+    @Query("search") search?: string,
+    @Query("status") status?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.couponsService.list(tenant.operatorId, {
+      search,
+      status,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @OperatorRoles("owner", "manager")

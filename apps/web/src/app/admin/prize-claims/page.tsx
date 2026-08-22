@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminFilters } from "@/components/admin/AdminFilters";
+import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { useAdminToast } from "@/components/admin/AdminToast";
@@ -11,6 +13,7 @@ import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type Claim = {
   id: string;
+  user_id: string;
   status: string;
   prize_type: string;
   prize_value: number | null;
@@ -25,37 +28,48 @@ type Claim = {
   withdrawal: { id: string; status: string; method: string; amount: number } | null;
 };
 
+type ClaimsResponse = {
+  items: Claim[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 export default function PrizeClaimsPage() {
   const router = useRouter();
   const { toast } = useAdminToast();
-  const [claims, setClaims] = useState<Claim[]>([]);
+  const [data, setData] = useState<ClaimsResponse | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
+
+  const load = useCallback(async () => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "25");
+    if (search) params.set("search", search);
+    if (status) params.set("status", status);
+    setData(await operatorFetch<ClaimsResponse>(`/v1/admin/prize-claims?${params.toString()}`));
+  }, [page, search, status]);
 
   useEffect(() => {
     if (!getOperatorToken()) {
       router.replace("/admin/login");
       return;
     }
-    operatorFetch<Claim[]>("/v1/admin/prize-claims").then(setClaims);
-  }, [router]);
+    load();
+  }, [router, load]);
 
   async function updateStatus(id: string, next: string) {
     await operatorFetch(`/v1/admin/prize-claims/${id}`, {
       method: "PATCH",
       body: JSON.stringify({ status: next }),
     });
-    setClaims(await operatorFetch<Claim[]>("/v1/admin/prize-claims"));
+    await load();
     toast(`Claim ${next}`);
   }
 
-  const filtered = useMemo(() => {
-    return claims.filter((c) => {
-      const q = search.toLowerCase();
-      const hay = `${c.user_email} ${c.user_name ?? ""} ${c.prize_name ?? ""}`.toLowerCase();
-      return (!q || hay.includes(q)) && (!status || c.status === status);
-    });
-  }, [claims, search, status]);
+  const items = data?.items ?? [];
 
   return (
     <OperatorAdminShell
@@ -63,39 +77,49 @@ export default function PrizeClaimsPage() {
       description="Ship physical prizes and track cash claim payouts."
     >
       <div className="admin-panel">
+        <div className="admin-panel__header">
+          <div>
+            <h3 className="admin-panel__title">Claims queue</h3>
+            <p className="admin-panel__subtitle">{data?.total ?? 0} claim{(data?.total ?? 0) === 1 ? "" : "s"} total</p>
+          </div>
+        </div>
         <AdminFilters
           search={search}
-          onSearch={setSearch}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
           searchPlaceholder="Search player or prize…"
           hasActive={Boolean(search || status)}
-          onClear={() => {
-            setSearch("");
-            setStatus("");
-          }}
+          onClear={() => { setSearch(""); setStatus(""); setPage(1); }}
         >
-          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
             <option value="">All statuses</option>
             <option value="pending">pending</option>
             <option value="shipped">shipped</option>
             <option value="delivered">delivered</option>
           </select>
+          <button type="button" className="btn btn-secondary" onClick={() => load()}>
+            Search
+          </button>
         </AdminFilters>
         <AdminTable
           columns={["Player", "Source", "Prize", "Type", "Details", "Status", ""]}
-          isEmpty={filtered.length === 0}
+          isEmpty={items.length === 0}
           emptyTitle="No prize claims"
           emptyDescription="Claims appear when players win physical or cash prizes."
         >
-          {filtered.map((c) => (
+          {items.map((c) => (
             <tr key={c.id}>
               <td>
-                {c.user_name ?? c.user_email}
+                <Link href={`/admin/players/${c.user_id}`}>
+                  <strong>{c.user_name ?? c.user_email}</strong>
+                </Link>
                 <br />
                 <span className="muted">{c.user_email}</span>
               </td>
               <td>{c.source}</td>
               <td>
-                {c.prize_name ?? "—"}
+                <Link href={`/admin/prize-claims/${c.id}`}>
+                  <strong>{c.prize_name ?? "—"}</strong>
+                </Link>
                 {c.prize_value != null && (
                   <span className="muted"> · KES {c.prize_value.toLocaleString()}</span>
                 )}
@@ -108,36 +132,42 @@ export default function PrizeClaimsPage() {
                     {c.town && <br />}
                     {c.town}
                     {c.county && `, ${c.county}`}
-                    {c.postal_code && ` ${c.postal_code}`}
                   </>
                 )}
                 {c.prize_type === "cash" && c.withdrawal && (
                   <>
-                    Withdrawal: {c.withdrawal.method} · {c.withdrawal.status}
+                    <Link href={`/admin/withdrawals/${c.withdrawal.id}`}>
+                      Withdrawal
+                    </Link>
+                    {" · "}{c.withdrawal.method} · {c.withdrawal.status}
                   </>
                 )}
                 {c.prize_type === "cash" && !c.withdrawal && (
                   <span className="muted">Awaiting payout details</span>
                 )}
               </td>
+              <td><AdminStatusBadge status={c.status} /></td>
               <td>
-                <AdminStatusBadge status={c.status} />
-              </td>
-              <td>
-                {c.prize_type === "physical" && c.status === "pending" && (
-                  <button type="button" className="btn btn-secondary" onClick={() => updateStatus(c.id, "shipped")}>
-                    Mark shipped
-                  </button>
-                )}
-                {c.prize_type === "physical" && c.status === "shipped" && (
-                  <button type="button" className="btn btn-secondary" onClick={() => updateStatus(c.id, "delivered")}>
-                    Mark delivered
-                  </button>
-                )}
+                <div className="admin-row-actions">
+                  <Link href={`/admin/prize-claims/${c.id}`}>View</Link>
+                  {c.prize_type === "physical" && c.status === "pending" && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(c.id, "shipped")}>
+                      Ship
+                    </button>
+                  )}
+                  {c.prize_type === "physical" && c.status === "shipped" && (
+                    <button type="button" className="btn btn-secondary btn-sm" onClick={() => updateStatus(c.id, "delivered")}>
+                      Deliver
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
         </AdminTable>
+        {data && (
+          <AdminPagination page={data.page} total={data.total} limit={data.limit} onPage={setPage} />
+        )}
       </div>
     </OperatorAdminShell>
   );

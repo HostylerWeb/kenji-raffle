@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { PlatformShell } from "../../../../components/PlatformShell";
 import { StatusBadge } from "../../../../components/StatusBadge";
-import { isAuthenticated, isPlatformAdmin, platformFetch } from "../../../../lib/api";
+import { isAuthenticated, platformFetch } from "../../../../lib/api";
+import { usePlatformSession } from "../../../../lib/use-platform-session";
 
 type DomainRow = {
   id: string;
@@ -27,7 +28,7 @@ type DomainsResponse = {
 export default function OperatorDomainsPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const admin = isPlatformAdmin();
+  const { isAdmin: admin, ready: sessionReady } = usePlatformSession();
   const [data, setData] = useState<DomainsResponse | null>(null);
   const [hostname, setHostname] = useState("");
   const [error, setError] = useState("");
@@ -149,7 +150,7 @@ export default function OperatorDomainsPage() {
                       <StatusBadge status={domain.ssl_status} />
                     </td>
                     <td>
-                      {admin &&
+                      {sessionReady && admin &&
                         domain.domain_type === "custom" &&
                         domain.verification_status !== "verified" && (
                           <>
@@ -189,7 +190,7 @@ export default function OperatorDomainsPage() {
               inside this console. DNS verify only records that the hostname
               points at this platform.
             </p>
-            {admin && (
+            {sessionReady && admin && (
               <form className="form" onSubmit={addDomain}>
                 <label>
                   Custom hostname

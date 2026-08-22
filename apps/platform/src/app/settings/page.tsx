@@ -6,9 +6,9 @@ import { PlatformShell } from "../../components/PlatformShell";
 import { PlatformAccountSecurity } from "../../components/PlatformAccountSecurity";
 import {
   isAuthenticated,
-  isPlatformAdmin,
   platformFetch,
 } from "../../lib/api";
+import { usePlatformSession } from "../../lib/use-platform-session";
 
 type Settings = {
   tenant_base_domain: string;
@@ -23,18 +23,18 @@ export default function SettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [message, setMessage] = useState("");
-  const admin = isPlatformAdmin();
+  const { isAdmin: admin, ready } = usePlatformSession();
 
   useEffect(() => {
     if (!isAuthenticated()) {
       router.replace("/");
       return;
     }
-    if (!admin) return;
+    if (!ready || !admin) return;
     platformFetch<Settings>("/v1/platform/system/settings")
       .then(setSettings)
       .catch(() => undefined);
-  }, [router, admin]);
+  }, [router, admin, ready]);
 
   async function onSave(e: FormEvent) {
     e.preventDefault();
@@ -59,7 +59,7 @@ export default function SettingsPage() {
     <PlatformShell title="Settings">
       <PlatformAccountSecurity />
 
-      {admin && (
+      {ready && admin && (
         <section className="card" style={{ marginTop: 24 }}>
           <h2>Platform configuration</h2>
           <p className="muted">

@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Body, UseGuards } from "@nestjs/common";
+import { Controller, Get, Patch, Post, Body, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { IsEmail, IsInt, IsOptional, IsString, MinLength } from "class-validator";
 import { PlatformRoute } from "../tenant/tenant.decorators";
@@ -50,6 +50,12 @@ export class PlatformSystemController {
   @Get("worker")
   worker() {
     return this.systemService.getWorker();
+  }
+
+  @PlatformAdminOnly()
+  @Post("queue/clean-failed")
+  cleanFailedQueue() {
+    return this.systemService.cleanFailedQueue();
   }
 
   @Get("settings")

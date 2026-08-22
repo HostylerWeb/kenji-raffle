@@ -96,8 +96,8 @@ model operator_domains {
 }
 
 model operator_settings {
-  id                             String   @id @default(uuid()) @db.Uuid
-  operator_id                    String   @unique @db.Uuid
+  id                             String    @id @default(uuid()) @db.Uuid
+  operator_id                    String    @unique @db.Uuid
   logo_url                       String?
   primary_color                  String?
   support_email                  String?
@@ -105,16 +105,19 @@ model operator_settings {
   social_links                   Json?
   gra_api_key_encrypted          String?
   gra_hmac_secret_encrypted      String?
+  gra_last_heartbeat_at          DateTime? @db.Timestamptz(6)
+  gra_last_heartbeat_status      String?
+  gra_last_heartbeat_error       String?
   payment_merchant_ref_encrypted String?
-  feature_flags                  Json     @default("{}")
+  feature_flags                  Json      @default("{}")
   ga4_measurement_id             String?
   facebook_pixel_id              String?
-  analytics_enabled              Boolean  @default(false)
+  analytics_enabled              Boolean   @default(false)
   faq_text                       String?
   terms_text                     String?
   privacy_text                   String?
-  created_at                     DateTime @default(now()) @db.Timestamptz(6)
-  updated_at                     DateTime @updatedAt @db.Timestamptz(6)
+  created_at                     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime  @updatedAt @db.Timestamptz(6)
 
   operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
 }

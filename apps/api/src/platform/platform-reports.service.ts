@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import type { PlatformAuthUser } from "@kenji-raffle/shared";
-import { processGraOutboundForOperator } from "@kenji-raffle/shared";
+import {
+  enqueueProcessGraOutbound,
+  getGraQueueStatsForOperator,
+} from "@kenji-raffle/shared";
 import { TENANT_SCHEMA_VERSION } from "@kenji-raffle/database-tenant";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
@@ -100,6 +103,9 @@ export class PlatformReportsService {
           select: {
             gra_api_key_encrypted: true,
             gra_hmac_secret_encrypted: true,
+            gra_last_heartbeat_at: true,
+            gra_last_heartbeat_status: true,
+            gra_last_heartbeat_error: true,
           },
         },
       },
@@ -113,16 +119,47 @@ export class PlatformReportsService {
       rollupSums.map((r) => [r.operator_id, r._sum.failed_gra_events ?? 0]),
     );
 
-    return operators.map((op) => ({
-      operator_id: op.id,
-      slug: op.slug,
-      name: op.name,
-      status: op.status,
-      gra_credentials_configured:
+    const queueStats = await Promise.all(
+      operators.map(async (op) => ({
+        operator_id: op.id,
+        stats: await getGraQueueStatsForOperator(op.id),
+      })),
+    );
+    const queueMap = new Map(queueStats.map((row) => [row.operator_id, row.stats]));
+
+    return operators.map((op) => {
+      const stats = queueMap.get(op.id);
+      const credentialsConfigured =
         Boolean(op.settings?.gra_api_key_encrypted) &&
-        Boolean(op.settings?.gra_hmac_secret_encrypted),
-      failed_gra_events_total: failedMap.get(op.id) ?? 0,
-    }));
+        Boolean(op.settings?.gra_hmac_secret_encrypted);
+      const oldestPendingAge = stats?.oldest_pending_age_minutes ?? null;
+      const alertStalePending =
+        credentialsConfigured &&
+        oldestPendingAge != null &&
+        oldestPendingAge > 15;
+
+      return {
+        operator_id: op.id,
+        slug: op.slug,
+        name: op.name,
+        status: op.status,
+        gra_credentials_configured: credentialsConfigured,
+        failed_gra_events_total: failedMap.get(op.id) ?? 0,
+        pending_queue_depth: stats?.pending_count ?? 0,
+        failed_queue_count: stats?.failed_count ?? 0,
+        oldest_pending_at: stats?.oldest_pending_at ?? null,
+        oldest_pending_age_minutes: oldestPendingAge,
+        last_successful_send_at: stats?.last_successful_at ?? null,
+        gra_last_heartbeat_at:
+          op.settings?.gra_last_heartbeat_at?.toISOString() ?? null,
+        gra_last_heartbeat_status: op.settings?.gra_last_heartbeat_status ?? null,
+        gra_last_heartbeat_error: op.settings?.gra_last_heartbeat_error ?? null,
+        alert_stale_pending: alertStalePending,
+        alert_failed_events: (failedMap.get(op.id) ?? 0) > 0,
+        alert_heartbeat_failed:
+          op.settings?.gra_last_heartbeat_status === "failed",
+      };
+    });
   }
 }
 
@@ -344,6 +381,8 @@ export class PlatformDrilldownService {
         status: "pending",
         last_error: null,
         retry_count: 0,
+        next_attempt_at: null,
+        processed_at: null,
       },
     });
 
@@ -356,7 +395,7 @@ export class PlatformDrilldownService {
       { event_type: event.event_type },
     );
 
-    await processGraOutboundForOperator(operatorId);
+    await enqueueProcessGraOutbound(operatorId);
 
     return { ok: true, event_id: eventId, status: "pending" };
   }

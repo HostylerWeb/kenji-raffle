@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 export function AdminConfirm({
   title,
@@ -34,6 +34,15 @@ export function AdminConfirm({
     }
   }
 
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   return (
     <>
       {children(() => setOpen(true))}
@@ -46,16 +55,20 @@ export function AdminConfirm({
             aria-labelledby="admin-confirm-title"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 id="admin-confirm-title">{title}</h3>
-            <p>{body}</p>
-            {promptLabel ? (
-              <label>
-                {promptLabel}
-                <input value={value} onChange={(e) => setValue(e.target.value)} />
-              </label>
-            ) : null}
+            <div className="admin-modal__header">
+              <h3 id="admin-confirm-title">{title}</h3>
+            </div>
+            <div className="admin-modal__body">
+              <p>{body}</p>
+              {promptLabel ? (
+                <label>
+                  {promptLabel}
+                  <input value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+                </label>
+              ) : null}
+            </div>
             <div className="admin-modal__actions">
-              <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>
+              <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)} disabled={busy}>
                 Cancel
               </button>
               <button

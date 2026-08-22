@@ -111,6 +111,16 @@ function isActive(pathname: string, href: string, exact?: boolean) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+function sectionEyebrow(pathname: string): string {
+  if (pathname.startsWith("/admin/raffles")) return "Commerce";
+  if (pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/payments") || pathname.startsWith("/admin/reports") || pathname.startsWith("/admin/coupons")) return "Commerce";
+  if (pathname.startsWith("/admin/players") || pathname.startsWith("/admin/prize-claims") || pathname.startsWith("/admin/withdrawals") || pathname.startsWith("/admin/winners")) return "Players";
+  if (pathname.startsWith("/admin/categories") || pathname.startsWith("/admin/media") || pathname.startsWith("/admin/domains")) return "Site";
+  if (pathname.startsWith("/admin/gra-events") || pathname.startsWith("/admin/audit")) return "Compliance";
+  if (pathname.startsWith("/admin/staff") || pathname.startsWith("/admin/settings")) return "Team";
+  return "Overview";
+}
+
 export function OperatorAdminShell({
   title,
   description,
@@ -179,8 +189,8 @@ export function OperatorAdminShell({
 
       <aside className={`admin-sidebar${sidebarOpen ? " admin-sidebar--open" : ""}`}>
         <div className="admin-sidebar__brand">
-          <div className="admin-sidebar__accent-bar" />
-          <div className="admin-sidebar__brand-name" style={{ marginTop: 16 }}>
+          <div className="admin-sidebar__accent-bar" style={{ background: accent }} />
+          <div className="admin-sidebar__brand-name">
             {branding?.name ?? "Operator Admin"}
           </div>
           <div className="admin-sidebar__brand-sub">Operator console</div>
@@ -236,7 +246,7 @@ export function OperatorAdminShell({
             >
               <IconMenu />
             </button>
-            <h1 className="admin-topbar__title">{title}</h1>
+            <span className="admin-topbar__title">Operator console</span>
           </div>
           <div className="admin-topbar__actions">
             <Link href="/" className="admin-topbar__preview" target="_blank">
@@ -247,12 +257,18 @@ export function OperatorAdminShell({
         </header>
 
         <div className="admin-page">
-          {(description || actions) && (
-            <div className="admin-page-lead">
-              {description && <p className="admin-page__description">{description}</p>}
+          <header className="admin-page-header">
+            <div className="admin-page-header__row">
+              <div>
+                <p className="admin-page-header__eyebrow">{sectionEyebrow(pathname)}</p>
+                <h1 className="admin-page-header__title">{title}</h1>
+                {description && (
+                  <p className="admin-page-header__description">{description}</p>
+                )}
+              </div>
               {actions && <div className="admin-page__actions">{actions}</div>}
             </div>
-          )}
+          </header>
           {children}
         </div>
       </div>

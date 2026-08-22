@@ -10,6 +10,7 @@ import type { Prisma } from "@kenji-raffle/database-tenant";
 import { publicRaffleVisibilityFilter } from "../cart/raffle-purchase.helper";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
+import { paginate } from "../common/pagination";
 
 type RaffleStatus =
   | "draft"
@@ -69,8 +70,19 @@ function serializeRaffle(
       group_id: string | null;
     }[];
   },
-  counts?: { available: number; reserved: number; purchased: number; total: number },
+  counts?: {
+    available: number;
+    reserved: number;
+    purchased: number;
+    winning: number;
+    total: number;
+  },
 ) {
+  const ticketsSold = counts ? counts.purchased + counts.winning : 0;
+  const ticketsTotal = counts && counts.total > 0 ? counts.total : row.max_entries;
+  const percentSold =
+    ticketsTotal > 0 ? Math.round((ticketsSold / ticketsTotal) * 1000) / 10 : 0;
+
   return {
     id: row.id,
     title: row.title,
@@ -123,6 +135,9 @@ function serializeRaffle(
     })),
     ticket_counts: counts,
     tickets_available: counts?.available,
+    tickets_sold: ticketsSold,
+    tickets_total: ticketsTotal,
+    percent_sold: percentSold,
   };
 }
 
@@ -137,19 +152,45 @@ export class OperatorCatalogService {
     return this.tenantConnection.getClient(operatorId);
   }
 
-  async listCategories(operatorId: string) {
+  async listCategories(
+    operatorId: string,
+    options?: { search?: string; page?: number; limit?: number },
+  ) {
     const client = await this.client(operatorId);
-    const rows = await client.categories.findMany({
-      orderBy: [{ sort_order: "asc" }, { name: "asc" }],
-    });
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      slug: row.slug,
-      image_url: row.image_url,
-      sort_order: row.sort_order,
-      created_at: row.created_at.toISOString(),
-    }));
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
+
+    const where: Prisma.categoriesWhereInput = {};
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { name: { contains: q, mode: "insensitive" } },
+        { slug: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.categories.findMany({
+        where,
+        orderBy: [{ sort_order: "asc" }, { name: "asc" }],
+        skip,
+        take,
+      }),
+      client.categories.count({ where }),
+    ]);
+
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        image_url: row.image_url,
+        sort_order: row.sort_order,
+        created_at: row.created_at.toISOString(),
+      })),
+      total,
+      page,
+      limit,
+    };
   }
 
   async createCategory(
@@ -240,14 +281,78 @@ export class OperatorCatalogService {
     return { ok: true };
   }
 
-  async listRaffles(operatorId: string, status?: string) {
-    const client = await this.client(operatorId);
-    const rows = await client.raffles.findMany({
-      where: status ? { status: status as RaffleStatus } : undefined,
-      orderBy: { created_at: "desc" },
-      include: { category: { select: { id: true, name: true, slug: true } } },
+  private async batchTicketCounts(
+    client: Awaited<ReturnType<TenantConnectionService["getClient"]>>,
+    raffleIds: string[],
+  ) {
+    const countsByRaffle = new Map<
+      string,
+      { available: number; reserved: number; purchased: number; winning: number; total: number }
+    >();
+    if (raffleIds.length === 0) return countsByRaffle;
+
+    const grouped = await client.tickets.groupBy({
+      by: ["raffle_id", "status"],
+      where: { raffle_id: { in: raffleIds } },
+      _count: { _all: true },
     });
-    return rows.map((row) => serializeRaffle(row));
+
+    for (const row of grouped) {
+      let counts = countsByRaffle.get(row.raffle_id);
+      if (!counts) {
+        counts = { available: 0, reserved: 0, purchased: 0, winning: 0, total: 0 };
+        countsByRaffle.set(row.raffle_id, counts);
+      }
+      counts.total += row._count._all;
+      if (row.status === "available") counts.available = row._count._all;
+      if (row.status === "reserved") counts.reserved = row._count._all;
+      if (row.status === "purchased") counts.purchased = row._count._all;
+      if (row.status === "winning") counts.winning = row._count._all;
+    }
+    return countsByRaffle;
+  }
+
+  async listRaffles(
+    operatorId: string,
+    options?: { status?: string; search?: string; page?: number; limit?: number },
+  ) {
+    const client = await this.client(operatorId);
+    const { take, skip, page, limit } = paginate(options?.page, options?.limit, 50);
+
+    const where: Prisma.rafflesWhereInput = {};
+    if (options?.status) {
+      where.status = options.status as RaffleStatus;
+    }
+    if (options?.search?.trim()) {
+      const q = options.search.trim();
+      where.OR = [
+        { title: { contains: q, mode: "insensitive" } },
+        { slug: { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    const [rows, total] = await Promise.all([
+      client.raffles.findMany({
+        where,
+        orderBy: { created_at: "desc" },
+        skip,
+        take,
+        include: { category: { select: { id: true, name: true, slug: true } } },
+      }),
+      client.raffles.count({ where }),
+    ]);
+
+    const countsByRaffle = await this.batchTicketCounts(
+      client,
+      rows.map((r) => r.id),
+    );
+
+    return {
+      items: rows.map((row) => serializeRaffle(row, countsByRaffle.get(row.id))),
+      total,
+      page,
+      limit,
+    };
   }
 
   async getRaffle(operatorId: string, id: string) {
@@ -927,6 +1032,7 @@ export class OperatorCatalogService {
           available,
           reserved: 0,
           purchased: 0,
+          winning: 0,
           total: row.max_entries,
         });
       }),
@@ -1000,6 +1106,7 @@ export class OperatorCatalogService {
       available: 0,
       reserved: 0,
       purchased: 0,
+      winning: 0,
       total: 0,
     };
 
@@ -1008,6 +1115,7 @@ export class OperatorCatalogService {
       if (g.status === "available") counts.available = g._count.status;
       if (g.status === "reserved") counts.reserved = g._count.status;
       if (g.status === "purchased") counts.purchased = g._count.status;
+      if (g.status === "winning") counts.winning = g._count.status;
     }
 
     return counts;

@@ -48,13 +48,37 @@ export class OperatorDrawController {
   listWinners(
     @TenantCtx() tenant: TenantContext,
     @Query("raffle_id") raffleId?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.draw.listAdminWinners(tenant.operatorId, raffleId);
+    return this.draw.listAdminWinners(tenant.operatorId, {
+      raffleId,
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @Get("prize-claims")
-  listClaims(@TenantCtx() tenant: TenantContext) {
-    return this.draw.listPrizeClaims(tenant.operatorId);
+  listClaims(
+    @TenantCtx() tenant: TenantContext,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.draw.listPrizeClaims(tenant.operatorId, {
+      status,
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
+  }
+
+  @Get("prize-claims/:id")
+  getClaim(@TenantCtx() tenant: TenantContext, @Param("id") id: string) {
+    return this.draw.getPrizeClaim(tenant.operatorId, id);
   }
 
   @OperatorRoles("owner", "manager", "support")
@@ -71,8 +95,14 @@ export class OperatorDrawController {
   listGraEvents(
     @TenantCtx() tenant: TenantContext,
     @Query("status") status?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.gra.listEvents(tenant.operatorId, status);
+    return this.gra.listEvents(tenant.operatorId, {
+      status,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @OperatorRoles("owner", "manager")

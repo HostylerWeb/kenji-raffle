@@ -127,11 +127,12 @@ Gateway fee **rate** is owned by **`kenji-gateway`** (per-operator fee schedules
 | Mock / live redirect to gateway URL | Partial | `HARAMBE_GATEWAY_URL`, `HARAMBE_PAYMENT_MODE` |
 | Harambe / Cashflows callbacks | Done | `apps/api/src/checkout/checkout.controller.ts` |
 | `payments` table (amount, tax, operator share) | Done | `packages/database-tenant/prisma/schema.prisma` |
-| GRA outbound event queue | Done | `apps/api/src/gra/gra-outbound.service.ts` |
-| GRA outbound worker | **Done** | `packages/shared/src/gra-outbound.ts` — all 7 event types |
-| Operator GRA credentials | Done | `operator_settings.gra_api_key_encrypted` |
+| GRA outbound event queue | Done | `apps/api/src/gra/gra-outbound.service.ts` — tenant DB only, no HTTP |
+| GRA platform relay worker | **Done** | `packages/shared/src/gra-outbound.ts` — **only** worker posts to GRA ingest |
+| Operator GRA credentials | Done | `operator_settings.gra_api_key_encrypted` (platform DB) |
 | Operator `gra_registry_id` | Done | platform `operators` table |
-| Session aggregate job (local buckets) | Done | `apps/worker/src/session-aggregate.ts` — **not yet sent to GRA** |
+| Session aggregate → GRA | Done | `apps/worker/src/session-aggregate.ts` → queue → relay worker |
+| GRA heartbeat (daily) | Done | Worker cron `gra-heartbeat` at 06:00 UTC |
 
 ### Tax split today (checkout)
 
@@ -141,7 +142,11 @@ tax_amount      = total × operators.default_tax_rate   (default 30%)
 operator_amount = total - tax_amount
 ```
 
-Stored on `payments` at checkout creation. **No gateway fee columns yet.**
+Stored on `payments` at checkout creation. Gateway fee columns persist from live gateway callbacks (`gateway_fee_rate`, `gateway_fee_amount`).
+
+### GRA platform relay (centralized egress)
+
+Tenant APIs **enqueue** `gra_outbound_events` only. A **single worker relay** (`process-gra-outbound` job + `gra-outbound-sweep` cron) is the only automated component that POSTs to `GRA_INGEST_URL`. See `docs/GRA_INTEGRATION_ARCHITECTURE.md`.
 
 ---
 
@@ -184,13 +189,13 @@ GRA stake bands: `0-50`, `51-100`, `101-250`, `251-500`, `501-1000`, `1001+` (`k
 
 **Do not** send raffle’s internal bands (`0-49`, `50-199`, …) — map or re-bucket before ingest.
 
-Other operator ingest (not yet automated from this repo):
+Other operator ingest:
 
-| Purpose | GRA endpoint |
-|---------|--------------|
-| Monthly return | `POST /returns/monthly` |
-| Document upload | `POST /documents` (multipart, HMAC of empty body) |
-| Heartbeat | `POST /heartbeat` |
+| Purpose | GRA endpoint | Kenji-raffle |
+|---------|--------------|--------------|
+| Monthly return | `POST /returns/monthly` | Automated worker export |
+| Document upload | `POST /documents` | Not implemented |
+| Heartbeat | `POST /heartbeat` | Daily worker cron + platform test button |
 
 ---
 

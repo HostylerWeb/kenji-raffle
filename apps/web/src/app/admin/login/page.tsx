@@ -75,7 +75,7 @@ export default function OperatorLoginPage() {
     <div className="admin-login">
       <div className="admin-login__hero">
         <div className="admin-login__hero-content">
-          <div className="admin-login__logo">Kenji Raffle</div>
+          <div className="admin-login__logo">{siteName}</div>
           <h1>Manage your raffle business with confidence</h1>
           <p>
             {siteName} operator console — raffles, orders, players, compliance,

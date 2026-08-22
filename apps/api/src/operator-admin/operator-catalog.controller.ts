@@ -73,8 +73,17 @@ export class OperatorCategoriesController {
   constructor(private readonly catalog: OperatorCatalogService) {}
 
   @Get()
-  list(@TenantCtx() tenant: TenantContext) {
-    return this.catalog.listCategories(tenant.operatorId);
+  list(
+    @TenantCtx() tenant: TenantContext,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.catalog.listCategories(tenant.operatorId, {
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @OperatorRoles("owner", "manager")
@@ -251,8 +260,19 @@ export class OperatorRafflesController {
   constructor(private readonly catalog: OperatorCatalogService) {}
 
   @Get()
-  list(@TenantCtx() tenant: TenantContext, @Query("status") status?: string) {
-    return this.catalog.listRaffles(tenant.operatorId, status);
+  list(
+    @TenantCtx() tenant: TenantContext,
+    @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.catalog.listRaffles(tenant.operatorId, {
+      status,
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
   }
 
   @OperatorRoles("owner", "manager")

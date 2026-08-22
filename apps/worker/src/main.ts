@@ -1,3 +1,4 @@
+import "./load-env";
 import { Worker, Queue } from "bullmq";
 import IORedis from "ioredis";
 import {
@@ -14,7 +15,7 @@ import {
 import { releaseExpiredCartsForAllTenants } from "./cart-expiry";
 import { expireStalePendingOrdersForAllTenants } from "./pending-order-expiry";
 import { verifyDomainRecord } from "./verify-dns";
-import { processGraOutboundForOperator, processGraOutboundForAllTenants } from "./gra-outbound";
+import { processGraOutboundForOperator, processGraOutboundForAllTenants, runGraHeartbeatForAllOperators } from "./gra-outbound";
 import { runAutoDrawForOperator, scheduleAutoDrawsForAllTenants } from "./auto-draw";
 import { transitionEndedRafflesForAllTenants } from "./raffle-lifecycle";
 import { runSessionAggregatesForAllTenants } from "./session-aggregate";
@@ -125,6 +126,15 @@ async function scheduleMonthlyExport() {
     { name: "monthly-gra-export", data: {} },
   );
   console.log("Scheduled monthly GRA export on 1st at 03:00 UTC.");
+}
+
+async function scheduleGraHeartbeat() {
+  await queue.upsertJobScheduler(
+    "gra-heartbeat",
+    { pattern: "0 6 * * *" },
+    { name: "gra-heartbeat", data: {} },
+  );
+  console.log("Scheduled daily GRA heartbeat at 06:00 UTC.");
 }
 
 const worker = new Worker(
@@ -298,6 +308,14 @@ const worker = new Worker(
       return result;
     }
 
+    if (job.name === "gra-heartbeat") {
+      const results = await runGraHeartbeatForAllOperators();
+      const failed = results.filter((r) => !r.ok).length;
+      console.log(`GRA heartbeat: ${results.length} operator(s), ${failed} failed`);
+      await writeHeartbeat({ last_job: "gra-heartbeat", job_id: job.id });
+      return results;
+    }
+
     if (job.name === "send-email") {
       const result = await processSendEmailJob(job.data as {
         to: string;
@@ -367,6 +385,10 @@ scheduleSessionAggregate().catch((err) => {
 
 scheduleMonthlyExport().catch((err) => {
   console.error("Failed to schedule monthly export:", err.message);
+});
+
+scheduleGraHeartbeat().catch((err) => {
+  console.error("Failed to schedule GRA heartbeat:", err.message);
 });
 
 setInterval(() => {

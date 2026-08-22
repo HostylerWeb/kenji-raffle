@@ -25,6 +25,7 @@
     "test:purchase-e2e": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/raffle-purchase-e2e.test.mjs",
     "test:checkout-pricing": "npm run build -w @kenji-raffle/api && node --test apps/api/tests/checkout-pricing.test.mjs",
     "test:gra-outbound": "npm run test -w @kenji-raffle/shared",
+    "test:gra-relay-integration": "npm run test -w @kenji-raffle/shared",
     "test:e2e": "npm run build -w @kenji-raffle/web && npm run test:e2e -w @kenji-raffle/web"
   },
   "engines": {

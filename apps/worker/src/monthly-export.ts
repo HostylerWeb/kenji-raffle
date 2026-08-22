@@ -1,6 +1,7 @@
 import { createTenantPrismaClient } from "@kenji-raffle/database-tenant";
-import { decryptSecret, requireEnv, processGraOutboundForOperator } from "@kenji-raffle/shared";
+import { decryptSecret, requireEnv } from "@kenji-raffle/shared";
 import { platformPrisma } from "@kenji-raffle/database-platform";
+import { enqueueProcessGraOutbound } from "./enqueue-gra-outbound";
 
 export async function runMonthlyGraExportForAllTenants() {
   const encryptionKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
@@ -88,7 +89,7 @@ export async function runMonthlyGraExportForAllTenants() {
 
       exports += 1;
 
-      await processGraOutboundForOperator(db.operator_id);
+      await enqueueProcessGraOutbound(db.operator_id);
     } finally {
       await client.$disconnect();
     }

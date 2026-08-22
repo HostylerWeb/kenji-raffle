@@ -33196,6 +33196,7 @@ export namespace Prisma {
     status: $Enums.gra_event_status | null
     retry_count: number | null
     last_error: string | null
+    next_attempt_at: Date | null
     created_at: Date | null
     processed_at: Date | null
   }
@@ -33206,6 +33207,7 @@ export namespace Prisma {
     status: $Enums.gra_event_status | null
     retry_count: number | null
     last_error: string | null
+    next_attempt_at: Date | null
     created_at: Date | null
     processed_at: Date | null
   }
@@ -33217,6 +33219,7 @@ export namespace Prisma {
     status: number
     retry_count: number
     last_error: number
+    next_attempt_at: number
     created_at: number
     processed_at: number
     _all: number
@@ -33237,6 +33240,7 @@ export namespace Prisma {
     status?: true
     retry_count?: true
     last_error?: true
+    next_attempt_at?: true
     created_at?: true
     processed_at?: true
   }
@@ -33247,6 +33251,7 @@ export namespace Prisma {
     status?: true
     retry_count?: true
     last_error?: true
+    next_attempt_at?: true
     created_at?: true
     processed_at?: true
   }
@@ -33258,6 +33263,7 @@ export namespace Prisma {
     status?: true
     retry_count?: true
     last_error?: true
+    next_attempt_at?: true
     created_at?: true
     processed_at?: true
     _all?: true
@@ -33356,6 +33362,7 @@ export namespace Prisma {
     status: $Enums.gra_event_status
     retry_count: number
     last_error: string | null
+    next_attempt_at: Date | null
     created_at: Date
     processed_at: Date | null
     _count: Gra_outbound_eventsCountAggregateOutputType | null
@@ -33386,6 +33393,7 @@ export namespace Prisma {
     status?: boolean
     retry_count?: boolean
     last_error?: boolean
+    next_attempt_at?: boolean
     created_at?: boolean
     processed_at?: boolean
   }, ExtArgs["result"]["gra_outbound_events"]>
@@ -33397,6 +33405,7 @@ export namespace Prisma {
     status?: boolean
     retry_count?: boolean
     last_error?: boolean
+    next_attempt_at?: boolean
     created_at?: boolean
     processed_at?: boolean
   }, ExtArgs["result"]["gra_outbound_events"]>
@@ -33408,6 +33417,7 @@ export namespace Prisma {
     status?: boolean
     retry_count?: boolean
     last_error?: boolean
+    next_attempt_at?: boolean
     created_at?: boolean
     processed_at?: boolean
   }, ExtArgs["result"]["gra_outbound_events"]>
@@ -33419,11 +33429,12 @@ export namespace Prisma {
     status?: boolean
     retry_count?: boolean
     last_error?: boolean
+    next_attempt_at?: boolean
     created_at?: boolean
     processed_at?: boolean
   }
 
-  export type gra_outbound_eventsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "event_type" | "payload" | "status" | "retry_count" | "last_error" | "created_at" | "processed_at", ExtArgs["result"]["gra_outbound_events"]>
+  export type gra_outbound_eventsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "event_type" | "payload" | "status" | "retry_count" | "last_error" | "next_attempt_at" | "created_at" | "processed_at", ExtArgs["result"]["gra_outbound_events"]>
 
   export type $gra_outbound_eventsPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "gra_outbound_events"
@@ -33435,6 +33446,7 @@ export namespace Prisma {
       status: $Enums.gra_event_status
       retry_count: number
       last_error: string | null
+      next_attempt_at: Date | null
       created_at: Date
       processed_at: Date | null
     }, ExtArgs["result"]["gra_outbound_events"]>
@@ -33866,6 +33878,7 @@ export namespace Prisma {
     readonly status: FieldRef<"gra_outbound_events", 'gra_event_status'>
     readonly retry_count: FieldRef<"gra_outbound_events", 'Int'>
     readonly last_error: FieldRef<"gra_outbound_events", 'String'>
+    readonly next_attempt_at: FieldRef<"gra_outbound_events", 'DateTime'>
     readonly created_at: FieldRef<"gra_outbound_events", 'DateTime'>
     readonly processed_at: FieldRef<"gra_outbound_events", 'DateTime'>
   }
@@ -36775,6 +36788,7 @@ export namespace Prisma {
     status: 'status',
     retry_count: 'retry_count',
     last_error: 'last_error',
+    next_attempt_at: 'next_attempt_at',
     created_at: 'created_at',
     processed_at: 'processed_at'
   };
@@ -39312,6 +39326,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFilter<"gra_outbound_events"> | $Enums.gra_event_status
     retry_count?: IntFilter<"gra_outbound_events"> | number
     last_error?: StringNullableFilter<"gra_outbound_events"> | string | null
+    next_attempt_at?: DateTimeNullableFilter<"gra_outbound_events"> | Date | string | null
     created_at?: DateTimeFilter<"gra_outbound_events"> | Date | string
     processed_at?: DateTimeNullableFilter<"gra_outbound_events"> | Date | string | null
   }
@@ -39323,6 +39338,7 @@ export namespace Prisma {
     status?: SortOrder
     retry_count?: SortOrder
     last_error?: SortOrderInput | SortOrder
+    next_attempt_at?: SortOrderInput | SortOrder
     created_at?: SortOrder
     processed_at?: SortOrderInput | SortOrder
   }
@@ -39337,6 +39353,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFilter<"gra_outbound_events"> | $Enums.gra_event_status
     retry_count?: IntFilter<"gra_outbound_events"> | number
     last_error?: StringNullableFilter<"gra_outbound_events"> | string | null
+    next_attempt_at?: DateTimeNullableFilter<"gra_outbound_events"> | Date | string | null
     created_at?: DateTimeFilter<"gra_outbound_events"> | Date | string
     processed_at?: DateTimeNullableFilter<"gra_outbound_events"> | Date | string | null
   }, "id">
@@ -39348,6 +39365,7 @@ export namespace Prisma {
     status?: SortOrder
     retry_count?: SortOrder
     last_error?: SortOrderInput | SortOrder
+    next_attempt_at?: SortOrderInput | SortOrder
     created_at?: SortOrder
     processed_at?: SortOrderInput | SortOrder
     _count?: gra_outbound_eventsCountOrderByAggregateInput
@@ -39367,6 +39385,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusWithAggregatesFilter<"gra_outbound_events"> | $Enums.gra_event_status
     retry_count?: IntWithAggregatesFilter<"gra_outbound_events"> | number
     last_error?: StringNullableWithAggregatesFilter<"gra_outbound_events"> | string | null
+    next_attempt_at?: DateTimeNullableWithAggregatesFilter<"gra_outbound_events"> | Date | string | null
     created_at?: DateTimeWithAggregatesFilter<"gra_outbound_events"> | Date | string
     processed_at?: DateTimeNullableWithAggregatesFilter<"gra_outbound_events"> | Date | string | null
   }
@@ -41772,6 +41791,7 @@ export namespace Prisma {
     status?: $Enums.gra_event_status
     retry_count?: number
     last_error?: string | null
+    next_attempt_at?: Date | string | null
     created_at?: Date | string
     processed_at?: Date | string | null
   }
@@ -41783,6 +41803,7 @@ export namespace Prisma {
     status?: $Enums.gra_event_status
     retry_count?: number
     last_error?: string | null
+    next_attempt_at?: Date | string | null
     created_at?: Date | string
     processed_at?: Date | string | null
   }
@@ -41794,6 +41815,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFieldUpdateOperationsInput | $Enums.gra_event_status
     retry_count?: IntFieldUpdateOperationsInput | number
     last_error?: NullableStringFieldUpdateOperationsInput | string | null
+    next_attempt_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     processed_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
@@ -41805,6 +41827,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFieldUpdateOperationsInput | $Enums.gra_event_status
     retry_count?: IntFieldUpdateOperationsInput | number
     last_error?: NullableStringFieldUpdateOperationsInput | string | null
+    next_attempt_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     processed_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
@@ -41816,6 +41839,7 @@ export namespace Prisma {
     status?: $Enums.gra_event_status
     retry_count?: number
     last_error?: string | null
+    next_attempt_at?: Date | string | null
     created_at?: Date | string
     processed_at?: Date | string | null
   }
@@ -41827,6 +41851,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFieldUpdateOperationsInput | $Enums.gra_event_status
     retry_count?: IntFieldUpdateOperationsInput | number
     last_error?: NullableStringFieldUpdateOperationsInput | string | null
+    next_attempt_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     processed_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
@@ -41838,6 +41863,7 @@ export namespace Prisma {
     status?: Enumgra_event_statusFieldUpdateOperationsInput | $Enums.gra_event_status
     retry_count?: IntFieldUpdateOperationsInput | number
     last_error?: NullableStringFieldUpdateOperationsInput | string | null
+    next_attempt_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     processed_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
@@ -44039,6 +44065,7 @@ export namespace Prisma {
     status?: SortOrder
     retry_count?: SortOrder
     last_error?: SortOrder
+    next_attempt_at?: SortOrder
     created_at?: SortOrder
     processed_at?: SortOrder
   }
@@ -44053,6 +44080,7 @@ export namespace Prisma {
     status?: SortOrder
     retry_count?: SortOrder
     last_error?: SortOrder
+    next_attempt_at?: SortOrder
     created_at?: SortOrder
     processed_at?: SortOrder
   }
@@ -44063,6 +44091,7 @@ export namespace Prisma {
     status?: SortOrder
     retry_count?: SortOrder
     last_error?: SortOrder
+    next_attempt_at?: SortOrder
     created_at?: SortOrder
     processed_at?: SortOrder
   }

@@ -37,8 +37,21 @@ export class OperatorWithdrawalsController {
   list(
     @TenantCtx() tenant: TenantContext,
     @Query("status") status?: string,
+    @Query("search") search?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.withdrawals.listWithdrawals(tenant.operatorId, status);
+    return this.withdrawals.listWithdrawals(tenant.operatorId, {
+      status,
+      search,
+      page: Number(page) || 1,
+      limit: Number(limit) || 25,
+    });
+  }
+
+  @Get(":id")
+  get(@TenantCtx() tenant: TenantContext, @Param("id") id: string) {
+    return this.withdrawals.getWithdrawal(tenant.operatorId, id);
   }
 
   @OperatorRoles("owner", "manager", "finance")
