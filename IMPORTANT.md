@@ -10,6 +10,31 @@ This file tracks **what still needs to be done in this repo** and how this proje
 
 ---
 
+## Still open — do not forget
+
+Work **not done yet** across the three repos. Update this table when an item ships.
+
+| # | Item | Where | Notes |
+|---|------|--------|-------|
+| 1 | **Production payment gateway** | `kenji-gateway` | Dev scaffold only (`POST /v1/charge`, test cards). Still need real M-Pesa/card processor, persistent gateway ledger DB, and per-operator credential mapping. |
+| 2 | **Gateway remote + deploy** | `kenji-gateway` | Local git commit exists; **no GitHub remote** yet. Deploy on VPS `:4003`, set raffle `HARAMBE_GATEWAY_URL` + `HARAMBE_CALLBACK_SECRET`. |
+| 3 | **Payment ledger to GRA** | `kenji-gateway` → GRA `:4001` | Regulatory `POST /v1/gateway/notify` — **only the gateway** (or dev simulator), never the raffle relay. Raffle relay handles live-feed events only. |
+| 4 | **Production systemd deploy** | Kenji Raffle VPS | Services still run via `npm run dev:*`. Use [docs/VPS_DEPLOYMENT.md](docs/VPS_DEPLOYMENT.md) for systemd + Nginx + process supervision. |
+| 5 | **P7 production hardening** | Kenji Raffle | CSRF, monitoring/alerting, load tests — see `docs/PROJECT_PLAN_2.md` §P7. |
+| 6 | **GRA relay rate limit (multi-worker)** | Kenji Raffle worker | In-memory limiter is fine for **one** worker. If you scale to multiple workers, move `GRA_RELAY_MAX_PER_MINUTE` to a Redis-backed limiter. |
+| 7 | **GRA E2E automation** | Kenji Raffle tests | Optional: automated test for purchase → `gra_outbound_events` → worker relay → GRA ingest. Manual smoke works today. |
+| 8 | **GRA ingest always on (VPS)** | `kenji-government` | Relay queues when ingest is down. Ensure `npm run dev:ingest` (or prod equivalent) on `:4001` is supervised like other services. |
+
+**Quick checks**
+
+```bash
+curl -s http://localhost:4001/v1/gateway/health    # GRA ingest up?
+curl -s http://localhost:4003/health               # kenji-gateway up? (after deploy)
+cd /var/www/Kenji-raffle && npm run test:gra-relay-integration
+```
+
+---
+
 ## How GRA “sees” operator sites
 
 **GRA staff do not log into operator raffle websites.** There is no GRA browser session on tenant domains.

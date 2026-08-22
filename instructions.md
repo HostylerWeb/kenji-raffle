@@ -152,7 +152,7 @@ See [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md).
 | Operator `/admin` | Operator staff | Only their tenant DB |
 | Public site | Players | Only their tenant branding and raffles |
 
-Per-tenant GRA API keys and tenant DB credentials live in the **platform database** (encrypted), not in `.env`. Integration details: [IMPORTANT.md](IMPORTANT.md), [docs/GRA_INTEGRATION_ARCHITECTURE.md](docs/GRA_INTEGRATION_ARCHITECTURE.md), [docs/GRA_RELAY_RUNBOOK.md](docs/GRA_RELAY_RUNBOOK.md).
+Per-tenant GRA API keys and tenant DB credentials live in the **platform database** (encrypted), not in `.env`. Integration details: [IMPORTANT.md](IMPORTANT.md) (**start with “Still open — do not forget”**), [docs/GRA_INTEGRATION_ARCHITECTURE.md](docs/GRA_INTEGRATION_ARCHITECTURE.md), [docs/GRA_RELAY_RUNBOOK.md](docs/GRA_RELAY_RUNBOOK.md).
 
 **GRA egress:** Only `npm run dev:worker` POSTs to GRA ingest (`:4001`). Tenant API enqueues events only.
 
