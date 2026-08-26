@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PlatformShell } from "../../components/PlatformShell";
@@ -19,14 +19,14 @@ type OperatorRow = {
   created_at: string;
 };
 
-const STATUS_OPTIONS = [
-  "",
-  "active",
-  "onboarding",
-  "onboarding_failed",
-  "suspended",
-  "archived",
-];
+const STATUS_TABS = [
+  { id: "", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "onboarding", label: "Onboarding" },
+  { id: "onboarding_failed", label: "Onboarding failed" },
+  { id: "suspended", label: "Suspended" },
+  { id: "archived", label: "Archived" },
+] as const;
 
 export default function OperatorsPage() {
   const router = useRouter();
@@ -40,11 +40,29 @@ export default function OperatorsPage() {
       return;
     }
 
-    const qs = statusFilter ? `?status=${statusFilter}` : "";
-    platformFetch<OperatorRow[]>(`/v1/platform/operators${qs}`)
+    platformFetch<OperatorRow[]>("/v1/platform/operators")
       .then(setOperators)
       .catch(() => router.replace("/"));
-  }, [router, statusFilter]);
+  }, [router]);
+
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { "": operators.length };
+    for (const tab of STATUS_TABS) {
+      if (tab.id) counts[tab.id] = 0;
+    }
+    for (const op of operators) {
+      counts[op.status] = (counts[op.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [operators]);
+
+  const filteredOperators = useMemo(() => {
+    if (!statusFilter) return operators;
+    return operators.filter((op) => op.status === statusFilter);
+  }, [operators, statusFilter]);
+
+  const activeTab =
+    STATUS_TABS.find((tab) => tab.id === statusFilter) ?? STATUS_TABS[0];
 
   return (
     <PlatformShell
@@ -57,24 +75,28 @@ export default function OperatorsPage() {
         ) : undefined
       }
     >
-      <div className="filter-form">
-        <label>
-          Filter by status
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+      <div className="tab-row" role="tablist" aria-label="Filter operators by status">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.id || "all"}
+            type="button"
+            role="tab"
+            aria-selected={statusFilter === tab.id}
+            className={statusFilter === tab.id ? "tab active" : "tab"}
+            onClick={() => setStatusFilter(tab.id)}
           >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s || "All"}
-              </option>
-            ))}
-          </select>
-        </label>
+            {tab.label} ({statusCounts[tab.id] ?? 0})
+          </button>
+        ))}
       </div>
-      {operators.length === 0 ? (
+
+      {filteredOperators.length === 0 ? (
         <div className="card">
-          <p>No operators match this filter.</p>
+          <p>
+            {operators.length === 0
+              ? "No operators yet."
+              : `No ${activeTab.label.toLowerCase()} operators.`}
+          </p>
         </div>
       ) : (
         <div className="card">
@@ -90,14 +112,16 @@ export default function OperatorsPage() {
               </tr>
             </thead>
             <tbody>
-              {operators.map((op) => (
+              {filteredOperators.map((op) => (
                 <tr key={op.id}>
                   <td>
                     <Link href={`/operators/${op.id}`}>{op.name}</Link>
                   </td>
                   <td>{op.slug}</td>
                   <td>{op.gra_registry_id}</td>
-                  <td><StatusBadge status={op.status} /></td>
+                  <td>
+                    <StatusBadge status={op.status} />
+                  </td>
                   <td>
                     {op.database_status ? (
                       <StatusBadge status={op.database_status} />
