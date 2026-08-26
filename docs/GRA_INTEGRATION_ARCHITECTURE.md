@@ -8,7 +8,7 @@ Single source of truth for how Kenji Raffle, the payment gateway, and GRA intera
 |--------|------|------------------------|
 | **Kenji Raffle** | `/var/www/Kenji-raffle` | **Worker relay only** (`POST /v1/events/*`, `/returns/monthly`, `/heartbeat`) |
 | **Payment gateway** | `/var/www/kenji-gateway` | **Yes** — `POST /v1/gateway/notify` only |
-| **GRA platform** | `/var/www/kenji-government` | Receives data (ingest `:4001`, staff `:4000`) |
+| **GRA platform** | `/var/www/kenji-government` | Receives data (ingest `https://ingest.force42.com`, staff `https://console.force42.com`) |
 
 Raffle tenant websites and Nest API processes **never** call GRA on checkout. They insert rows into `gra_outbound_events` in the tenant database.
 
@@ -72,6 +72,7 @@ Payment **ledger** (tax escrow, AML) requires **kenji-gateway** → `/gateway/no
 
 ```env
 GRA_INGEST_URL=http://localhost:4001/v1
+# Production VPS: GRA_INGEST_URL=https://ingest.force42.com/v1
 GRA_RELAY_BATCH_SIZE=50
 GRA_RELAY_MAX_PER_MINUTE=50
 GRA_RELAY_OPERATOR_CONCURRENCY=3

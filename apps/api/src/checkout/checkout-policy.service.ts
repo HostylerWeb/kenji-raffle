@@ -14,6 +14,36 @@ export class CheckoutPolicyService {
     if (flags.checkout_enabled === false) {
       throw new ForbiddenException("Checkout is temporarily disabled");
     }
+    await this.assertGraComplianceReady(operatorId, settings);
+  }
+
+  async assertGraComplianceReady(
+    operatorId: string,
+    settings?: {
+      gra_application_status?: string | null;
+      gra_api_key_encrypted?: string | null;
+      gra_hmac_secret_encrypted?: string | null;
+      feature_flags?: unknown;
+    } | null,
+  ) {
+    const row =
+      settings ??
+      (await this.platformPrisma.client.operator_settings.findUnique({
+        where: { operator_id: operatorId },
+      }));
+    if (!row) {
+      throw new ForbiddenException("Operator is not configured for checkout");
+    }
+    if (row.gra_application_status !== "approved") {
+      throw new ForbiddenException(
+        "Checkout is unavailable until GRA approves your operator application",
+      );
+    }
+    if (!row.gra_api_key_encrypted || !row.gra_hmac_secret_encrypted) {
+      throw new ForbiddenException(
+        "GRA credentials are not configured for this operator",
+      );
+    }
   }
 
   async getSupportEmail(operatorId: string) {

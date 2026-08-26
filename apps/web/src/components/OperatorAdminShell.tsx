@@ -3,11 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  getOperatorToken,
-  getOperatorUser,
-  clearOperatorSession,
-} from "@/lib/api";
+import { getOperatorToken, getOperatorUser, clearOperatorSession, operatorFetch } from "@/lib/api";
 import {
   ADMIN_NAV_SECTIONS,
   adminSectionEyebrow,
@@ -38,10 +34,64 @@ export function OperatorAdminShell({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const accent = branding?.primary_color ?? "#00a551";
   const [user, setUser] = useState<ReturnType<typeof getOperatorUser>>(null);
+  const [onboardingBanner, setOnboardingBanner] = useState<string | null>(null);
 
   useEffect(() => {
     setUser(getOperatorUser());
   }, []);
+
+  useEffect(() => {
+    if (!getOperatorToken()) return;
+    operatorFetch<{
+      gra_application_status: string;
+      legal_profile_locked: boolean;
+    }>("/v1/admin/onboarding/status")
+      .then((status) => {
+        if (status.gra_application_status === "pending_review") {
+          setOnboardingBanner(
+            "Your operator account is under GRA review. Staging and admin setup continue; live checkout and custom domains unlock after approval.",
+          );
+          return;
+        }
+        if (
+          (user?.role === "owner" || user?.role === "manager") &&
+          (!status.legal_profile_locked || status.gra_application_status === "not_started")
+        ) {
+          setOnboardingBanner(
+            "Complete GRA onboarding to enable live checkout and custom domains.",
+          );
+          return;
+        }
+        if (status.gra_application_status === "rejected") {
+          setOnboardingBanner(
+            "Your GRA application was rejected. Review details on the onboarding page or contact support.",
+          );
+          return;
+        }
+        setOnboardingBanner(null);
+      })
+      .catch(() => undefined);
+  }, [pathname, user?.role]);
+
+  useEffect(() => {
+    if (!user || (user.role !== "owner" && user.role !== "manager")) return;
+    if (pathname.startsWith("/admin/onboarding")) return;
+    if (pathname.startsWith("/admin/settings")) return;
+    if (pathname === "/admin" || pathname === "/admin/") return;
+    if (pathname === "/admin/login") return;
+
+    operatorFetch<{ legal_profile_locked: boolean; gra_application_status: string }>(
+      "/v1/admin/onboarding/status",
+    )
+      .then((status) => {
+        const incomplete =
+          !status.legal_profile_locked || status.gra_application_status === "not_started";
+        if (incomplete) {
+          router.replace("/admin/onboarding");
+        }
+      })
+      .catch(() => undefined);
+  }, [pathname, router, user]);
 
   const role = user?.role ?? "owner";
 
@@ -168,6 +218,12 @@ export function OperatorAdminShell({
               {actions && <div className="admin-page__actions">{actions}</div>}
             </div>
           </header>
+          {onboardingBanner && (
+            <div className="admin-callout admin-callout--warn" style={{ marginBottom: 16 }}>
+              {onboardingBanner}{" "}
+              <Link href="/admin/onboarding">Open onboarding →</Link>
+            </div>
+          )}
           {children}
         </div>
       </div>

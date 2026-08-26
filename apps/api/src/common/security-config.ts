@@ -53,17 +53,33 @@ export function corsOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return true;
   if (configured.length === 0) return false;
 
+  let originHost: string;
+  let originProtocol: string;
+  try {
+    const parsed = new URL(origin);
+    originHost = parsed.hostname;
+    originProtocol = parsed.protocol;
+  } catch {
+    return false;
+  }
+
   return configured.some((allowed: string) => {
     if (allowed === origin) return true;
+
+    const wildcardOrigin = allowed.match(/^(https?):\/\/\*\.(.+)$/);
+    if (wildcardOrigin) {
+      const [, scheme, baseDomain] = wildcardOrigin;
+      if (originProtocol !== `${scheme}:`) return false;
+      return (
+        originHost.endsWith(`.${baseDomain}`) || originHost === baseDomain
+      );
+    }
+
     if (allowed.startsWith("*.")) {
       const suffix = allowed.slice(1);
-      try {
-        const host = new URL(origin).hostname;
-        return host.endsWith(suffix) || host === allowed.slice(2);
-      } catch {
-        return false;
-      }
+      return originHost.endsWith(suffix) || originHost === allowed.slice(2);
     }
+
     return false;
   });
 }

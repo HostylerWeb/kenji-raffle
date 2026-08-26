@@ -30,7 +30,7 @@ const HOSTNAME_PATTERN =
 export type CreateOperatorInput = {
   name: string;
   slug: string;
-  gra_registry_id: string;
+  gra_registry_id?: string;
   licence_number?: string;
 };
 
@@ -55,6 +55,7 @@ export type UpdateOperatorSettingsInput = {
   gra_hmac_secret?: string;
   support_email?: string;
   primary_color?: string;
+  logo_url?: string;
   feature_flags?: Record<string, boolean>;
 };
 
@@ -74,7 +75,7 @@ export class PlatformOperatorsService {
       );
     }
 
-    const graId = input.gra_registry_id.trim();
+    const graId = (input.gra_registry_id?.trim() || `op-${slug}`).toLowerCase();
     const existingSlug = await this.platformPrisma.client.operators.findUnique({
       where: { slug },
     });
@@ -96,6 +97,16 @@ export class PlatformOperatorsService {
         gra_registry_id: graId,
         licence_number: input.licence_number?.trim() ?? graId,
         status: "onboarding",
+      },
+    });
+
+    await this.platformPrisma.client.operator_settings.create({
+      data: {
+        operator_id: operator.id,
+        gra_application_status: "not_started",
+        feature_flags: { checkout_enabled: false },
+        primary_color: "#00a551",
+        support_email: `support@${slug}.local`,
       },
     });
 
@@ -509,6 +520,7 @@ export class PlatformOperatorsService {
     return {
       support_email: settings?.support_email,
       primary_color: settings?.primary_color,
+      logo_url: settings?.logo_url,
       feature_flags: (settings?.feature_flags as Record<string, boolean>) ?? {},
       gra_api_key_masked: settings?.gra_api_key_encrypted ? "********" : null,
       gra_hmac_secret_masked: settings?.gra_hmac_secret_encrypted
@@ -538,6 +550,9 @@ export class PlatformOperatorsService {
     }
     if (input.primary_color !== undefined) {
       data.primary_color = input.primary_color.trim() || null;
+    }
+    if (input.logo_url !== undefined) {
+      data.logo_url = input.logo_url.trim() || null;
     }
     if (input.feature_flags !== undefined) {
       data.feature_flags = input.feature_flags;
@@ -704,12 +719,18 @@ export class PlatformOperatorsService {
     settings: {
       support_email: string | null;
       primary_color: string | null;
+      logo_url: string | null;
       feature_flags?: unknown;
       gra_api_key_encrypted: string | null;
       gra_hmac_secret_encrypted: string | null;
       gra_last_heartbeat_at: Date | null;
       gra_last_heartbeat_status: string | null;
       gra_last_heartbeat_error: string | null;
+      gra_application_status?: string | null;
+      gra_application_submitted_at?: Date | null;
+      gra_approved_at?: Date | null;
+      gra_rejection_reason?: string | null;
+      legal_profile_locked_at?: Date | null;
     } | null;
   }) {
     return {
@@ -738,6 +759,7 @@ export class PlatformOperatorsService {
         ? {
             support_email: operator.settings.support_email,
             primary_color: operator.settings.primary_color,
+            logo_url: operator.settings.logo_url,
             feature_flags:
               (operator.settings.feature_flags as Record<string, boolean>) ??
               {},
@@ -750,6 +772,14 @@ export class PlatformOperatorsService {
               operator.settings.gra_last_heartbeat_status ?? null,
             gra_last_heartbeat_error:
               operator.settings.gra_last_heartbeat_error ?? null,
+            gra_application_status: operator.settings.gra_application_status,
+            gra_application_submitted_at:
+              operator.settings.gra_application_submitted_at?.toISOString() ??
+              null,
+            gra_approved_at:
+              operator.settings.gra_approved_at?.toISOString() ?? null,
+            gra_rejection_reason: operator.settings.gra_rejection_reason ?? null,
+            legal_profile_locked: Boolean(operator.settings.legal_profile_locked_at),
           }
         : null,
       dns_instructions: this.dnsInstructions(operator.id),

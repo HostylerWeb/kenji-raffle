@@ -34,6 +34,13 @@ function isPaymentCallbackUrl(url: string): boolean {
   );
 }
 
+function isRawBodyUrl(url: string): boolean {
+  return (
+    isPaymentCallbackUrl(url) ||
+    url.includes("/v1/platform/integrations/gra/")
+  );
+}
+
 async function bootstrap() {
   validateProductionSecurityConfig();
 
@@ -45,7 +52,7 @@ async function bootstrap() {
   const fastify = app.getHttpAdapter().getInstance();
 
   fastify.addHook("preParsing", async (request, _reply, payload) => {
-    if (!isPaymentCallbackUrl(String(request.url ?? ""))) {
+    if (!isRawBodyUrl(String(request.url ?? ""))) {
       return payload;
     }
 

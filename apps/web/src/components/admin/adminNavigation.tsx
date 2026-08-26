@@ -75,6 +75,12 @@ export const ADMIN_NAV_SECTIONS: AdminNavSection[] = [
   {
     label: "Compliance",
     items: [
+      {
+        href: "/admin/onboarding",
+        label: "GRA onboarding",
+        roles: ["owner", "manager"],
+        icon: <IconClipboard />,
+      },
       { href: "/admin/gra-events", label: "GRA events", roles: ["owner", "manager", "support"], icon: <IconShield /> },
       { href: "/admin/audit", label: "Audit log", roles: ["owner", "manager"], icon: <IconClipboard /> },
     ],
@@ -112,6 +118,9 @@ export function adminSectionEyebrow(pathname: string): string {
     pathname.startsWith("/admin/domains")
   ) {
     return "Site";
+  }
+  if (pathname.startsWith("/admin/onboarding")) {
+    return "Compliance";
   }
   if (pathname.startsWith("/admin/gra-events") || pathname.startsWith("/admin/audit")) {
     return "Compliance";

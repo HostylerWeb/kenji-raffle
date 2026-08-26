@@ -29,6 +29,7 @@ type DnsRecord = {
 
 type DomainsResponse = {
   staging_hostname: string | null;
+  gra_compliance_ready?: boolean;
   domains: DomainRow[];
   dns_instructions: {
     cname_target: string;
@@ -103,13 +104,31 @@ export default function OperatorDomainsPage() {
         { method: "POST" },
       );
       const msg = result.verified
-        ? "DNS verified. Your domain should be live within a few minutes."
+        ? "DNS verified. Set as primary when ready, then ensure HTTPS in your Cloudflare SSL/TLS settings."
         : "DNS not detected yet. Wait 15–30 minutes and try again.";
       setMessage(msg);
       toast(result.verified ? "DNS verified" : "DNS not ready yet", result.verified ? "success" : "info");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function setPrimary(domainId: string) {
+    setLoading(true);
+    setError("");
+    setMessage("");
+    try {
+      await operatorFetch(`/v1/admin/domains/${domainId}/set-primary`, {
+        method: "POST",
+      });
+      setMessage("Primary domain updated. Links and emails will use this hostname.");
+      toast("Primary domain set", "success");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to set primary domain");
     } finally {
       setLoading(false);
     }
@@ -164,8 +183,8 @@ export default function OperatorDomainsPage() {
               {data.staging_hostname && (
                 <p className="muted" style={{ marginTop: 16, marginBottom: 0 }}>
                   Staging preview:{" "}
-                  <a href={`http://${data.staging_hostname}:3002`} target="_blank" rel="noreferrer">
-                    {data.staging_hostname}
+                  <a href={`https://${data.staging_hostname}`} target="_blank" rel="noreferrer">
+                    https://{data.staging_hostname}
                   </a>
                 </p>
               )}
@@ -222,12 +241,42 @@ export default function OperatorDomainsPage() {
                         )}
                       </AdminConfirm>
                     )}
+                    {domain.domain_type === "custom" &&
+                      domain.verification_status === "verified" &&
+                      !domain.is_primary && (
+                        <AdminConfirm
+                          title="Use as primary domain?"
+                          body="Public links and checkout emails will use this hostname. Your staging subdomain remains available."
+                          confirmLabel="Set primary"
+                          onConfirm={() => setPrimary(domain.id)}
+                        >
+                          {(open) => (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              disabled={loading}
+                              onClick={open}
+                            >
+                              Use as primary
+                            </button>
+                          )}
+                        </AdminConfirm>
+                      )}
                   </td>
                 </tr>
               ))}
             </AdminTable>
           </div>
 
+          {!data.gra_compliance_ready && (
+            <div className="admin-callout admin-callout--warn">
+              Custom domain setup and go-live instructions are available after GRA approves your
+              operator application. Complete{" "}
+              <Link href="/admin/onboarding">GRA onboarding</Link> first.
+            </div>
+          )}
+
+          {data.gra_compliance_ready && (
           <div className="admin-panel">
             <div className="admin-panel__header">
               <div>
@@ -259,7 +308,9 @@ export default function OperatorDomainsPage() {
               </div>
             )}
           </div>
+          )}
 
+          {data.gra_compliance_ready && (
           <div className="admin-panel">
             <div className="admin-panel__header">
               <div>
@@ -288,6 +339,7 @@ export default function OperatorDomainsPage() {
               </div>
             </form>
           </div>
+          )}
         </>
       )}
     </OperatorAdminShell>

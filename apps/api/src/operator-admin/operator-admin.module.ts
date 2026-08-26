@@ -36,6 +36,8 @@ import { OperatorWithdrawalsController } from "./operator-withdrawals.controller
 import { OperatorWithdrawalsService } from "./operator-withdrawals.service";
 import { OperatorReportsController } from "./operator-reports.controller";
 import { OperatorReportsService } from "./operator-reports.service";
+import { OperatorOnboardingController } from "./operator-onboarding.controller";
+import { OperatorOnboardingService } from "./operator-onboarding.service";
 
 import { PlatformModule } from "../platform/platform.module";
 
@@ -60,6 +62,7 @@ import { PlatformModule } from "../platform/platform.module";
     OperatorPlayersController,
     OperatorWithdrawalsController,
     OperatorReportsController,
+    OperatorOnboardingController,
   ],
   providers: [
     OperatorTenantGuard,
@@ -75,6 +78,7 @@ import { PlatformModule } from "../platform/platform.module";
     OperatorPlayersService,
     OperatorWithdrawalsService,
     OperatorReportsService,
+    OperatorOnboardingService,
   ],
   exports: [OperatorCatalogService, DrawService],
 })

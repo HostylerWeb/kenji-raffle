@@ -147,6 +147,8 @@ export async function provisionTenantForOperator(
         operator_id: operator.id,
         primary_color: "#00a551",
         support_email: `support@${slug}.local`,
+        gra_application_status: "not_started",
+        feature_flags: { checkout_enabled: false },
       },
     });
 

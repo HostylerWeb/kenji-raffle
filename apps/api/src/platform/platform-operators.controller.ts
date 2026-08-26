@@ -46,10 +46,11 @@ class CreateOperatorDto {
   @MaxLength(48)
   slug!: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(2)
   @MaxLength(64)
-  gra_registry_id!: string;
+  gra_registry_id?: string;
 
   @IsOptional()
   @IsString()
@@ -111,6 +112,11 @@ class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   primary_color?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  logo_url?: string;
 
   @IsOptional()
   feature_flags?: Record<string, boolean>;

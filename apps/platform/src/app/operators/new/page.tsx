@@ -6,6 +6,11 @@ import Link from "next/link";
 import { PlatformShell } from "../../../components/PlatformShell";
 import { platformFetch } from "../../../lib/api";
 
+const TENANT_BASE_DOMAIN =
+  process.env.NEXT_PUBLIC_TENANT_BASE_DOMAIN ?? "force42.com";
+const CNAME_TARGET =
+  process.env.NEXT_PUBLIC_CUSTOM_DOMAIN_CNAME_TARGET ?? "customers.force42.com";
+
 function slugifyName(name: string) {
   return name
     .trim()
@@ -27,6 +32,9 @@ export default function NewOperatorPage() {
 
   const suggestedSlug = useMemo(() => slugifyName(name), [name]);
   const effectiveSlug = slugEdited ? slug : suggestedSlug;
+  const stagingHostname = effectiveSlug
+    ? `${effectiveSlug}.${TENANT_BASE_DOMAIN}`
+    : `slug.${TENANT_BASE_DOMAIN}`;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -41,7 +49,7 @@ export default function NewOperatorPage() {
           body: JSON.stringify({
             name,
             slug: effectiveSlug,
-            gra_registry_id: graId,
+            gra_registry_id: graId || undefined,
             licence_number: licence || undefined,
           }),
         },
@@ -59,7 +67,10 @@ export default function NewOperatorPage() {
       <div className="card">
         <p className="muted" style={{ marginBottom: 16 }}>
           Creates the operator record and queues tenant database provisioning.
-          The public raffle site for this operator is built separately later.
+          When the worker finishes, the public site is live at{" "}
+          <code>{stagingHostname}</code> (player site + <code>/admin</code>).
+          The operator completes GRA onboarding in their admin console — no manual
+          GRA pre-registration required.
         </p>
         <form className="form" onSubmit={onSubmit}>
           <label>
@@ -67,7 +78,7 @@ export default function NewOperatorPage() {
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Kenya Demo Raffles"
+              placeholder="Safari Jackpot Raffles"
               required
             />
           </label>
@@ -79,34 +90,34 @@ export default function NewOperatorPage() {
                 setSlugEdited(true);
                 setSlug(e.target.value);
               }}
-              placeholder="kenya-demo"
+              placeholder="safarijackpot"
               required
             />
           </label>
-        <p className="muted">
-          Hostname: {effectiveSlug || "slug"}.kenji-raffle.local
-        </p>
-        <div className="card" style={{ marginBottom: 16, padding: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Custom domains (production)</h3>
           <p className="muted">
-            Point a CNAME to{" "}
-            <code>
-              {process.env.NEXT_PUBLIC_CUSTOM_DOMAIN_CNAME_TARGET ??
-                "ingress.kenji-raffle.local"}
-            </code>
-            . Add the hostname on the operator Domains page after creation.
-            SSL is provisioned when DNS verification succeeds.
+            Staging hostname: <code>{stagingHostname}</code>
           </p>
-        </div>
-        <label>
-            GRA registry ID
+          <div className="card" style={{ marginBottom: 16, padding: 12 }}>
+            <h3 style={{ marginTop: 0 }}>Custom domains (later)</h3>
+            <p className="muted">
+              After creation, the operator adds their own hostname in Admin →
+              Domains and points a CNAME at their Cloudflare to{" "}
+              <code>{CNAME_TARGET}</code>. HTTPS on their domain is configured in{" "}
+              <strong>their</strong> Cloudflare account (Rafflex-style).
+            </p>
+          </div>
+          <label>
+            GRA registry ID (optional)
             <input
               value={graId}
               onChange={(e) => setGraId(e.target.value)}
-              placeholder="op-001"
-              required
+              placeholder={`op-${effectiveSlug || "slug"}`}
             />
           </label>
+          <p className="muted">
+            Defaults to <code>op-{"{slug}"}</code> when omitted. GRA staff approve the
+            connection after the operator submits their legal profile.
+          </p>
           <label>
             Licence number (optional)
             <input

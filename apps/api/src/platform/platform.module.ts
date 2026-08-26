@@ -19,6 +19,8 @@ import {
   PlatformDrilldownService,
   PlatformReportsService,
 } from "./platform-reports.service";
+import { PlatformGraIntegrationController } from "./platform-gra-integration.controller";
+import { PlatformGraIntegrationService } from "./platform-gra-integration.service";
 
 @Module({
   imports: [PlatformAuthModule, TenantModule],
@@ -27,6 +29,7 @@ import {
     PlatformOperatorsController,
     PlatformUsersController,
     PlatformSystemController,
+    PlatformGraIntegrationController,
   ],
   providers: [
     PlatformOperatorsService,
@@ -36,6 +39,7 @@ import {
     PlatformSystemService,
     PlatformReportsService,
     PlatformDrilldownService,
+    PlatformGraIntegrationService,
     PlatformAdminGuard,
     PlatformRateLimitGuard,
     {

@@ -468,6 +468,10 @@ export async function processGraOutboundForOperator(
     return { processed: 0, skipped: true, reason: "no_gra_keys" };
   }
 
+  if (settings.gra_application_status !== "approved") {
+    return { processed: 0, skipped: true, reason: "gra_not_approved" };
+  }
+
   const ingestBase = process.env.GRA_INGEST_URL ?? "http://localhost:4001/v1";
   const encKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
   const apiKey = decryptSecret(settings.gra_api_key_encrypted, encKey);

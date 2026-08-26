@@ -55,4 +55,14 @@ export class OperatorDomainsController {
   ) {
     return this.domainsService.verifyDns(actor, tenant.operatorId, domainId);
   }
+
+  @OperatorRoles("owner", "manager")
+  @Post(":domainId/set-primary")
+  setPrimary(
+    @CurrentOperatorStaff() actor: OperatorAuthUser,
+    @TenantCtx() tenant: TenantContext,
+    @Param("domainId") domainId: string,
+  ) {
+    return this.domainsService.setPrimary(actor, tenant.operatorId, domainId);
+  }
 }

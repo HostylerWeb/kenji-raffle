@@ -48,7 +48,13 @@ type OperatorDetail = {
   settings: {
     support_email: string | null;
     primary_color: string | null;
+    logo_url: string | null;
     gra_credentials_configured: boolean;
+    gra_application_status?: string | null;
+    gra_application_submitted_at?: string | null;
+    gra_approved_at?: string | null;
+    gra_rejection_reason?: string | null;
+    legal_profile_locked?: boolean;
     gra_last_heartbeat_at?: string | null;
     gra_last_heartbeat_status?: string | null;
     gra_last_heartbeat_error?: string | null;
@@ -85,6 +91,7 @@ export default function OperatorDetailPage() {
   const [checkoutEnabled, setCheckoutEnabled] = useState(true);
   const [supportEmail, setSupportEmail] = useState("");
   const [primaryColor, setPrimaryColor] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
   const [graTestResult, setGraTestResult] = useState("");
   const { isAdmin: admin } = usePlatformSession();
 
@@ -105,6 +112,7 @@ export default function OperatorDetailPage() {
     );
     setSupportEmail(data.settings?.support_email ?? "");
     setPrimaryColor(data.settings?.primary_color ?? "");
+    setLogoUrl(data.settings?.logo_url ?? "");
     platformFetch<RollupRow[]>(`/v1/platform/operators/${params.id}/rollup`)
       .then(setRollupRows)
       .catch(() => setRollupRows([]));
@@ -364,6 +372,7 @@ export default function OperatorDetailPage() {
         body: JSON.stringify({
           support_email: supportEmail.trim(),
           primary_color: primaryColor.trim(),
+          logo_url: logoUrl.trim(),
         }),
       });
       await load();
@@ -438,42 +447,87 @@ export default function OperatorDetailPage() {
   }
 
   const primaryDomain = operator.domains.find((d) => d.is_primary);
+  const stagingHost =
+    primaryDomain?.hostname ?? `${operator.slug}.force42.com`;
+  const handoffText = [
+    `Operator: ${operator.name}`,
+    `Staging site: https://${stagingHost}`,
+    `Admin: https://${stagingHost}/admin`,
+    `Owner login: owner@${operator.slug}.local`,
+    `Temporary password: ChangeMe123!`,
+    "",
+    "First steps: Admin → GRA onboarding — confirm legal profile and request GRA connection.",
+    "While under review: configure branding, create raffles, preview staging site.",
+    "After GRA approval: live checkout, GRA relay, and custom domains unlock.",
+  ].join("\n");
 
   return (
     <PlatformShell title={operator.name}>
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Customer handoff</h2>
         <p className="muted">
-          What <strong>we</strong> do vs what the <strong>customer</strong> does. Send
-          them the admin URL and owner login after provisioning.
+          What <strong>we</strong> do vs what the <strong>customer</strong> does.
+          Copy the block below after provisioning is <strong>active</strong>.
+        </p>
+        <p className="muted">
+          Operator status: <StatusBadge status={operator.status} /> · Tenant DB:{" "}
+          <StatusBadge status={operator.tenant_database?.status ?? "pending"} />
+          {operator.tenant_database?.provision_error && (
+            <> · Error: {operator.tenant_database.provision_error}</>
+          )}
         </p>
         <div className="handoff-grid">
           <div className="handoff-box">
             <h3>We (platform team)</h3>
             <ul className="muted">
               <li>Create operator &amp; wait for DB active</li>
-              <li>Set GRA API keys (compliance)</li>
+              <li>Hand off owner login — operator completes GRA onboarding in admin</li>
+              <li>Emergency manual GRA key override below (admin only)</li>
               <li>Suspend / support / monitoring</li>
-              <li>Optional: invite extra staff from platform console</li>
             </ul>
           </div>
           <div className="handoff-box">
             <h3>Customer (operator admin)</h3>
             <ul className="muted">
               <li>Log in at <code>/admin</code> on staging URL</li>
-              <li>Customise site, create raffles, preview public site</li>
               <li>
-                <strong>Domains &amp; go live</strong> — add hostname, DNS at
-                Cloudflare, verify in their admin
+                <strong>GRA onboarding</strong> — legal profile, confirm, request GRA
+              </li>
+              <li>Customise site, create raffles, preview public site during review</li>
+              <li>
+                After approval: <strong>Domains &amp; go live</strong> — custom hostname,
+                DNS at Cloudflare, verify, set primary
               </li>
             </ul>
           </div>
         </div>
-        {primaryDomain && (
+        {operator.tenant_database?.status === "active" && (
+          <>
+            <pre
+              className="card"
+              style={{
+                marginTop: 12,
+                padding: 12,
+                whiteSpace: "pre-wrap",
+                fontSize: 13,
+              }}
+            >
+              {handoffText}
+            </pre>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: 8 }}
+              onClick={() => navigator.clipboard.writeText(handoffText)}
+            >
+              Copy handoff to clipboard
+            </button>
+          </>
+        )}
+        {operator.tenant_database?.status !== "active" && (
           <p className="muted" style={{ marginTop: 12 }}>
-            Staging: <code>{primaryDomain.hostname}</code> · Admin:{" "}
-            <code>http://{primaryDomain.hostname}:3002/admin</code> · Owner:{" "}
-            <code>owner@{operator.slug}.local</code> / ChangeMe123!
+            Handoff URLs appear when tenant database status is <strong>active</strong>.
+            Ensure <code>raffle-worker</code> is running on the VPS.
           </p>
         )}
       </div>
@@ -495,6 +549,30 @@ export default function OperatorDetailPage() {
           <div className="detail-row">
             <dt>Slug</dt>
             <dd>{operator.slug}</dd>
+          </div>
+          <div className="detail-row">
+            <dt>GRA application</dt>
+            <dd>
+              <StatusBadge
+                status={operator.settings?.gra_application_status ?? "not_started"}
+              />
+              {operator.settings?.gra_application_submitted_at && (
+                <span className="muted" style={{ marginLeft: 8 }}>
+                  submitted{" "}
+                  {new Date(operator.settings.gra_application_submitted_at).toLocaleString()}
+                </span>
+              )}
+              {operator.settings?.gra_approved_at && (
+                <span className="muted" style={{ marginLeft: 8 }}>
+                  approved {new Date(operator.settings.gra_approved_at).toLocaleString()}
+                </span>
+              )}
+              {operator.settings?.gra_rejection_reason && (
+                <p className="muted" style={{ margin: "4px 0 0" }}>
+                  {operator.settings.gra_rejection_reason}
+                </p>
+              )}
+            </dd>
           </div>
           <div className="detail-row">
             <dt>GRA registry ID</dt>
@@ -802,7 +880,9 @@ export default function OperatorDetailPage() {
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Operator branding</h2>
         <p className="muted">
-          Support email is used on checkout confirmation mail. Primary colour is stored for the tenant site theme.
+          Support email is used on checkout confirmation mail. Primary colour and logo
+          are shown on the tenant public site. Operators can also upload a logo in their
+          admin Settings.
         </p>
         <form className="form" onSubmit={saveBranding}>
           <label>
@@ -819,7 +899,15 @@ export default function OperatorDetailPage() {
             <input
               value={primaryColor}
               onChange={(e) => setPrimaryColor(e.target.value)}
-              placeholder="#1d4ed8"
+              placeholder="#00a551"
+            />
+          </label>
+          <label>
+            Logo URL
+            <input
+              value={logoUrl}
+              onChange={(e) => setLogoUrl(e.target.value)}
+              placeholder="https://…/logo.png (or operator uploads in admin)"
             />
           </label>
           <button type="submit" className="btn btn-secondary" disabled={actionLoading}>

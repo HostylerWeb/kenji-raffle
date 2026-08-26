@@ -24,6 +24,7 @@ export class OperatorDomainsService {
       where: { id: operatorId },
       include: {
         domains: { orderBy: { is_primary: "desc" } },
+        settings: true,
       },
     });
     if (!operator) {
@@ -31,12 +32,46 @@ export class OperatorDomainsService {
     }
 
     const staging = operator.domains.find((d) => d.domain_type === "subdomain");
+    const graApproved = operator.settings?.gra_application_status === "approved";
 
     return {
       staging_hostname: staging?.hostname ?? null,
+      gra_compliance_ready: graApproved,
       domains: operator.domains.map((d) => this.mapDomain(d)),
-      dns_instructions: this.dnsInstructions(operatorId),
-      go_live_steps: this.goLiveSteps(staging?.hostname),
+      dns_instructions: graApproved
+        ? this.dnsInstructions(operatorId)
+        : {
+            cname_target: process.env.CUSTOM_DOMAIN_CNAME_TARGET ?? "customers.force42.com",
+            txt_record_name: "",
+            txt_record_value: "",
+            cloudflare_recommended: true,
+            records: [],
+            warnings: [
+              "Custom domain setup is available after GRA approves your operator application.",
+            ],
+          },
+      go_live_steps: graApproved
+        ? this.goLiveSteps(staging?.hostname)
+        : [
+            {
+              step: 1,
+              title: "Complete legal profile",
+              detail: "Admin → Onboarding — enter and confirm your company details.",
+              href: "/admin/onboarding",
+            },
+            {
+              step: 2,
+              title: "Request GRA connection",
+              detail: "Submit your application from the onboarding page.",
+              href: "/admin/onboarding",
+            },
+            {
+              step: 3,
+              title: "Wait for GRA approval",
+              detail:
+                "Your account is under review. Checkout and custom domains unlock after approval.",
+            },
+          ],
     };
   }
 
@@ -45,6 +80,17 @@ export class OperatorDomainsService {
     operatorId: string,
     hostname: string,
   ) {
+    const operator = await this.platformPrisma.client.operators.findUnique({
+      where: { id: operatorId },
+      include: { settings: true },
+    });
+    if (!operator) throw new NotFoundException("Operator not found");
+    if (operator.settings?.gra_application_status !== "approved") {
+      throw new BadRequestException(
+        "Custom domains are available after GRA approves your operator application",
+      );
+    }
+
     const normalized = hostname.trim().toLowerCase();
     if (!HOSTNAME_PATTERN.test(normalized)) {
       throw new BadRequestException("Invalid hostname");
@@ -116,6 +162,45 @@ export class OperatorDomainsService {
     };
   }
 
+  async setPrimary(
+    actor: OperatorAuthUser,
+    operatorId: string,
+    domainId: string,
+  ) {
+    const domain = await this.platformPrisma.client.operator_domains.findFirst({
+      where: { id: domainId, operator_id: operatorId },
+    });
+    if (!domain) {
+      throw new NotFoundException("Domain not found");
+    }
+    if (domain.verification_status !== "verified") {
+      throw new BadRequestException(
+        "Domain must be verified before it can be set as primary",
+      );
+    }
+
+    await this.platformPrisma.client.operator_domains.updateMany({
+      where: { operator_id: operatorId, is_primary: true },
+      data: { is_primary: false },
+    });
+
+    const updated = await this.platformPrisma.client.operator_domains.update({
+      where: { id: domainId },
+      data: { is_primary: true },
+    });
+
+    await this.audit.log(
+      operatorId,
+      actor,
+      "domain.set_primary",
+      "operator_domains",
+      domainId,
+      { hostname: updated.hostname },
+    );
+
+    return { domain: this.mapDomain(updated) };
+  }
+
   private mapDomain(domain: {
     id: string;
     hostname: string;
@@ -161,7 +246,8 @@ export class OperatorDomainsService {
       ],
       warnings: [
         "Remove old A records on @ (apex) that conflict with Cloudflare.",
-        "Use Cloudflare for DNS (free plan) — move nameservers from GoDaddy/Namecheap if needed.",
+        "Use Cloudflare for DNS on your domain (free plan is fine).",
+        "HTTPS on your custom domain is configured in your Cloudflare SSL/TLS settings — not in this dashboard.",
         "Allow 15–30 minutes after DNS changes before verifying.",
       ],
     };
@@ -197,10 +283,17 @@ export class OperatorDomainsService {
       },
       {
         step: 5,
+        title: "Set primary domain",
+        detail:
+          "After verification, click Use as primary domain so emails and links use your brand hostname.",
+        href: "/admin/domains",
+      },
+      {
+        step: 6,
         title: "Go live",
         detail: stagingHostname
-          ? `Your site will load on your custom domain. Admin: https://your-domain/admin (staging: ${stagingHostname})`
-          : "Your site will load on your custom domain. Admin: https://your-domain/admin",
+          ? `Your site loads on your custom domain. Staging remains at https://${stagingHostname}`
+          : "Your site loads on your custom domain with admin at /admin.",
       },
     ];
   }
