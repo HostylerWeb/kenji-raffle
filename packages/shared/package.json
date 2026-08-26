@@ -12,6 +12,10 @@
     "./kenya-geography": {
       "types": "./dist/kenya-geography.d.ts",
       "default": "./dist/kenya-geography.js"
+    },
+    "./site-theme": {
+      "types": "./dist/site-theme.d.ts",
+      "default": "./dist/site-theme.js"
     }
   },
   "scripts": {

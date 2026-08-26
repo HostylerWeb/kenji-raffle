@@ -2831,3 +2831,174 @@
   font-weight: 600;
   margin-right: auto;
 }
+
+/* ─── Branding editor ─── */
+.admin-branding {
+  display: grid;
+  gap: 28px;
+}
+
+.admin-branding__section {
+  padding-top: 4px;
+}
+
+.admin-branding__heading {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.admin-theme-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.admin-theme-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.admin-theme-preset--active {
+  border-color: var(--admin-accent);
+  box-shadow: 0 0 0 1px var(--admin-accent);
+}
+
+.admin-theme-preset__swatches {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-theme-preset__swatches span {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.admin-theme-preset__label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.admin-theme-preset__desc {
+  font-size: 12px;
+  color: var(--admin-text-muted);
+  line-height: 1.45;
+}
+
+.admin-branding-upload__label {
+  margin: 0 0 4px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.admin-branding-upload__hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--admin-text-muted);
+}
+
+.admin-branding-upload__placeholder {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  color: var(--admin-text-muted);
+  font-size: 13px;
+}
+
+.admin-branding-preview {
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius-sm);
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.admin-branding-preview__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--site-header-bg) 92%, transparent);
+  color: var(--site-header-text);
+  border-bottom: 1px solid color-mix(in srgb, var(--site-header-text) 12%, transparent);
+}
+
+.admin-branding-preview__logo,
+.admin-branding-preview__footer-logo {
+  height: 28px;
+  width: auto;
+  max-width: 100px;
+  object-fit: contain;
+}
+
+.admin-branding-preview__mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--site-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.admin-branding-preview__nav {
+  margin-left: auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.admin-branding-preview__body {
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8fafc;
+}
+
+.admin-branding-preview__btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--site-button-bg);
+  color: var(--site-button-text);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.admin-branding-preview__link {
+  color: var(--site-link-color);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.admin-branding-preview__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--site-footer-bg);
+  color: var(--site-footer-text);
+  font-size: 12px;
+}
+
+.admin-branding-preview__footer strong {
+  color: var(--site-footer-link);
+}
+

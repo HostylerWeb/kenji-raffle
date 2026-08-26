@@ -1,5 +1,6 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
+import { resolveSiteTheme } from "@kenji-raffle/shared";
 import { PublicRoute, TenantCtx } from "./tenant.decorators";
 import type { TenantContext } from "@kenji-raffle/shared";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
@@ -19,6 +20,15 @@ export class TenantController {
       settings?.social_links && typeof settings.social_links === "object"
         ? (settings.social_links as Record<string, string>)
         : {};
+    const themeConfig =
+      settings?.theme_config && typeof settings.theme_config === "object"
+        ? (settings.theme_config as Record<string, unknown>)
+        : null;
+    const resolvedTheme = resolveSiteTheme({
+      themePreset: settings?.theme_preset,
+      primaryColor: settings?.primary_color,
+      themeConfig,
+    });
 
     return {
       slug: tenant.slug,
@@ -27,7 +37,10 @@ export class TenantController {
       hostname: tenant.hostname,
       branding: {
         logo_url: settings?.logo_url,
+        footer_logo_url: settings?.footer_logo_url,
         primary_color: settings?.primary_color ?? "#00a551",
+        theme_preset: settings?.theme_preset ?? "kenji-green",
+        theme: resolvedTheme,
         support_email: settings?.support_email,
         footer_licence_text: settings?.footer_licence_text,
         social_links: social,

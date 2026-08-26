@@ -16,10 +16,11 @@ type Me = {
 
 const QUICK_LINKS = [
   { href: "/account/orders", label: "Orders", desc: "Purchase history" },
-  { href: "/account/tickets", label: "My tickets", desc: "Your entry numbers" },
+  { href: "/account/tickets", label: "My tickets", desc: "Entry numbers by raffle" },
   { href: "/account/wins", label: "Wins", desc: "Prizes & instant wins" },
-  { href: "/account/claims", label: "Prize claims", desc: "Ship or withdraw" },
-  { href: "/account/site-credit", label: "Site credit", desc: "Balance & usage" },
+  { href: "/account/claims", label: "Prize claims", desc: "Cash withdrawals & shipping" },
+  { href: "/account/site-credit", label: "Site credit", desc: "Instant-win checkout credit" },
+  { href: "/account/play-safe", label: "Play Safe", desc: "Pause purchases & spending limits" },
   { href: "/account/settings", label: "Settings", desc: "Profile & addresses" },
 ];
 
@@ -35,11 +36,20 @@ export default function AccountPage() {
       });
   }, []);
 
-  if (!me) {
+  if (!me && !error) {
     return (
       <>
         <AccountPageHeader title="Overview" description="Your account at a glance." />
         <div className="site-skeleton" style={{ height: 180 }} />
+      </>
+    );
+  }
+
+  if (!me) {
+    return (
+      <>
+        <AccountPageHeader title="Overview" description="Your account at a glance." />
+        <p className="site-error">{error}</p>
       </>
     );
   }
@@ -60,16 +70,17 @@ export default function AccountPage() {
           <div className="site-card site-card--flat">
             <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Site credit</p>
             <p className="site-stat-grid__value">{formatKes(me.site_credit_balance)}</p>
+            <p className="site-muted" style={{ margin: "4px 0 0", fontSize: 12 }}>Checkout credit only</p>
           </div>
           <Link href="/account/tickets" className="site-card site-card--flat" style={{ textDecoration: "none", color: "inherit" }}>
             <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Active tickets</p>
-            <p className="site-stat-grid__value">{me.active_ticket_count.toLocaleString()}</p>
+            <p className="site-stat-grid__value">{(me.active_ticket_count ?? 0).toLocaleString()}</p>
           </Link>
           {me.play_safe_active && (
-            <div className="site-card site-card--flat">
+            <Link href="/account/play-safe" className="site-card site-card--flat" style={{ textDecoration: "none", color: "inherit" }}>
               <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Play Safe</p>
               <p style={{ margin: "4px 0 0", fontWeight: 600, color: "var(--site-warning)" }}>Active</p>
-            </div>
+            </Link>
           )}
         </div>
       </div>

@@ -8,6 +8,38 @@ export { usePlayerLoggedIn, useIsClient } from "./player-auth";
 const SESSION_KEY = "cart_session_id";
 const REFRESH_KEY = "player_refresh_token";
 
+/** Auth endpoints that must never trigger a login redirect or token refresh. */
+const PUBLIC_AUTH_PATHS = [
+  "/v1/auth/login",
+  "/v1/auth/register",
+  "/v1/auth/forgot-password",
+  "/v1/auth/reset-password",
+];
+
+/** Pages that handle sign-in inline (stay on page when session expires). */
+const INLINE_AUTH_PATHS = ["/checkout", "/register"];
+
+function isPublicAuthPath(path: string): boolean {
+  return PUBLIC_AUTH_PATHS.some((p) => path.startsWith(p));
+}
+
+function shouldRedirectToLoginPage(): boolean {
+  if (typeof window === "undefined") return false;
+  const pathname = window.location.pathname;
+  if (pathname.startsWith("/login")) return false;
+  if (INLINE_AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return false;
+  }
+  return true;
+}
+
+async function readErrorMessage(res: Response, fallback: string): Promise<string> {
+  const body = await res.json().catch(() => ({}));
+  const raw =
+    typeof body.message === "string" ? body.message : fallback;
+  return friendlyPlayerError(raw);
+}
+
 function createCartSessionId(): string {
   if (
     typeof crypto !== "undefined" &&
@@ -110,7 +142,8 @@ export async function playerFetch<T>(
   options: RequestInit = {},
   retried = false,
 ): Promise<T> {
-  const token = getPlayerToken();
+  const publicAuth = isPublicAuthPath(path);
+  const token = publicAuth ? null : getPlayerToken();
   const headers = new Headers(options.headers);
   if (!headers.has("Content-Type") && options.body) {
     headers.set("Content-Type", "application/json");
@@ -123,23 +156,23 @@ export async function playerFetch<T>(
 
   const res = await fetch(`${getPublicApiUrl()}${path}`, { ...options, headers });
 
-  if (res.status === 401 && !retried && (await refreshPlayerToken())) {
+  if (res.status === 401 && !publicAuth && !retried && (await refreshPlayerToken())) {
     return playerFetch<T>(path, options, true);
   }
 
   if (res.status === 401) {
-    clearPlayerSession();
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+    const message = await readErrorMessage(res, "Unauthorized");
+    if (!publicAuth) {
+      clearPlayerSession();
+      if (shouldRedirectToLoginPage()) {
+        window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+      }
     }
-    throw new Error("Unauthorized");
+    throw new Error(message);
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    const raw =
-      typeof body.message === "string" ? body.message : `Request failed (${res.status})`;
-    throw new Error(friendlyPlayerError(raw));
+    throw new Error(await readErrorMessage(res, `Request failed (${res.status})`));
   }
   const data = (await res.json()) as T & { session_id?: string };
   if (path.startsWith("/v1/cart")) {

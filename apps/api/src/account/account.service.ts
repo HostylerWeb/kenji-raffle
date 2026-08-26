@@ -53,13 +53,19 @@ export class AccountService {
     player: PlayerAuthUser,
     page = 1,
     limit = 20,
+    statusFilter?: string[],
   ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
     const skip = (page - 1) * limit;
+    const baseWhere = { user_id: player.id };
+    const where =
+      statusFilter && statusFilter.length > 0
+        ? { ...baseWhere, status: { in: statusFilter as never[] } }
+        : baseWhere;
 
-    const [rows, total] = await Promise.all([
+    const [rows, total, allCount, pending, completed, cancelled] = await Promise.all([
       client.orders.findMany({
-        where: { user_id: player.id },
+        where,
         orderBy: { created_at: "desc" },
         skip,
         take: limit,
@@ -73,7 +79,16 @@ export class AccountService {
           created_at: true,
         },
       }),
-      client.orders.count({ where: { user_id: player.id } }),
+      client.orders.count({ where }),
+      client.orders.count({ where: baseWhere }),
+      client.orders.count({ where: { ...baseWhere, status: "pending" } }),
+      client.orders.count({ where: { ...baseWhere, status: "completed" } }),
+      client.orders.count({
+        where: {
+          ...baseWhere,
+          status: { in: ["failed", "cancelled", "refunded"] },
+        },
+      }),
     ]);
 
     return {
@@ -89,6 +104,12 @@ export class AccountService {
       page,
       limit,
       total,
+      counts: {
+        all: allCount,
+        pending,
+        completed,
+        cancelled,
+      },
     };
   }
 
@@ -158,23 +179,41 @@ export class AccountService {
     };
   }
 
-  async listTickets(tenant: TenantContext, player: PlayerAuthUser) {
+  async listTickets(
+    tenant: TenantContext,
+    player: PlayerAuthUser,
+    page = 1,
+    limit = 500,
+  ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
-    const tickets = await client.tickets.findMany({
-      where: { user_id: player.id, status: "purchased" },
-      orderBy: { created_at: "desc" },
-      include: { raffle: { select: { title: true, slug: true, status: true } } },
-    });
+    const skip = (page - 1) * limit;
+    const where = { user_id: player.id, status: "purchased" as const };
 
-    return tickets.map((t) => ({
-      id: t.id,
-      ticket_number: t.ticket_number,
-      raffle_title: t.raffle.title,
-      raffle_slug: t.raffle.slug,
-      raffle_status: t.raffle.status,
-      purchase_price: decimal(t.purchase_price ?? 0),
-      created_at: t.created_at.toISOString(),
-    }));
+    const [tickets, total] = await Promise.all([
+      client.tickets.findMany({
+        where,
+        orderBy: [{ created_at: "desc" }, { ticket_number: "asc" }],
+        skip,
+        take: limit,
+        include: { raffle: { select: { title: true, slug: true, status: true } } },
+      }),
+      client.tickets.count({ where }),
+    ]);
+
+    return {
+      items: tickets.map((t) => ({
+        id: t.id,
+        ticket_number: t.ticket_number,
+        raffle_title: t.raffle.title,
+        raffle_slug: t.raffle.slug,
+        raffle_status: t.raffle.status,
+        purchase_price: decimal(t.purchase_price ?? 0),
+        created_at: t.created_at.toISOString(),
+      })),
+      page,
+      limit,
+      total,
+    };
   }
 
   async listWins(tenant: TenantContext, player: PlayerAuthUser) {
@@ -271,7 +310,18 @@ export class AccountService {
     };
   }
 
-  async activatePlaySafe(tenant: TenantContext, player: PlayerAuthUser) {
+  async activatePlaySafe(
+    tenant: TenantContext,
+    player: PlayerAuthUser,
+    durationDays = 7,
+  ) {
+    const allowed = [1, 3, 7, 14, 30];
+    if (!allowed.includes(durationDays)) {
+      throw new BadRequestException(
+        "Duration must be 1, 3, 7, 14, or 30 days",
+      );
+    }
+
     const client = await this.tenantConnection.getClient(tenant.operatorId);
     const existing = await client.users.findUnique({
       where: { id: player.id },
@@ -284,7 +334,7 @@ export class AccountService {
     }
 
     const until = new Date();
-    until.setDate(until.getDate() + 7);
+    until.setDate(until.getDate() + durationDays);
 
     const user = await client.users.update({
       where: { id: player.id },
@@ -303,6 +353,7 @@ export class AccountService {
     return {
       play_safe_active: user.play_safe_active,
       play_safe_until: user.play_safe_until?.toISOString() ?? null,
+      duration_days: durationDays,
     };
   }
 

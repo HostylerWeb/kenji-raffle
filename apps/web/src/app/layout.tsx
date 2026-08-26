@@ -9,7 +9,6 @@ import { PublicSiteChrome } from "@/components/PublicSiteChrome";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#00a551",
 };
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,7 +29,6 @@ export default async function RootLayout({
   const headerStore = await headers();
   const host = getRequestHost(headerStore);
   const tenant = await getTenantContext(host);
-  const accent = tenant?.branding?.primary_color ?? "#00a551";
 
   return (
     <html lang="en">
@@ -45,7 +43,7 @@ export default async function RootLayout({
       </head>
       <body>
         <AnalyticsScripts analytics={tenant?.analytics ?? null} />
-        <PublicSiteChrome tenant={tenant} accent={accent}>
+        <PublicSiteChrome tenant={tenant}>
           {children}
         </PublicSiteChrome>
       </body>

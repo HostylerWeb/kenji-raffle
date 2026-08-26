@@ -24,6 +24,13 @@ import { CurrentPlayer } from "../player-auth/player.decorators";
 import { AccountService } from "./account.service";
 import { MediaStorageService } from "../media/media-storage.service";
 
+class ActivatePlaySafeDto {
+  @IsOptional()
+  @IsNumber()
+  @IsIn([1, 3, 7, 14, 30])
+  duration_days?: number;
+}
+
 class UpdateProfileDto {
   @IsOptional()
   @IsString()
@@ -123,12 +130,17 @@ export class AccountController {
     @CurrentPlayer() player: PlayerAuthUser,
     @Query("page") page?: string,
     @Query("limit") limit?: string,
+    @Query("status") status?: string,
   ) {
+    const statusFilter = status
+      ? status.split(",").map((s) => s.trim()).filter(Boolean)
+      : undefined;
     return this.account.listOrders(
       tenant,
       player,
       Number(page) || 1,
       Math.min(Number(limit) || 20, 100),
+      statusFilter,
     );
   }
 
@@ -145,8 +157,15 @@ export class AccountController {
   listTickets(
     @TenantCtx() tenant: TenantContext,
     @CurrentPlayer() player: PlayerAuthUser,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
   ) {
-    return this.account.listTickets(tenant, player);
+    return this.account.listTickets(
+      tenant,
+      player,
+      Number(page) || 1,
+      Math.min(Number(limit) || 500, 500),
+    );
   }
 
   @Get("wins")
@@ -170,8 +189,13 @@ export class AccountController {
   playSafe(
     @TenantCtx() tenant: TenantContext,
     @CurrentPlayer() player: PlayerAuthUser,
+    @Body() body: ActivatePlaySafeDto,
   ) {
-    return this.account.activatePlaySafe(tenant, player);
+    return this.account.activatePlaySafe(
+      tenant,
+      player,
+      body.duration_days ?? 7,
+    );
   }
 
   @Get("kyc/document")

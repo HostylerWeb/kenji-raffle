@@ -2,11 +2,18 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  extractThemeConfig,
+  resolveSiteTheme,
+  type SiteThemeColors,
+  type SiteThemePresetId,
+} from "@kenji-raffle/shared/site-theme";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
 import { AdminTabs } from "@/components/admin/AdminTabs";
 import { AdminMfaPanel } from "@/components/admin/AdminMfaPanel";
+import { BrandingEditor } from "@/components/admin/BrandingEditor";
 import { useAdminToast } from "@/components/admin/AdminToast";
-import { getOperatorToken, operatorFetch, operatorUpload } from "@/lib/api";
+import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type Settings = {
   name: string;
@@ -17,6 +24,10 @@ type Settings = {
     support_email?: string;
     footer_licence_text?: string;
     logo_url?: string | null;
+    footer_logo_url?: string | null;
+    theme_preset?: string;
+    theme_config?: Record<string, unknown> | null;
+    theme?: SiteThemeColors & { preset?: string };
     social_links?: Record<string, string>;
   };
   analytics?: {
@@ -30,6 +41,10 @@ type Settings = {
     privacy_text?: string | null;
   };
 };
+
+function defaultThemeColors(): SiteThemeColors {
+  return resolveSiteTheme({ themePreset: "kenji-green", primaryColor: "#00a551", themeConfig: null });
+}
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -50,6 +65,9 @@ export default function SettingsPage() {
   const [socialTwitter, setSocialTwitter] = useState("");
   const [socialInstagram, setSocialInstagram] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
+  const [footerLogoUrl, setFooterLogoUrl] = useState("");
+  const [themePreset, setThemePreset] = useState<SiteThemePresetId>("kenji-green");
+  const [themeColors, setThemeColors] = useState<SiteThemeColors>(defaultThemeColors);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
@@ -79,6 +97,16 @@ export default function SettingsPage() {
         setSocialTwitter(social.twitter ?? "");
         setSocialInstagram(social.instagram ?? "");
         setLogoUrl(data.branding?.logo_url ?? "");
+        setFooterLogoUrl(data.branding?.footer_logo_url ?? "");
+        const preset = (data.branding?.theme_preset ?? "kenji-green") as SiteThemePresetId;
+        setThemePreset(preset);
+        const resolved = resolveSiteTheme({
+          themePreset: preset,
+          primaryColor: data.branding.primary_color,
+          themeConfig: data.branding.theme_config ?? null,
+        });
+        const { preset: _p, ...colors } = resolved;
+        setThemeColors(colors);
       })
       .catch(() => router.replace("/admin/login"));
     operatorFetch<{ mfa_enabled: boolean }>("/v1/admin/auth/session")
@@ -110,10 +138,13 @@ export default function SettingsPage() {
             instagram: socialInstagram || undefined,
           },
           logo_url: logoUrl || null,
+          footer_logo_url: footerLogoUrl || null,
+          theme_preset: themePreset,
+          theme_config: extractThemeConfig(themeColors),
         }),
       });
       setSettings(updated);
-      toast("Settings saved");
+      toast("Settings saved — preview your public site to see changes.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
     } finally {
@@ -178,96 +209,74 @@ export default function SettingsPage() {
                 {tab === "legal" && "Legal pages"}
               </h3>
               <p className="admin-panel__subtitle">
-                {tab === "branding" && "Logo, colours, and social links shown on your public site."}
+                {tab === "branding" &&
+                  "Customize your public site before go-live — logos, colours, and templates."}
                 {tab === "analytics" && "Optional GA4 and Facebook Pixel integration."}
                 {tab === "legal" && "FAQ, terms, and privacy content for players."}
               </p>
             </div>
           </div>
           <div className="admin-panel__body">
-          {tab === "branding" && (
-            <div className="admin-form-grid">
-              <label>
-                Licence number
-                <input value={licenceNumber} onChange={(e) => setLicenceNumber(e.target.value)} />
-              </label>
-              <label>
-                Support email
-                <input type="email" value={supportEmail} onChange={(e) => setSupportEmail(e.target.value)} />
-              </label>
-              <label>
-                Primary color
-                <input type="color" value={primaryColor} onChange={(e) => setPrimaryColor(e.target.value)} />
-              </label>
-              <div>
-                Logo
-                {logoUrl && <img src={logoUrl} alt="Logo" className="admin-media-preview" />}
-                <label className="admin-file-upload" style={{ marginTop: 8 }}>
-                  <span className="admin-file-upload__label">Upload logo</span>
-                  <span className="admin-file-upload__hint">PNG or SVG recommended</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const uploaded = await operatorUpload("/v1/admin/media/upload", file);
-                      setLogoUrl(uploaded.url);
-                    }}
-                  />
+            {tab === "branding" && (
+              <BrandingEditor
+                operatorName={settings.name}
+                logoUrl={logoUrl}
+                footerLogoUrl={footerLogoUrl}
+                primaryColor={primaryColor}
+                themePreset={themePreset}
+                themeColors={themeColors}
+                footerLicence={footerLicence}
+                socialFacebook={socialFacebook}
+                socialTwitter={socialTwitter}
+                socialInstagram={socialInstagram}
+                licenceNumber={licenceNumber}
+                supportEmail={supportEmail}
+                onLogoUrl={setLogoUrl}
+                onFooterLogoUrl={setFooterLogoUrl}
+                onPrimaryColor={setPrimaryColor}
+                onThemePreset={setThemePreset}
+                onThemeColors={setThemeColors}
+                onFooterLicence={setFooterLicence}
+                onSocialFacebook={setSocialFacebook}
+                onSocialTwitter={setSocialTwitter}
+                onSocialInstagram={setSocialInstagram}
+                onLicenceNumber={setLicenceNumber}
+                onSupportEmail={setSupportEmail}
+              />
+            )}
+            {tab === "analytics" && (
+              <div className="admin-form-grid">
+                <label className="admin-form-grid__checkbox">
+                  <input type="checkbox" checked={analyticsEnabled} onChange={(e) => setAnalyticsEnabled(e.target.checked)} />
+                  Enable analytics
+                </label>
+                <label>
+                  GA4 Measurement ID
+                  <input value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="G-XXXXXXXX" />
+                </label>
+                <label>
+                  Facebook Pixel ID
+                  <input value={fbPixelId} onChange={(e) => setFbPixelId(e.target.value)} />
                 </label>
               </div>
-              <label className="admin-form-grid__full">
-                Footer licence text
-                <input value={footerLicence} onChange={(e) => setFooterLicence(e.target.value)} />
-              </label>
-              <label>
-                Facebook URL
-                <input value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} />
-              </label>
-              <label>
-                Twitter / X URL
-                <input value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)} />
-              </label>
-              <label>
-                Instagram URL
-                <input value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} />
-              </label>
-            </div>
-          )}
-          {tab === "analytics" && (
-            <div className="admin-form-grid">
-              <label className="admin-form-grid__checkbox">
-                <input type="checkbox" checked={analyticsEnabled} onChange={(e) => setAnalyticsEnabled(e.target.checked)} />
-                Enable analytics
-              </label>
-              <label>
-                GA4 Measurement ID
-                <input value={ga4Id} onChange={(e) => setGa4Id(e.target.value)} placeholder="G-XXXXXXXX" />
-              </label>
-              <label>
-                Facebook Pixel ID
-                <input value={fbPixelId} onChange={(e) => setFbPixelId(e.target.value)} />
-              </label>
-            </div>
-          )}
-          {tab === "legal" && (
-            <div className="admin-form-grid">
-              <label className="admin-form-grid__full">
-                FAQ text
-                <textarea value={faqText} onChange={(e) => setFaqText(e.target.value)} rows={4} />
-              </label>
-              <label className="admin-form-grid__full">
-                Terms text
-                <textarea value={termsText} onChange={(e) => setTermsText(e.target.value)} rows={4} />
-              </label>
-              <label className="admin-form-grid__full">
-                Privacy text
-                <textarea value={privacyText} onChange={(e) => setPrivacyText(e.target.value)} rows={4} />
-              </label>
-            </div>
-          )}
-          {error && <p className="error">{error}</p>}
+            )}
+            {tab === "legal" && (
+              <div className="admin-form-grid">
+                <label className="admin-form-grid__full">
+                  FAQ text
+                  <textarea value={faqText} onChange={(e) => setFaqText(e.target.value)} rows={4} />
+                </label>
+                <label className="admin-form-grid__full">
+                  Terms text
+                  <textarea value={termsText} onChange={(e) => setTermsText(e.target.value)} rows={4} />
+                </label>
+                <label className="admin-form-grid__full">
+                  Privacy text
+                  <textarea value={privacyText} onChange={(e) => setPrivacyText(e.target.value)} rows={4} />
+                </label>
+              </div>
+            )}
+            {error && <p className="error">{error}</p>}
           </div>
           <div className="admin-form-actions" style={{ padding: "0 22px 22px" }}>
             <button type="submit" className="btn" disabled={loading}>
@@ -302,16 +311,16 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="admin-panel__body">
-            <div className="admin-form-grid">
-              <label>
-                Current password
-                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
-              </label>
-              <label>
-                New password
-                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
-              </label>
-            </div>
+              <div className="admin-form-grid">
+                <label>
+                  Current password
+                  <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+                </label>
+                <label>
+                  New password
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required minLength={8} />
+                </label>
+              </div>
             </div>
             <div className="admin-form-actions" style={{ padding: "0 22px 22px" }}>
               <button type="submit" className="btn btn-secondary">Update password</button>

@@ -8,12 +8,12 @@ export default function PlaySafeInfoPage() {
       <h1 className="site-page-title">Play Safe</h1>
       <div className="site-card" style={{ lineHeight: 1.7 }}>
         <p>
-          Play Safe helps you stay in control of your raffle spending. You can activate
-          cooling-off periods and spending limits from your account at any time.
+          Play Safe helps you stay in control of your raffle spending. From your account you can
+          pause purchases for a period you choose, or set a weekly or monthly spending cap.
         </p>
         <ul style={{ paddingLeft: 20 }}>
-          <li>Self-exclusion blocks new purchases for a chosen period</li>
-          <li>Spending limits cap how much you can spend per week or month</li>
+          <li><strong>Purchase pause</strong> — choose 24 hours up to 30 days without buying tickets</li>
+          <li><strong>Spending limit</strong> — cap ticket spend per week or month</li>
           <li>County information helps meet regulatory reporting requirements</li>
         </ul>
         <p>

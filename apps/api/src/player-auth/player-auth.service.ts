@@ -322,6 +322,10 @@ export class PlayerAuthService {
       });
     }
 
+    const activeTicketCount = await client.tickets.count({
+      where: { user_id: player.id, status: "purchased" },
+    });
+
     return {
       id: user.id,
       email: user.email,
@@ -335,6 +339,7 @@ export class PlayerAuthService {
       county: user.county,
       kyc_status: user.kyc_status,
       kyc_document_submitted: Boolean(user.kyc_document_url),
+      active_ticket_count: activeTicketCount,
     };
   }
 

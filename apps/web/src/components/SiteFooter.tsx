@@ -3,6 +3,7 @@ import { ProtectedAccountLink } from "@/components/ProtectedAccountLink";
 
 type FooterProps = {
   name: string;
+  footerLogoUrl?: string | null;
   footerLicence?: string | null;
   socialLinks?: Record<string, string>;
   supportEmail?: string | null;
@@ -10,6 +11,7 @@ type FooterProps = {
 
 export function SiteFooter({
   name,
+  footerLogoUrl,
   footerLicence,
   socialLinks = {},
   supportEmail,
@@ -29,7 +31,11 @@ export function SiteFooter({
 
         <div className="site-footer__grid">
           <div className="site-footer__brand-col">
-            <p className="site-footer__brand">{name}</p>
+            {footerLogoUrl ? (
+              <img src={footerLogoUrl} alt={name} className="site-footer__logo" />
+            ) : (
+              <p className="site-footer__brand">{name}</p>
+            )}
             <p className="site-footer__desc">
               {footerLicence ??
                 "Licensed raffle operator. Fair draws, secure payments, and tools to help you play responsibly."}

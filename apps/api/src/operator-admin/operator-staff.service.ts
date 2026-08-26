@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import bcrypt from "bcryptjs";
 import type { OperatorAuthUser, OperatorStaffRole, TenantContext } from "@kenji-raffle/shared";
+import { resolveSiteTheme } from "@kenji-raffle/shared";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
@@ -213,6 +214,18 @@ export class OperatorSettingsService {
       throw new NotFoundException("Operator not found");
     }
 
+    const themePreset = operator.settings?.theme_preset ?? "kenji-green";
+    const themeConfig =
+      operator.settings?.theme_config &&
+      typeof operator.settings.theme_config === "object"
+        ? (operator.settings.theme_config as Record<string, unknown>)
+        : null;
+    const resolvedTheme = resolveSiteTheme({
+      themePreset,
+      primaryColor: operator.settings?.primary_color,
+      themeConfig,
+    });
+
     return {
       name: operator.name,
       slug: operator.slug,
@@ -221,7 +234,11 @@ export class OperatorSettingsService {
       default_tax_rate: Number(operator.default_tax_rate),
       branding: {
         logo_url: operator.settings?.logo_url,
+        footer_logo_url: operator.settings?.footer_logo_url,
         primary_color: operator.settings?.primary_color ?? "#00a551",
+        theme_preset: themePreset,
+        theme_config: themeConfig,
+        theme: resolvedTheme,
         support_email: operator.settings?.support_email,
         footer_licence_text: operator.settings?.footer_licence_text,
         social_links: operator.settings?.social_links ?? {},
@@ -254,6 +271,9 @@ export class OperatorSettingsService {
       terms_text?: string | null;
       privacy_text?: string | null;
       logo_url?: string | null;
+      footer_logo_url?: string | null;
+      theme_preset?: string | null;
+      theme_config?: Record<string, unknown> | null;
     },
   ) {
     const operator = await this.platformPrisma.client.operators.findUnique({
@@ -284,6 +304,9 @@ export class OperatorSettingsService {
         terms_text: input.terms_text,
         privacy_text: input.privacy_text,
         logo_url: input.logo_url,
+        footer_logo_url: input.footer_logo_url,
+        theme_preset: input.theme_preset,
+        theme_config: input.theme_config as object | undefined,
       },
       create: {
         operator_id: operatorId,
@@ -298,6 +321,9 @@ export class OperatorSettingsService {
         terms_text: input.terms_text,
         privacy_text: input.privacy_text,
         logo_url: input.logo_url,
+        footer_logo_url: input.footer_logo_url,
+        theme_preset: input.theme_preset ?? "kenji-green",
+        theme_config: input.theme_config as object | undefined,
       },
     });
 

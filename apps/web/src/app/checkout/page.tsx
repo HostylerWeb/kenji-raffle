@@ -21,6 +21,7 @@ import { getPublicApiUrl } from "@/lib/api-config";
 import { formatKes } from "@/lib/format";
 import { friendlyPlayerError } from "@/lib/player-errors";
 import {
+  clearPlayerSession,
   getPlayerToken,
   getTenantHost,
   playerFetch,
@@ -142,7 +143,10 @@ export default function CheckoutPage() {
           return;
         }
         if (token) {
-          return loadAuthenticatedData();
+          return loadAuthenticatedData().catch(() => {
+            clearPlayerSession();
+            setLoggedIn(false);
+          });
         }
       })
       .catch(() => setCart({ items: [], subtotal: 0, expires_at: null }))
@@ -162,9 +166,17 @@ export default function CheckoutPage() {
   const handleAuthSuccess = useCallback(async () => {
     setLoggedIn(true);
     setProfileLoading(true);
+    setError("");
     notifyCartUpdated();
-    await loadAuthenticatedData();
-    setProfileLoading(false);
+    try {
+      await loadAuthenticatedData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load checkout");
+      setLoggedIn(false);
+      clearPlayerSession();
+    } finally {
+      setProfileLoading(false);
+    }
   }, [loadAuthenticatedData]);
 
   async function resumePendingPayment() {
@@ -304,16 +316,20 @@ export default function CheckoutPage() {
               <div className="site-skeleton" style={{ height: 280 }} />
             </div>
           ) : null
+        ) : profileLoading && !pendingOrder ? (
+          <div className="site-card" style={{ marginBottom: 20 }}>
+            <div className="site-skeleton" style={{ height: 520 }} />
+          </div>
         ) : (
           <>
             {!pendingOrder && billing && (
               <CheckoutBillingDetails
                 billing={billing}
                 onChange={setBilling}
-                loading={profileLoading}
+                loading={false}
               />
             )}
-            {!pendingOrder && (
+            {!pendingOrder && billing && (
               <form className="site-form site-card" onSubmit={startCheckout}>
                 <h2 className="site-section-title" style={{ marginTop: 0 }}>
                   Payment options

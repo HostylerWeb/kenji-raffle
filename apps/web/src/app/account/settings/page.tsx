@@ -4,14 +4,12 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { AccountPageHeader } from "@/components/AccountPageHeader";
 import { KENYA_COUNTIES } from "@/lib/kenya-counties";
-import { playerFetch, playerUpload } from "@/lib/player-api";
+import { playerFetch } from "@/lib/player-api";
 
 type Profile = {
   full_name: string | null;
   phone: string | null;
   county: string | null;
-  spending_limit: number | null;
-  spending_limit_period: string | null;
 };
 
 type ShippingAddress = {
@@ -28,10 +26,6 @@ export default function AccountSettingsPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [county, setCounty] = useState("");
-  const [limit, setLimit] = useState("");
-  const [period, setPeriod] = useState("");
-  const [kycStatus, setKycStatus] = useState("none");
-  const [kycSubmitted, setKycSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -44,17 +38,13 @@ export default function AccountSettingsPage() {
 
   useEffect(() => {
     Promise.all([
-      playerFetch<Profile & { kyc_status?: string; kyc_document_submitted?: boolean }>("/v1/me"),
+      playerFetch<Profile>("/v1/me"),
       playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"),
     ])
       .then(([p, addrs]) => {
         setFullName(p.full_name ?? "");
         setPhone(p.phone ?? "");
         setCounty(p.county ?? "");
-        setLimit(p.spending_limit != null ? String(p.spending_limit) : "");
-        setPeriod(p.spending_limit_period ?? "");
-        setKycStatus(p.kyc_status ?? "none");
-        setKycSubmitted(Boolean(p.kyc_document_submitted));
         setAddresses(addrs);
       })
       .catch((err) => {
@@ -74,8 +64,6 @@ export default function AccountSettingsPage() {
           full_name: fullName,
           phone: phone || undefined,
           county: county || undefined,
-          spending_limit: limit ? Number(limit) : null,
-          spending_limit_period: period || null,
         }),
       });
       setSaved(true);
@@ -123,7 +111,7 @@ export default function AccountSettingsPage() {
   if (loading) {
     return (
       <>
-        <AccountPageHeader title="Settings" description="Profile, limits, verification, and addresses." />
+        <AccountPageHeader title="Settings" description="Profile and saved addresses." />
         <div className="site-skeleton" style={{ height: 200 }} />
       </>
     );
@@ -133,7 +121,7 @@ export default function AccountSettingsPage() {
     <>
       <AccountPageHeader
         title="Settings"
-        description="Update your profile, spending limits, KYC, and saved addresses."
+        description="Update your profile and saved addresses. Spending limits and purchase pauses are in Play Safe."
       />
       {error && <p className="site-error">{error}</p>}
 
@@ -162,50 +150,13 @@ export default function AccountSettingsPage() {
             ))}
           </select>
         </label>
-        <label>
-          Spending limit (KES)
-          <input value={limit} onChange={(e) => setLimit(e.target.value)} type="number" min={0} />
-        </label>
-        <label>
-          Limit period
-          <select value={period} onChange={(e) => setPeriod(e.target.value)}>
-            <option value="">None</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-          </select>
-        </label>
+        <p className="site-muted" style={{ fontSize: 13, margin: "0 0 12px" }}>
+          County is required for Play Safe and regulatory reporting.{" "}
+          <Link href="/account/play-safe">Manage Play Safe →</Link>
+        </p>
         {saved && <p className="site-success-text">Profile saved.</p>}
         <button type="submit" className="site-btn site-btn--primary">Save profile</button>
       </form>
-
-      <div className="site-form site-card site-settings-block">
-        <h2 className="site-section-title" style={{ marginTop: 0 }}>KYC verification</h2>
-        <p className="site-muted" style={{ marginTop: 0 }}>
-          Status: <span className={`site-badge site-badge--${kycStatus === "verified" ? "success" : "neutral"}`}>{kycStatus}</span>
-          {kycSubmitted && kycStatus !== "none" && (
-            <> · Document on file</>
-          )}
-        </p>
-        <label>
-          Upload ID (JPEG, PNG, WebP, PDF)
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,application/pdf"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setError("");
-              try {
-                const result = await playerUpload("/v1/account/kyc/upload", file);
-                setKycStatus(result.kyc_status ?? "pending");
-                setKycSubmitted(true);
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Could not upload document");
-              }
-            }}
-          />
-        </label>
-      </div>
 
       <div className="site-card site-settings-block">
         <h2 className="site-section-title" style={{ marginTop: 0 }}>Shipping addresses</h2>

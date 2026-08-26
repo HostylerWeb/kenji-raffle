@@ -39,7 +39,6 @@ export function SiteHeader({
 }: {
   tenantName: string;
   logoUrl?: string | null;
-  accent: string;
 }) {
   const pathname = usePathname() ?? "";
   const [drawerOpen, setDrawerOpen] = useState(false);

@@ -101,6 +101,17 @@ class UpdateSettingsDto {
   @IsOptional()
   @IsString()
   logo_url?: string | null;
+
+  @IsOptional()
+  @IsString()
+  footer_logo_url?: string | null;
+
+  @IsOptional()
+  @IsString()
+  theme_preset?: string | null;
+
+  @IsOptional()
+  theme_config?: Record<string, unknown> | null;
 }
 
 @ApiTags("operator-admin")

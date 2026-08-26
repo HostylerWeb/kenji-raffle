@@ -119,3 +119,12 @@ export type {
   GraOutboundProcessResult,
   GraOperatorQueueStats,
 } from "./gra-outbound";
+export {
+  SITE_THEME_PRESETS,
+  resolveSiteTheme,
+  themeToCssVariables,
+  extractThemeConfig,
+  sanitizeThemeColor,
+  type SiteThemeColors,
+  type SiteThemePresetId,
+} from "./site-theme";
