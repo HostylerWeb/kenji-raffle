@@ -1,8 +1,13 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
+import { RaffleCountdown } from "@/components/RaffleCountdown";
+import { RaffleGallery } from "@/components/RaffleGallery";
+import { PrizeTabs } from "@/components/PrizeTabs";
+import { TicketSelector } from "@/components/TicketSelector";
+import { formatDateTime, formatKes } from "@/lib/format";
 import { getRequestHost, getTenantContext, publicFetch } from "@/lib/tenant";
-import { AddToCartButton } from "@/components/AddToCartButton";
 
 type RaffleDetail = {
   id: string;
@@ -43,6 +48,35 @@ type RaffleDetail = {
   category?: { name: string } | null;
 };
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const headerStore = await headers();
+  const host = getRequestHost(headerStore);
+  const tenant = await getTenantContext(host);
+  const raffle = await publicFetch<RaffleDetail>(`/v1/raffles/${slug}`, host).catch(
+    () => null,
+  );
+  if (!raffle || !tenant) return { title: "Raffle" };
+  const image =
+    raffle.featured_image_url ??
+    raffle.gallery?.[0]?.image_url ??
+    tenant.branding?.logo_url ??
+    undefined;
+  return {
+    title: `${raffle.title} — ${tenant.name}`,
+    description: raffle.description?.slice(0, 160) ?? `Enter ${raffle.title} at ${tenant.name}`,
+    openGraph: {
+      title: `${raffle.title} — ${tenant.name}`,
+      description: raffle.description?.slice(0, 160) ?? undefined,
+      images: image ? [image] : undefined,
+    },
+  };
+}
+
 export default async function RaffleDetailPage({
   params,
 }: {
@@ -55,140 +89,111 @@ export default async function RaffleDetailPage({
 
   if (!tenant) notFound();
 
-  const raffle = await publicFetch<RaffleDetail>(
-    `/v1/raffles/${slug}`,
-    host,
-  ).catch(() => null);
+  const raffle = await publicFetch<RaffleDetail>(`/v1/raffles/${slug}`, host).catch(
+    () => null,
+  );
 
   if (!raffle) notFound();
 
-  const accent = tenant.branding?.primary_color ?? "#00a551";
-  const hero =
-    raffle.featured_image_url ?? raffle.gallery?.[0]?.image_url ?? null;
+  const images = [
+    ...(raffle.featured_image_url ? [raffle.featured_image_url] : []),
+    ...(raffle.gallery?.map((g) => g.image_url) ?? []),
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
   const available = raffle.ticket_counts?.available ?? 0;
+  const total = raffle.ticket_counts?.total ?? raffle.max_entries;
+  const soldPct = total > 0 ? Math.round(((total - available) / total) * 100) : 0;
+  const soldOut = available <= 0;
 
   return (
-    <main style={{ maxWidth: 960, margin: "0 auto", padding: "24px 20px" }}>
-      <Link href="/raffles" style={{ color: accent }}>← All raffles</Link>
+    <>
+      <Link href="/raffles" className="site-breadcrumb">← All raffles</Link>
 
-      <article style={{ marginTop: 16 }}>
-        {hero && (
-          <img
-            src={hero}
-            alt={raffle.title}
-            style={{
-              width: "100%",
-              maxHeight: 360,
-              objectFit: "cover",
-              borderRadius: 12,
-              marginBottom: 20,
-            }}
+      <div className="site-detail-grid" style={{ marginTop: 8 }}>
+        <div>
+          <RaffleGallery images={images} title={raffle.title} />
+
+          {raffle.description && (
+            <section style={{ marginTop: 32 }}>
+              <h2 className="site-section-title">About this raffle</h2>
+              <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{raffle.description}</p>
+            </section>
+          )}
+
+          <PrizeTabs
+            mainPrizes={raffle.prizes ?? []}
+            instantPrizes={raffle.instant_win_prizes ?? []}
           />
-        )}
-
-        <h1 style={{ marginTop: 0 }}>{raffle.title}</h1>
-        {raffle.category && (
-          <p className="muted">{raffle.category.name}</p>
-        )}
-
-        <div className="card" style={{ marginBottom: 24 }}>
-          <p style={{ fontSize: "1.25rem", margin: "0 0 8px" }}>
-            <strong>KES {raffle.ticket_price.toLocaleString()}</strong> per ticket
-          </p>
-          <p className="muted" style={{ margin: 0 }}>
-            {available} of {raffle.max_entries} tickets available
-          </p>
-          {raffle.ticket_limit_per_user != null && (
-            <p className="muted" style={{ margin: "4px 0 0" }}>
-              Max {raffle.ticket_limit_per_user} tickets per person
-            </p>
-          )}
-          {raffle.end_date && (
-            <p className="muted" style={{ margin: "8px 0 0" }}>
-              Ends {new Date(raffle.end_date).toLocaleString()}
-            </p>
-          )}
-          {raffle.quantity_discounts && raffle.quantity_discounts.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <strong>Quantity discounts</strong>
-              <ul className="muted" style={{ margin: "4px 0 0", paddingLeft: 20 }}>
-                {raffle.quantity_discounts.map((t) => (
-                  <li key={t.min_quantity}>
-                    Buy {t.min_quantity}+ tickets —
-                    {t.discount_type === "percent"
-                      ? `${t.discount_value}% off`
-                      : `KES ${t.discount_value.toLocaleString()} off`}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {available > 0 ? (
-            <div style={{ marginTop: 16 }}>
-              <AddToCartButton raffleId={raffle.id} accent={accent} />
-            </div>
-          ) : (
-            <p className="muted" style={{ marginTop: 16 }}>Sold out</p>
-          )}
         </div>
 
-        {raffle.description && (
-          <section style={{ marginBottom: 24 }}>
-            <h2>About this raffle</h2>
-            <p>{raffle.description}</p>
-          </section>
-        )}
+        <aside className="site-detail-buy">
+          <div className="site-card site-card--highlight">
+            {raffle.category && (
+              <span className="site-raffle-card__category">{raffle.category.name}</span>
+            )}
+            <h1 className="site-page-title" style={{ fontSize: 24, marginBottom: 12 }}>
+              {raffle.title}
+            </h1>
 
-        {raffle.gallery && raffle.gallery.length > 1 && (
-          <section style={{ marginBottom: 24 }}>
-            <h2>Gallery</h2>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {raffle.gallery.map((img) => (
-                <img
-                  key={img.id}
-                  src={img.image_url}
-                  alt=""
-                  style={{
-                    width: 120,
-                    height: 80,
-                    objectFit: "cover",
-                    borderRadius: 8,
-                  }}
-                />
-              ))}
+            <p style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>
+              {formatKes(raffle.ticket_price)}
+              <span className="site-muted" style={{ fontSize: 14, fontWeight: 500 }}> per ticket</span>
+            </p>
+
+            {raffle.end_date && (
+              <div style={{ marginBottom: 16 }}>
+                <p className="site-muted" style={{ marginBottom: 8 }}>Competition ends in</p>
+                <RaffleCountdown endDate={raffle.end_date} />
+                <p className="site-muted" style={{ marginTop: 8, fontSize: 12 }}>
+                  {formatDateTime(raffle.end_date)}
+                </p>
+              </div>
+            )}
+
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                <span className="site-muted">{available.toLocaleString()} left</span>
+                <span className="site-muted">{soldPct}% sold</span>
+              </div>
+              <div className="site-progress">
+                <div className="site-progress__bar" style={{ width: `${soldPct}%` }} />
+              </div>
             </div>
-          </section>
-        )}
 
-        {raffle.prizes && raffle.prizes.length > 0 && (
-          <section style={{ marginBottom: 24 }}>
-            <h2>Main prizes</h2>
-            <ul>
-              {raffle.prizes.map((prize) => (
-                <li key={prize.id}>
-                  {prize.name}
-                  {prize.value_kes != null && (
-                    <> — KES {prize.value_kes.toLocaleString()}</>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+            {raffle.quantity_discounts && raffle.quantity_discounts.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <p className="site-muted" style={{ marginBottom: 6 }}>Quantity discounts</p>
+                <ul className="site-muted" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                  {raffle.quantity_discounts.map((t) => (
+                    <li key={t.min_quantity}>
+                      {t.min_quantity}+ tickets —
+                      {t.discount_type === "percent"
+                        ? ` ${t.discount_value}% off`
+                        : ` ${formatKes(t.discount_value)} off`}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
-        {raffle.instant_win_prizes && raffle.instant_win_prizes.length > 0 && (
-          <section>
-            <h2>Instant wins</h2>
-            <ul>
-              {raffle.instant_win_prizes.map((prize) => (
-                <li key={prize.id}>
-                  {prize.name} — KES {prize.prize_value.toLocaleString()}
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
-      </article>
-    </main>
+            {soldOut ? (
+              <div className="site-empty" style={{ padding: 24 }}>
+                <p className="site-empty__title">Sold out</p>
+                <p className="site-muted">All tickets for this raffle have been purchased.</p>
+                <Link href="/raffles" className="site-btn site-btn--secondary site-btn--sm" style={{ marginTop: 12 }}>
+                  Browse other raffles
+                </Link>
+              </div>
+            ) : (
+              <TicketSelector
+                raffleId={raffle.id}
+                ticketPrice={raffle.ticket_price}
+                ticketLimitPerUser={raffle.ticket_limit_per_user}
+              />
+            )}
+          </div>
+        </aside>
+      </div>
+    </>
   );
 }

@@ -2,7 +2,7 @@
 
 **Kenya multi-tenant raffle platform**
 
-Last updated: August 2026
+Last updated: August 2026 (player site UI plan added)
 
 **Project folder:** `/var/www/Kenji-raffle` (folder name temporary — product branding TBD)  
 **Prerequisite:** GRA government portal (`/var/www/kenji-government`) live with ingest API
@@ -102,13 +102,20 @@ Production architecture from day one — not an MVP rewritten at 50 sites.
 
 ### Out of scope
 
-| Excluded |
-|----------|
-| Skill-based questions |
-| Gamification (XP, badges, wheels, mini-games) |
-| Affiliate / referral programmes |
-| Operators self-hosting or accessing source code |
-| One shared business database for all operators (row-level multi-tenancy) |
+**Do not build** these in frontend, backend, operator admin, or tenant API — even if reference products (e.g. CompetitionGo at `/var/www/compgo`) include them. Full UI exclusion list: **[PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md) §3**.
+
+| Category | Excluded |
+|----------|----------|
+| **UK skill competitions** | Skill-based questions / multiple-choice gating before purchase; free postal entry; skill answer storage on tickets |
+| **Gamification** | XP, badges, wheels, mini-games (GoPop, GoDig, GoRace, GoSpin, GoCollect), prize boost campaigns |
+| **Growth** | Affiliate / referral programmes; loyalty / cashback schemes; community-only (e.g. Facebook) competitions |
+| **Auth & checkout** | Guest checkout without a player account; social login (Google, Facebook, Apple) |
+| **Payments** | Embedded card forms on raffle site (payments go through **Harambe gateway**); multi-wallet UI (cash wallet + credit + card splits) |
+| **Geography** | Multi-currency; UK-only address autocomplete |
+| **Platform** | Operators self-hosting or accessing source code |
+| **Data model** | One shared business database for all operators (row-level multi-tenancy) |
+
+**Reference products:** CompetitionGo may be used for **UX patterns only** (cards, countdowns, mobile nav). It is **not** a feature parity target.
 
 ---
 
@@ -303,7 +310,7 @@ Operator staff JWT resolves to **one tenant database**. No cross-tenant queries 
 | `support` | Users, orders (read), prize claims |
 | `finance` | Payments, reports, refunds (no raffle edits) |
 
-### 7.2 Operator admin routes
+### 7.2 Operator admin routes (implemented)
 
 | Route | Page |
 |-------|------|
@@ -313,16 +320,24 @@ Operator staff JWT resolves to **one tenant database**. No cross-tenant queries 
 | `/admin/raffles/[id]` | Edit raffle, gallery, prizes, instant wins |
 | `/admin/raffles/[id]/tickets` | Ticket pool — generate, view sold/available/reserved |
 | `/admin/orders` | Order search, refund, CSV export |
-| `/admin/payments` | Payment list, reconcile with Harambe records |
-| `/admin/users` | Player search |
-| `/admin/users/[id]` | Player detail — limits, KYC, disable, tickets |
+| `/admin/orders/[id]` | Order detail |
+| `/admin/payments` | Payment list, gateway fee / operator net |
+| `/admin/players` | Player search |
+| `/admin/players/[id]` | Player detail — limits, KYC, disable, tickets |
 | `/admin/winners` | Run draw, pick winners, announce |
 | `/admin/prize-claims` | Physical prize shipping queue |
+| `/admin/prize-claims/[id]` | Claim detail |
+| `/admin/withdrawals` | Cash instant-win payout queue |
+| `/admin/withdrawals/[id]` | Withdrawal detail |
 | `/admin/coupons` | Coupon campaigns |
 | `/admin/reports` | GGR, sales by raffle, tax summary (tenant DB only) |
+| `/admin/categories` | Raffle categories |
+| `/admin/media` | Media library |
+| `/admin/domains` | Custom domain DNS workflow |
+| `/admin/gra-events` | Failed GRA outbound events + retry |
+| `/admin/audit` | Tenant audit log |
 | `/admin/settings` | Branding preview, licence display, support email (writes platform `operator_settings`) |
 | `/admin/staff` | Operator staff accounts and roles |
-| `/admin/gra-events` | Failed GRA outbound events + retry (tenant DB queue) |
 
 ### 7.3 Operator admin features
 
@@ -348,7 +363,9 @@ Operator staff JWT resolves to **one tenant database**. No cross-tenant queries 
 
 All player data lives in **that operator’s tenant database**. The same email on two operator sites = two independent accounts in two separate DBs. Routes are in `apps/web` on the **operator hostname**.
 
-### 8.1 Public routes
+**Status (2026-08-24):** Commerce, account, and legal flows are **functionally v1 complete** ([RAFFLE_GAPS.md](./RAFFLE_GAPS.md)). **Public UI/UX is not production-ready** — see delivery plan **[PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md)**.
+
+### 8.1 Public routes (implemented)
 
 | Route | Page |
 |-------|------|
@@ -356,37 +373,58 @@ All player data lives in **that operator’s tenant database**. The same email o
 | `/raffles` | Browse all active raffles — filter by category, ending soon, featured |
 | `/raffles/[slug]` | Raffle detail — gallery, prizes, ticket counter, buy UI |
 | `/cart` | Cart — multi-raffle, expiry countdown, edit quantities |
-| `/checkout` | Checkout — login/register, coupon, Harambe Payment Gateway step |
+| `/checkout` | Checkout — **login/register required**, coupon, site credit, Harambe Payment Gateway step |
 | `/checkout/success` | Order confirmation — ticket numbers, instant win reveal |
 | `/checkout/failed` | Payment failed — retry or return to cart |
 | `/login` | Player login |
 | `/register` | Player registration — age gate, county, email |
+| `/forgot-password` | Password reset request |
+| `/reset-password` | Password reset with token |
+| `/verify-email` | Email verification |
 | `/account` | Account overview |
+| `/account/orders`, `/account/orders/[id]` | Order history |
 | `/account/tickets` | My tickets — numbers, raffle links |
 | `/account/wins` | My wins — draw + instant |
-| `/account/settings` | Profile, spending limits, Play Safe |
+| `/account/claims` | Prize claims (physical / withdrawal) |
+| `/account/site-credit` | Site credit balance |
+| `/account/settings` | Profile, KYC, shipping addresses, spending limits |
+| `/account/play-safe` | Play Safe activation |
 | `/winners` | Public winner list (operator-configurable) |
 | `/faq` | FAQ |
 | `/contact` | Support form |
 | `/terms` | Terms of use |
 | `/privacy` | Privacy policy |
-| `/play-safe` | Play Safe information + activation |
+| `/play-safe` | Play Safe information |
 
-### 8.2 Public features
+### 8.2 Public features (behaviour — do not change in UI work)
 
 | Feature | Detail |
 |---------|--------|
 | Home | Featured raffles, categories, recent winners |
-| Raffle detail | Gallery, prizes, “X tickets left”, quantity selector |
-| Cart | Multi-raffle basket; reservation TTL countdown |
-| Checkout | Guest or logged-in path; coupon code; Harambe mock checkout |
+| Raffle detail | Gallery, prizes, “X tickets left”, quantity selector (respect `ticket_limit_per_user`) |
+| Cart | Multi-raffle basket; guest `session_id`; reservation TTL countdown |
+| Checkout | **Account required** — no guest checkout; coupon code; site credit; redirect to Harambe gateway (mock or live) |
 | Order confirmation | Ticket numbers list; instant win notification if applicable |
-| Account | Profile, tickets, wins, site credit balance |
+| Account | Profile, tickets, wins, site credit balance, KYC, claims |
 | Play Safe | Self-exclusion + cooling-off; blocks checkout |
 | Legal | FAQ, Terms, Privacy; GRA licence number in footer |
 | Contact | Support form to operator support email |
 
-### 8.3 Automated jobs (tenant-aware, `apps/worker`)
+**Checkout auth model:** Browsing and cart work without login. Checkout requires **login or register**; cart merges on auth via `cart_session_id`. Do **not** add guest checkout in UI or API.
+
+### 8.3 Player site UI/UX (remaining work)
+
+All tasks, exclusions, and phased delivery: **[PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md)**.
+
+| Phase | Focus |
+|-------|--------|
+| UI-1 | Design system, header, footer, mobile nav, cart badge |
+| UI-2 | Homepage, raffle cards, list, detail page |
+| UI-3 | Cart, checkout, success/failed |
+| UI-4 | Login, register, account shell |
+| UI-5 | Polish, SEO, deploy |
+
+### 8.4 Automated jobs (tenant-aware, `apps/worker`)
 
 | Job | Schedule | Scope |
 |-----|----------|--------|
@@ -965,6 +1003,22 @@ Phases are **sequential**. All raffle/player data lives in **tenant DBs** unless
 
 **Exit criteria:** Restore single tenant DB without affecting others; load test passes; monitoring live.
 
+### Phase P8 — Player site UI/UX (2–3 weeks)
+
+**Status:** Not started. **Detailed task list:** [PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md).
+
+| # | Task |
+|---|------|
+| P8.1 | Design system + site chrome (header, footer, mobile nav, cart badge) |
+| P8.2 | `RaffleCard`, homepage, raffles list, detail page (countdown, progress, gallery) |
+| P8.3 | Cart + checkout + confirmation pages — visual polish only |
+| P8.4 | Login/register split-hero; account layout shell |
+| P8.5 | `next/image`, per-raffle SEO, skeleton loaders, deploy to demo tenant |
+
+**Exit criteria:** `demo` tenant public site is mobile-ready and visually production-grade; **no excluded features** (skill questions, postal entry, referrals, guest checkout, gamification).
+
+**Prerequisite:** P3–P5 functional work complete (already shipped per RAFFLE_GAPS.md).
+
 ---
 
 ## 14. Success criteria
@@ -1070,6 +1124,7 @@ HMAC Secret: sandbox_hmac_op001_secret_32chars_min
 
 ## 16. References
 
+- **Player site UI/UX plan:** [PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md)
 - **Integration checklist:** [IMPORTANT.md](../IMPORTANT.md)
 - GRA plan: `/var/www/kenji-government/docs/PROJECT_PLAN.md`
 - GRA operator integration: `/var/www/kenji-government/docs/OPERATOR_INTEGRATION.md`

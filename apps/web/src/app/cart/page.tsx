@@ -1,126 +1,193 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { ReservationCountdown } from "@/components/ReservationCountdown";
+import { notifyCartUpdated } from "@/lib/cart-events";
+import { formatKes } from "@/lib/format";
 import { getPlayerToken, playerFetch } from "@/lib/player-api";
+import { EmptyState } from "@/components/EmptyState";
 
-type CartItem = {
-  id: string;
-  raffle_title: string;
-  ticket_quantity: number;
-  subtotal: number;
-  discount_amount: number;
-  final_amount: number;
-  ticket_numbers: number[];
-};
+import type { Cart, CartItem } from "@/lib/cart-types";
 
-type Cart = {
-  items: CartItem[];
-  subtotal: number;
-};
+export type { Cart, CartItem };
 
 export default function CartPage() {
-  const router = useRouter();
   const [cart, setCart] = useState<Cart | null>(null);
   const [error, setError] = useState("");
+  const [updating, setUpdating] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setCart(await playerFetch<Cart>("/v1/cart"));
-  }
-
-  useEffect(() => {
-    load().catch((err) =>
-      setError(err instanceof Error ? err.message : "Failed to load cart"),
-    );
   }, []);
 
+  useEffect(() => {
+    load()
+      .then(() => notifyCartUpdated())
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Failed to load cart"),
+      );
+  }, [load]);
+
   async function removeItem(id: string) {
-    setCart(await playerFetch<Cart>(`/v1/cart/items/${id}`, { method: "DELETE" }));
+    setUpdating(id);
+    try {
+      setCart(await playerFetch<Cart>(`/v1/cart/items/${id}`, { method: "DELETE" }));
+      notifyCartUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to remove item");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function updateQty(id: string, quantity: number) {
+    if (quantity < 1) return;
+    setUpdating(id);
+    try {
+      setCart(
+        await playerFetch<Cart>(`/v1/cart/items/${id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ ticket_quantity: quantity }),
+        }),
+      );
+      notifyCartUpdated();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update quantity");
+    } finally {
+      setUpdating(null);
+    }
   }
 
   if (!cart && !error) {
-    return <main style={{ padding: 40 }}>Loading cart…</main>;
+    return (
+      <div>
+        <h1 className="site-page-title">Your cart</h1>
+        <div className="site-skeleton" style={{ height: 200 }} />
+      </div>
+    );
   }
 
   if (!cart) {
     return (
-      <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-        <h1>Your cart</h1>
-        <p className="error">{error}</p>
-        <p style={{ marginTop: 16 }}>
-          <Link href="/raffles">Browse raffles</Link>
-        </p>
-      </main>
+      <div>
+        <h1 className="site-page-title">Your cart</h1>
+        <p className="site-error">{error}</p>
+        <Link href="/raffles" className="site-btn site-btn--primary" style={{ marginTop: 16 }}>
+          Browse raffles
+        </Link>
+      </div>
     );
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Your cart</h1>
-      {error && <p className="error">{error}</p>}
+    <div className="site-checkout-grid">
+      <div>
+        <h1 className="site-page-title">Your cart</h1>
+        <ReservationCountdown expiresAt={cart.expires_at} className="site-reservation-countdown" />
+        {error && <p className="site-error">{error}</p>}
 
-      {cart.items.length === 0 ? (
-        <p className="muted">Your cart is empty.</p>
-      ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Raffle</th>
-                <th>Qty</th>
-                <th>Total</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.raffle_title}</td>
-                  <td>{item.ticket_quantity}</td>
-                  <td>
-                    KES {item.final_amount.toLocaleString()}
+        {cart.items.length === 0 ? (
+          <EmptyState
+            title="Your cart is empty"
+            description="Browse live raffles and add tickets to get started."
+            actionHref="/raffles"
+            actionLabel="Browse raffles"
+          />
+        ) : (
+          <div className="site-card">
+            {cart.items.map((item) => (
+              <div key={item.id} className="site-cart-item">
+                <div className="site-cart-item__thumb">
+                  {item.featured_image_url ? (
+                    <img src={item.featured_image_url} alt="" loading="lazy" />
+                  ) : (
+                    <span>{item.raffle_title.charAt(0)}</span>
+                  )}
+                </div>
+                <div className="site-cart-item__body">
+                  <p className="site-cart-item__title">{item.raffle_title}</p>
+                  <p className="site-muted">
+                    {formatKes(item.final_amount / item.ticket_quantity)} each
                     {item.discount_amount > 0 && (
-                      <span className="muted">
-                        {" "}
-                        (tier −{item.discount_amount.toLocaleString()})
-                      </span>
+                      <> · tier discount −{formatKes(item.discount_amount)}</>
                     )}
-                  </td>
-                  <td>
+                  </p>
+                  {item.ticket_numbers.length > 0 && (
+                    <p className="site-cart-item__tickets">
+                      Reserved: {item.ticket_numbers.slice(0, 8).join(", ")}
+                      {item.ticket_numbers.length > 8 ? "…" : ""}
+                    </p>
+                  )}
+                  <div className="site-ticket-stepper" style={{ marginTop: 12 }}>
                     <button
                       type="button"
-                      className="btn btn-secondary"
-                      onClick={() => removeItem(item.id)}
+                      disabled={updating === item.id || item.ticket_quantity <= 1}
+                      onClick={() => updateQty(item.id, item.ticket_quantity - 1)}
                     >
-                      Remove
+                      −
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p style={{ marginTop: 16 }}>
-            <strong>Subtotal: KES {cart.subtotal.toLocaleString()}</strong>
-          </p>
-        </div>
-      )}
-
-      <p style={{ marginTop: 24 }}>
-        {cart.items.length > 0 && (
-          <Link href="/checkout" className="btn" style={{ textDecoration: "none" }}>
-            Checkout
-          </Link>
+                    <input
+                      type="number"
+                      value={item.ticket_quantity}
+                      readOnly
+                      aria-label="Quantity"
+                    />
+                    <button
+                      type="button"
+                      disabled={updating === item.id}
+                      onClick={() => updateQty(item.id, item.ticket_quantity + 1)}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+                <div className="site-cart-item__actions">
+                  <p style={{ fontWeight: 700, margin: "0 0 8px" }}>
+                    {formatKes(item.final_amount)}
+                  </p>
+                  <button
+                    type="button"
+                    className="site-btn site-btn--ghost site-btn--sm"
+                    disabled={updating === item.id}
+                    onClick={() => removeItem(item.id)}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-        {" "}
-        <Link href="/raffles">Browse raffles</Link>
-      </p>
-      {!getPlayerToken() && cart.items.length > 0 && (
-        <p className="muted">
-          You will need to <Link href="/login?next=/checkout">log in</Link> or{" "}
-          <Link href="/register?next=/checkout">register</Link> at checkout.
+
+        <p style={{ marginTop: 16 }}>
+          <Link href="/raffles">← Continue shopping</Link>
         </p>
+      </div>
+
+      {cart.items.length > 0 && (
+        <aside className="site-order-summary">
+          <div className="site-card">
+            <h2 className="site-section-title">Order summary</h2>
+            <div className="site-order-summary__row">
+              <span className="site-muted">Subtotal</span>
+              <strong>{formatKes(cart.subtotal)}</strong>
+            </div>
+            <div className="site-order-summary__row site-order-summary__total">
+              <span>Total</span>
+              <strong>{formatKes(cart.subtotal)}</strong>
+            </div>
+            <Link href="/checkout" className="site-btn site-btn--primary site-btn--block" style={{ marginTop: 16 }}>
+              Proceed to checkout
+            </Link>
+            {!getPlayerToken() && (
+              <p className="site-muted" style={{ marginTop: 12, fontSize: 13 }}>
+                Sign in or register on checkout to complete your purchase. An account is required to pay.
+              </p>
+            )}
+          </div>
+        </aside>
       )}
-    </main>
+    </div>
   );
 }

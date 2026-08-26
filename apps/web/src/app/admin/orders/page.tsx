@@ -10,6 +10,7 @@ import { AdminPagination } from "@/components/admin/AdminPagination";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { AdminTable } from "@/components/admin/AdminTable";
 import { useAdminToast } from "@/components/admin/AdminToast";
+import { getPublicApiUrl, getTenantHost } from "@/lib/api-config";
 import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type Order = {
@@ -74,11 +75,8 @@ export default function AdminOrdersPage() {
 
   async function exportCsv() {
     const token = getOperatorToken();
-    const host =
-      typeof window !== "undefined" && window.location.hostname !== "localhost"
-        ? window.location.host
-        : process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local";
-    const api = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
+    const host = getTenantHost();
+    const api = getPublicApiUrl();
     const res = await fetch(`${api}/v1/admin/orders/export`, {
       headers: { Authorization: `Bearer ${token}`, "x-forwarded-host": host },
     });

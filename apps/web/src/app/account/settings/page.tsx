@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { getPlayerToken, playerFetch, playerUpload } from "@/lib/player-api";
+import { AccountPageHeader } from "@/components/AccountPageHeader";
+import { KENYA_COUNTIES } from "@/lib/kenya-counties";
+import { playerFetch, playerUpload } from "@/lib/player-api";
 
 type Profile = {
   full_name: string | null;
+  phone: string | null;
   county: string | null;
   spending_limit: number | null;
   spending_limit_period: string | null;
@@ -23,14 +25,16 @@ type ShippingAddress = {
 };
 
 export default function AccountSettingsPage() {
-  const router = useRouter();
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [county, setCounty] = useState("");
   const [limit, setLimit] = useState("");
   const [period, setPeriod] = useState("");
-  const [kycUrl, setKycUrl] = useState("");
   const [kycStatus, setKycStatus] = useState("none");
+  const [kycSubmitted, setKycSubmitted] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
   const [addrLabel, setAddrLabel] = useState("");
   const [addrLine, setAddrLine] = useState("");
@@ -39,79 +43,129 @@ export default function AccountSettingsPage() {
   const [addrPostal, setAddrPostal] = useState("");
 
   useEffect(() => {
-    if (!getPlayerToken()) {
-      router.replace("/login?next=/account/settings");
-      return;
-    }
-    playerFetch<Profile & { kyc_status?: string; kyc_document_url?: string | null }>("/v1/me").then((p) => {
-      setFullName(p.full_name ?? "");
-      setCounty(p.county ?? "");
-      setLimit(p.spending_limit != null ? String(p.spending_limit) : "");
-      setPeriod(p.spending_limit_period ?? "");
-      setKycStatus(p.kyc_status ?? "none");
-      setKycUrl(p.kyc_document_url ?? "");
-    });
-    playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses").then(setAddresses);
-  }, [router]);
+    Promise.all([
+      playerFetch<Profile & { kyc_status?: string; kyc_document_submitted?: boolean }>("/v1/me"),
+      playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"),
+    ])
+      .then(([p, addrs]) => {
+        setFullName(p.full_name ?? "");
+        setPhone(p.phone ?? "");
+        setCounty(p.county ?? "");
+        setLimit(p.spending_limit != null ? String(p.spending_limit) : "");
+        setPeriod(p.spending_limit_period ?? "");
+        setKycStatus(p.kyc_status ?? "none");
+        setKycSubmitted(Boolean(p.kyc_document_submitted));
+        setAddresses(addrs);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load settings");
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   async function saveProfile(e: FormEvent) {
     e.preventDefault();
-    await playerFetch("/v1/account/profile", {
-      method: "PATCH",
-      body: JSON.stringify({
-        full_name: fullName,
-        county: county || undefined,
-        spending_limit: limit ? Number(limit) : null,
-        spending_limit_period: period || null,
-      }),
-    });
-    setSaved(true);
-  }
-
-  async function submitKyc(e: FormEvent) {
-    e.preventDefault();
-    if (!kycUrl.trim()) return;
-    await playerFetch("/v1/account/kyc", {
-      method: "POST",
-      body: JSON.stringify({ document_url: kycUrl.trim() }),
-    });
-    setKycStatus("pending");
+    setError("");
+    setSaved(false);
+    try {
+      await playerFetch("/v1/account/profile", {
+        method: "PATCH",
+        body: JSON.stringify({
+          full_name: fullName,
+          phone: phone || undefined,
+          county: county || undefined,
+          spending_limit: limit ? Number(limit) : null,
+          spending_limit_period: period || null,
+        }),
+      });
+      setSaved(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save profile");
+    }
   }
 
   async function addAddress(e: FormEvent) {
     e.preventDefault();
-    await playerFetch("/v1/account/shipping-addresses", {
-      method: "POST",
-      body: JSON.stringify({
-        label: addrLabel || undefined,
-        address_line: addrLine,
-        town: addrTown,
-        county: addrCounty,
-        postal_code: addrPostal,
-        is_default: addresses.length === 0,
-      }),
-    });
-    setAddresses(await playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"));
-    setAddrLabel("");
-    setAddrLine("");
-    setAddrTown("");
-    setAddrCounty("");
-    setAddrPostal("");
+    setError("");
+    try {
+      await playerFetch("/v1/account/shipping-addresses", {
+        method: "POST",
+        body: JSON.stringify({
+          label: addrLabel || undefined,
+          address_line: addrLine,
+          town: addrTown,
+          county: addrCounty,
+          postal_code: addrPostal,
+          is_default: addresses.length === 0,
+        }),
+      });
+      setAddresses(await playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"));
+      setAddrLabel("");
+      setAddrLine("");
+      setAddrTown("");
+      setAddrCounty("");
+      setAddrPostal("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not add address");
+    }
   }
 
   async function removeAddress(id: string) {
-    await playerFetch(`/v1/account/shipping-addresses/${id}`, { method: "DELETE" });
-    setAddresses(await playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"));
+    setError("");
+    try {
+      await playerFetch(`/v1/account/shipping-addresses/${id}`, { method: "DELETE" });
+      setAddresses(await playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove address");
+    }
+  }
+
+  if (loading) {
+    return (
+      <>
+        <AccountPageHeader title="Settings" description="Profile, limits, verification, and addresses." />
+        <div className="site-skeleton" style={{ height: 200 }} />
+      </>
+    );
   }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Account settings</h1>
-      <p><Link href="/account">← Account</Link></p>
-      <form className="form card" onSubmit={saveProfile}>
-        <label>Full name<input value={fullName} onChange={(e) => setFullName(e.target.value)} /></label>
-        <label>County<input value={county} onChange={(e) => setCounty(e.target.value)} /></label>
-        <label>Spending limit (KES)<input value={limit} onChange={(e) => setLimit(e.target.value)} /></label>
+    <>
+      <AccountPageHeader
+        title="Settings"
+        description="Update your profile, spending limits, KYC, and saved addresses."
+      />
+      {error && <p className="site-error">{error}</p>}
+
+      <form className="site-form site-card site-settings-block" onSubmit={saveProfile}>
+        <h2 className="site-section-title" style={{ marginTop: 0 }}>Profile</h2>
+        <label>
+          Full name
+          <input value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" />
+        </label>
+        <label>
+          Phone (+254)
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+254712345678"
+            autoComplete="tel"
+          />
+        </label>
+        <label>
+          County
+          <select value={county} onChange={(e) => setCounty(e.target.value)}>
+            <option value="">Select county</option>
+            {KENYA_COUNTIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Spending limit (KES)
+          <input value={limit} onChange={(e) => setLimit(e.target.value)} type="number" min={0} />
+        </label>
         <label>
           Limit period
           <select value={period} onChange={(e) => setPeriod(e.target.value)}>
@@ -120,64 +174,81 @@ export default function AccountSettingsPage() {
             <option value="monthly">Monthly</option>
           </select>
         </label>
-        {saved && <p style={{ color: "#15803d" }}>Saved.</p>}
-        <button type="submit" className="btn">Save profile</button>
+        {saved && <p className="site-success-text">Profile saved.</p>}
+        <button type="submit" className="site-btn site-btn--primary">Save profile</button>
       </form>
-      <form className="form card" style={{ marginTop: 16 }} onSubmit={submitKyc}>
-        <h2 style={{ marginTop: 0 }}>KYC verification</h2>
-        <p className="muted">Status: {kycStatus}</p>
+
+      <div className="site-form site-card site-settings-block">
+        <h2 className="site-section-title" style={{ marginTop: 0 }}>KYC verification</h2>
+        <p className="site-muted" style={{ marginTop: 0 }}>
+          Status: <span className={`site-badge site-badge--${kycStatus === "verified" ? "success" : "neutral"}`}>{kycStatus}</span>
+          {kycSubmitted && kycStatus !== "none" && (
+            <> · Document on file</>
+          )}
+        </p>
         <label>
-          Document URL (optional if uploading file)
-          <input value={kycUrl} onChange={(e) => setKycUrl(e.target.value)} />
-        </label>
-        <label>
-          Upload ID document (JPEG, PNG, WebP, or PDF)
+          Upload ID (JPEG, PNG, WebP, PDF)
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,application/pdf"
             onChange={async (e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              const result = await playerUpload("/v1/account/kyc/upload", file);
-              setKycStatus(result.kyc_status ?? "pending");
-              setKycUrl(result.kyc_document_url ?? "");
+              setError("");
+              try {
+                const result = await playerUpload("/v1/account/kyc/upload", file);
+                setKycStatus(result.kyc_status ?? "pending");
+                setKycSubmitted(true);
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not upload document");
+              }
             }}
           />
         </label>
-        <button type="submit" className="btn btn-secondary">Submit URL for review</button>
-      </form>
-      <div className="card" style={{ marginTop: 16 }}>
-        <h2 style={{ marginTop: 0 }}>Shipping addresses</h2>
-        {addresses.length === 0 && <p className="muted">No saved addresses.</p>}
-        <ul>
+      </div>
+
+      <div className="site-card site-settings-block">
+        <h2 className="site-section-title" style={{ marginTop: 0 }}>Shipping addresses</h2>
+        {addresses.length === 0 && (
+          <p className="site-muted">No saved addresses. Add one for prize delivery or faster checkout.</p>
+        )}
+        <ul className="site-ticket-list" style={{ marginBottom: 16 }}>
           {addresses.map((a) => (
-            <li key={a.id} style={{ marginBottom: 8 }}>
-              {a.label && <strong>{a.label} </strong>}
-              {a.address_line}, {a.town}, {a.county} {a.postal_code}
-              {a.is_default && " (default)"}
-              <button
-                type="button"
-                className="btn btn-secondary"
-                style={{ marginLeft: 8 }}
-                onClick={() => removeAddress(a.id)}
-              >
+            <li key={a.id} className="site-ticket-pill">
+              <span>
+                {a.label && <strong>{a.label} — </strong>}
+                {a.address_line}, {a.town}, {a.county} {a.postal_code}
+                {a.is_default && " (default)"}
+              </span>
+              <button type="button" className="site-btn site-btn--ghost site-btn--sm" onClick={() => removeAddress(a.id)}>
                 Remove
               </button>
             </li>
           ))}
         </ul>
-        <form className="form" onSubmit={addAddress}>
-          <label>Label<input value={addrLabel} onChange={(e) => setAddrLabel(e.target.value)} /></label>
+        <form className="site-form" onSubmit={addAddress}>
+          <label>Label<input value={addrLabel} onChange={(e) => setAddrLabel(e.target.value)} placeholder="Home" /></label>
           <label>Address<input value={addrLine} onChange={(e) => setAddrLine(e.target.value)} required /></label>
-          <label>Town<input value={addrTown} onChange={(e) => setAddrTown(e.target.value)} /></label>
-          <label>County<input value={addrCounty} onChange={(e) => setAddrCounty(e.target.value)} /></label>
+          <div className="site-form__row">
+            <label>Town<input value={addrTown} onChange={(e) => setAddrTown(e.target.value)} required /></label>
+            <label>
+              County
+              <select value={addrCounty} onChange={(e) => setAddrCounty(e.target.value)} required>
+                <option value="">Select</option>
+                {KENYA_COUNTIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+          </div>
           <label>Postal code<input value={addrPostal} onChange={(e) => setAddrPostal(e.target.value)} /></label>
-          <button type="submit" className="btn btn-secondary">Add address</button>
+          <button type="submit" className="site-btn site-btn--secondary">Add address</button>
         </form>
       </div>
-      <p style={{ marginTop: 16 }}>
+
+      <p className="site-muted site-account-section">
         <Link href="/forgot-password">Change password via email</Link>
       </p>
-    </main>
+    </>
   );
 }

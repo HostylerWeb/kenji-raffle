@@ -2,7 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/SiteFooter";
-import { SitePublicNav } from "@/components/SitePublicNav";
+import { SiteHeader } from "@/components/SiteHeader";
+import { SiteMobileNav } from "@/components/SiteMobileNav";
+import { ToastProvider } from "@/components/ToastProvider";
 
 type TenantBranding = {
   name: string;
@@ -11,6 +13,7 @@ type TenantBranding = {
     logo_url?: string;
     footer_licence_text?: string;
     social_links?: Record<string, string>;
+    support_email?: string | null;
   };
 };
 
@@ -25,28 +28,41 @@ export function PublicSiteChrome({
 }) {
   const pathname = usePathname() ?? "";
   const isAdmin = pathname.startsWith("/admin");
+  const isAuth =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/verify-email" ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
 
   if (isAdmin) {
     return <>{children}</>;
   }
 
   return (
-    <>
-      {tenant?.branding?.logo_url && (
-        <div className="site-logo-bar">
-          <img src={tenant.branding.logo_url} alt={tenant.name} />
-        </div>
-      )}
-      <SitePublicNav accent={accent} />
-      {children}
-      {tenant && (
-        <SiteFooter
-          name={tenant.name}
+    <ToastProvider>
+      <div
+        className="site-root"
+        style={{ ["--tenant-accent" as string]: accent }}
+      >
+        <SiteHeader
+          tenantName={tenant?.name ?? "Raffle"}
+          logoUrl={tenant?.branding?.logo_url}
           accent={accent}
-          footerLicence={tenant.branding?.footer_licence_text}
-          socialLinks={tenant.branding?.social_links ?? {}}
         />
-      )}
-    </>
+        <div className={`site-main site-container${isAuth ? "" : " site-main--with-mobile-nav"}`}>
+          {children}
+        </div>
+        {tenant && (
+          <SiteFooter
+            name={tenant.name}
+            footerLicence={tenant.branding?.footer_licence_text}
+            socialLinks={tenant.branding?.social_links ?? {}}
+            supportEmail={tenant.branding?.support_email}
+          />
+        )}
+        {!isAuth && <SiteMobileNav />}
+      </div>
+    </ToastProvider>
   );
 }

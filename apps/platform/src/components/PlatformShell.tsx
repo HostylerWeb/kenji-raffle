@@ -5,16 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { usePlatformSession } from "../lib/use-platform-session";
 import { platformFetch, redirectToLogin } from "../lib/api";
-
-const NAV = [
-  { href: "/dashboard", label: "Dashboard", adminOnly: false },
-  { href: "/operators", label: "Operators", adminOnly: false },
-  { href: "/reports", label: "Reports", adminOnly: false },
-  { href: "/platform-users", label: "Platform users", adminOnly: true },
-  { href: "/settings", label: "Settings", adminOnly: false },
-  { href: "/audit", label: "Audit log", adminOnly: false },
-  { href: "/system", label: "System", adminOnly: false },
-];
+import { PLATFORM_NAV } from "./platformNavigation";
 
 export function PlatformShell({
   title,
@@ -38,13 +29,21 @@ export function PlatformShell({
     redirectToLogin();
   }
 
-  const navItems = NAV.filter((item) => !item.adminOnly || admin);
+  const navItems = PLATFORM_NAV.filter((item) => !item.adminOnly || admin);
 
   return (
     <div className="shell">
       <aside className={`sidebar${navOpen ? " sidebar-open" : ""}`}>
         <div className="sidebar-top">
-          <div className="brand">Kenji Raffle</div>
+          <div className="brand">
+            <span className="brand-mark" aria-hidden>
+              K
+            </span>
+            <div className="brand-text">
+              <span className="brand-name">Kenji Raffle</span>
+              <span className="brand-tag">Platform Console</span>
+            </div>
+          </div>
           <button
             type="button"
             className="nav-toggle nav-toggle-close"
@@ -56,28 +55,34 @@ export function PlatformShell({
         </div>
         {user && (
           <div className="sidebar-user">
-            <span className="sidebar-user-email">{user.email}</span>
-            <span className="sidebar-user-role">
-              {admin ? "Platform admin" : "Support (read-only)"}
+            <span className="sidebar-user-avatar" aria-hidden>
+              {user.email.charAt(0).toUpperCase()}
             </span>
+            <div>
+              <span className="sidebar-user-email">{user.email}</span>
+              <span className="sidebar-user-role">
+                {admin ? "Platform admin" : "Support (read-only)"}
+              </span>
+            </div>
           </div>
         )}
-        <nav>
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={false}
-              className={
-                pathname === item.href || pathname.startsWith(`${item.href}/`)
-                  ? "nav active"
-                  : "nav"
-              }
-              onClick={() => setNavOpen(false)}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav className="sidebar-nav">
+          {navItems.map((item) => {
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                prefetch={false}
+                className={active ? "nav active" : "nav"}
+                onClick={() => setNavOpen(false)}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
         <button type="button" className="sign-out" onClick={signOut}>
           Sign out
@@ -102,21 +107,23 @@ export function PlatformShell({
               onClick={() => setNavOpen(true)}
               aria-label="Open menu"
             >
-              ☰
+              <span className="nav-toggle-bars" aria-hidden />
             </button>
             <div>
               <h1>{title}</h1>
               {subtitle && <p className="page-subtitle muted">{subtitle}</p>}
             </div>
           </div>
-          {!ready || !admin ? null : actions}
+          {!ready || !admin ? null : (
+            <div className="page-header-actions">{actions}</div>
+          )}
         </header>
         {ready && !admin && (
           <p className="support-banner muted">
             Support mode — mutating actions are hidden.
           </p>
         )}
-        {children}
+        <div className="page-content">{children}</div>
       </div>
     </div>
   );

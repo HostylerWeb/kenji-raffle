@@ -22,6 +22,8 @@ import {
   checkoutPendingExpiresAt,
   extendTicketReservations,
   releaseTicketsByNumbers,
+  reserveSpecificTickets,
+  cartExpiresAt,
 } from "../cart/cart-tickets.helper";
 import { PlatformQueueService } from "../platform/platform-queue.service";
 import type { GatewayCallbackPayload } from "./checkout-gateway.helper";
@@ -72,6 +74,33 @@ type CompletePaymentOptions = {
   gatewayFeeAmount?: number;
 };
 
+type CheckoutBillingInput = {
+  full_name?: string;
+  phone?: string;
+  county?: string;
+  address_line?: string;
+  town?: string;
+  postal_code?: string;
+};
+
+function assertBillingComplete(billing: CheckoutBillingInput) {
+  if (!billing.full_name?.trim()) {
+    throw new BadRequestException("Full name is required");
+  }
+  if (!billing.phone?.trim()) {
+    throw new BadRequestException("Phone number is required");
+  }
+  if (!billing.address_line?.trim()) {
+    throw new BadRequestException("Street address is required");
+  }
+  if (!billing.town?.trim()) {
+    throw new BadRequestException("Town is required");
+  }
+  if (!billing.county?.trim()) {
+    throw new BadRequestException("County is required");
+  }
+}
+
 @Injectable()
 export class CheckoutService {
   constructor(
@@ -89,10 +118,16 @@ export class CheckoutService {
     sessionId: string,
     couponCode?: string,
     applySiteCredit?: boolean,
+    billing?: CheckoutBillingInput,
   ) {
     await this.policy.assertCheckoutEnabled(tenant.operatorId);
 
     const client = await this.tenantConnection.getClient(tenant.operatorId);
+    if (billing) {
+      assertBillingComplete(billing);
+      await this.persistBillingDetails(client, player.id, billing);
+    }
+
     const user = await client.users.findUnique({ where: { id: player.id } });
     if (!user) throw new NotFoundException("User not found");
 
@@ -306,6 +341,10 @@ export class CheckoutService {
     player: PlayerAuthUser,
     orderId: string,
   ) {
+    const mode = process.env.HARAMBE_PAYMENT_MODE ?? "mock";
+    if (mode !== "mock") {
+      throw new NotFoundException("Order not found");
+    }
     return this.completePayment(tenant, player, orderId, { source: "mock" });
   }
 
@@ -569,7 +608,12 @@ export class CheckoutService {
     return confirmation;
   }
 
-  async failPayment(tenant: TenantContext, player: PlayerAuthUser, orderId: string) {
+  async failPayment(
+    tenant: TenantContext,
+    player: PlayerAuthUser,
+    orderId: string,
+    sessionId?: string,
+  ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
     const order = await client.orders.findUnique({
       where: { id: orderId },
@@ -608,6 +652,21 @@ export class CheckoutService {
       }
     }
 
+    let cartRestored = false;
+    if (sessionId?.trim()) {
+      try {
+        await this.restoreCartFromFailedOrder(
+          client,
+          player,
+          sessionId.trim(),
+          order.items,
+        );
+        cartRestored = true;
+      } catch {
+        cartRestored = false;
+      }
+    }
+
     if (payment) {
       await queueGraPaymentFailed(client, {
         order_id: orderId,
@@ -626,22 +685,112 @@ export class CheckoutService {
       orderId,
       supportEmail,
     );
-    return { ok: true, order_id: orderId };
+    return { ok: true, order_id: orderId, cart_restored: cartRestored };
+  }
+
+  private async persistBillingDetails(
+    client: Awaited<ReturnType<TenantConnectionService["getClient"]>>,
+    userId: string,
+    billing: CheckoutBillingInput,
+  ) {
+    await client.users.update({
+      where: { id: userId },
+      data: {
+        full_name: billing.full_name!.trim(),
+        phone: billing.phone!.trim(),
+        county: billing.county!.trim(),
+      },
+    });
+
+    await client.user_shipping_addresses.updateMany({
+      where: { user_id: userId },
+      data: { is_default: false },
+    });
+
+    await client.user_shipping_addresses.create({
+      data: {
+        user_id: userId,
+        label: "Billing",
+        address_line: billing.address_line!.trim(),
+        town: billing.town!.trim(),
+        county: billing.county!.trim(),
+        postal_code: billing.postal_code?.trim() || null,
+        is_default: true,
+      },
+    });
+  }
+
+  private async restoreCartFromFailedOrder(
+    client: Awaited<ReturnType<TenantConnectionService["getClient"]>>,
+    player: PlayerAuthUser,
+    sessionId: string,
+    items: Array<{
+      raffle_id: string;
+      quantity: number;
+      unit_price: Prisma.Decimal;
+      subtotal: Prisma.Decimal;
+      discount: Prisma.Decimal;
+      total: Prisma.Decimal;
+      ticket_numbers: Prisma.JsonValue;
+    }>,
+  ) {
+    const expiresAt = cartExpiresAt();
+
+    await client.cart_items.deleteMany({
+      where: { user_id: player.id },
+    });
+
+    for (const item of items) {
+      const numbers = parseTicketNumbers(item.ticket_numbers);
+      const reserved =
+        numbers.length > 0
+          ? await reserveSpecificTickets(
+              client,
+              item.raffle_id,
+              numbers,
+              sessionId,
+              player.id,
+              expiresAt,
+            )
+          : [];
+
+      if (reserved.length === 0) continue;
+
+      await client.cart_items.create({
+        data: {
+          session_id: sessionId,
+          user_id: player.id,
+          raffle_id: item.raffle_id,
+          ticket_quantity: reserved.length,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+          discount_amount: item.discount,
+          final_amount: item.total,
+          ticket_numbers: reserved,
+          expires_at: expiresAt,
+        },
+      });
+    }
   }
 
   async handleGatewayCallback(
     tenant: TenantContext,
     payload: GatewayCallbackPayload,
     signature: string | undefined,
+    rawBody?: string,
+    timestamp?: string,
+    options?: { signatureVerified?: boolean },
   ) {
     const mode = process.env.HARAMBE_PAYMENT_MODE ?? "mock";
     if (mode !== "live") {
       return { ok: false, reason: "live_mode_disabled" };
     }
 
-    const secret = process.env.HARAMBE_CALLBACK_SECRET?.trim();
-    if (!verifyGatewayCallbackSignature(signature, secret)) {
-      return { ok: false, reason: "invalid_signature" };
+    if (!options?.signatureVerified) {
+      const secret = process.env.HARAMBE_CALLBACK_SECRET?.trim();
+      if (!verifyGatewayCallbackSignature(signature, secret, rawBody, timestamp)) {
+        return { ok: false, reason: "invalid_signature" };
+      }
     }
 
     const client = await this.tenantConnection.getClient(tenant.operatorId);
@@ -742,6 +891,50 @@ export class CheckoutService {
         prize_type: string;
         prize_value: number;
       }>,
+    };
+  }
+
+  async resumePendingCheckout(
+    tenant: TenantContext,
+    player: PlayerAuthUser,
+    orderId?: string,
+  ) {
+    const client = await this.tenantConnection.getClient(tenant.operatorId);
+    const order = orderId
+      ? await client.orders.findFirst({
+          where: { id: orderId, user_id: player.id, status: "pending" },
+          include: { payments: true },
+        })
+      : await client.orders.findFirst({
+          where: { user_id: player.id, status: "pending" },
+          include: { payments: true },
+        });
+
+    if (!order) {
+      throw new NotFoundException("No pending order found");
+    }
+
+    const payment = order.payments.find((p) => p.status === "pending");
+    if (!payment) {
+      throw new BadRequestException("This order is not awaiting payment");
+    }
+
+    const total = decimal(order.total);
+    const gatewayMode = payment.gateway_mode;
+    const gatewayDisplayName =
+      process.env.HARAMBE_PAYMENT_DISPLAY_NAME ?? "Harambe Payment Gateway";
+
+    return {
+      order_id: order.id,
+      payment_id: payment.id,
+      total,
+      gateway_display_name: gatewayDisplayName,
+      gateway_mode: gatewayMode,
+      requires_external_payment: total > 0 && gatewayMode === "live",
+      payment_redirect_url:
+        gatewayMode === "live"
+          ? paymentRedirectUrl(order.id, total, tenant.hostname)
+          : null,
     };
   }
 }

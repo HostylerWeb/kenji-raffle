@@ -2,7 +2,32 @@
 
 Functional scope for tenant raffle sites (`apps/web` + tenant API + worker). Platform control plane gaps live in `PLATFORM_GAPS.md`.
 
-**Last updated:** 2026-08-22 (GRA platform relay, kenji-gateway scaffold)
+**Last updated:** 2026-08-25 (checkout UX gap fixes)
+
+---
+
+## Player site UX gaps (post v1 audit)
+
+| Area | Status | Notes |
+|------|--------|-------|
+| **Billing / account on checkout** | **Fixed** | Read-only name, email, county on checkout; county required before pay; link to settings |
+| **Header cart after order** | **Fixed** | `notifyCartUpdated()` on checkout POST, mock pay, success/failed pages — badge + mini-cart refresh |
+| **Failed payment copy** | **Fixed** | Reservations released; user must re-add tickets (backend does not restore cart lines) |
+| **Pending order resume** | **Fixed** | `POST /v1/checkout/resume` + banner on checkout; order detail “Complete payment” link |
+| **Account tickets** | **Works** | `/account/tickets` lists entries; overview shows active ticket count |
+| **UK-style billing address** | **Out of scope** | Kenya model uses county on profile, not street billing at checkout |
+| **Cancel pending order** | **Open** | Worker auto-fails after ~60 min; no player-facing cancel API yet |
+| **Live gateway resume** | **Fixed** | Resume endpoint returns real `gateway_mode` + redirect URL for live orders |
+
+---
+
+## Remaining work (not backend)
+
+| Area | Status | Doc |
+|------|--------|-----|
+| **Public player site UI/UX** | **v1 functional complete** — commerce, polish, demo seed, 8 Playwright smoke tests, VPS deployed | [PLAYER_SITE_UI_PLAN.md §11–§12](./PLAYER_SITE_UI_PLAN.md#11-finish-checklist--complete-v1-before-refinement) |
+| **kenji-gateway** production | Scaffold only | [IMPORTANT.md](../IMPORTANT.md) |
+| **P7 hardening** | Not started | PROJECT_PLAN_2 §P7 |
 
 ---
 
@@ -53,6 +78,9 @@ Browsing and cart work without an account. **Checkout requires login or register
 
 ## Recent fixes
 
+- **Post-audit (2026-08-25):** Claims withdrawal path fixed (`/withdrawal`); checkout success guards missing `order_id`; API error UI on home + account pages; Play Safe loads status from `/v1/me`; full mock-purchase Playwright test; demo draw script (`scripts/run-demo-draw.py`); VPS deploy complete; GRA relay fixed (ingest credential re-encrypt + `trigger-gra-relay.sh` for demos)
+- **Checkout UX gaps (2026-08-25):** Account details on checkout; county gate; cart badge refresh via `notifyCartUpdated`; pending payment resume API; failed-page copy; account overview ticket count
+- **Player site v1:** Friendly errors, reservation countdown, checkout summary, register terms, cart thumbnails, price sort, prize tabs, winners mobile cards, demo seed (`scripts/seed-demo-tenant.py`)
 - **Gateway fees:** `payments.gateway_fee_rate`, `gateway_fee_amount`, `gateway_transaction_id`; unified `POST /v1/payments/gateway/callback`
 - **Dev mock gateway:** `GET /v1/payments/dev-mock-gateway/pay` when `GATEWAY_DEV_MOCK=true` (replace with `kenji-gateway`)
 - **Checkout:** order lines snapshot `ticket_numbers` at checkout — payment completes against the order, not the live cart
@@ -70,7 +98,7 @@ Browsing and cart work without an account. **Checkout requires login or register
 - Raffle `start_date` / `end_date` enforced on cart add, checkout, and public listing
 - Worker auto-activates `listed` → `active` when `start_date` passes
 - Admin dashboard: **active raffles** count + **low tickets** alert
-- Failed payment releases reserved tickets and clears cart
+- Failed payment releases reserved tickets (cart is **not** restored — user re-adds items)
 - Play Safe auto-clears after cooling-off period expires
 - Reports date range filter in admin UI
 - Reports CSV export + instant win frequency/total edit on raffle page
@@ -90,10 +118,14 @@ Browsing and cart work without an account. **Checkout requires login or register
 
 ## Out of scope (plan)
 
+Full exclusion list (skill questions, postal entry, gamification, referrals, guest checkout, etc.): **[PLAYER_SITE_UI_PLAN.md](./PLAYER_SITE_UI_PLAN.md) §3** and **PROJECT_PLAN_2.md §3**.
+
 | Item | Notes |
 |------|--------|
-| Referral / cashback | Explicitly out of scope in `PROJECT_PLAN_2.md` |
-| Anonymous checkout | Not supported — login/register required at checkout (by design) |
+| Skill-based questions / postal entry | UK competition mechanics — not Kenya product |
+| Referral / cashback / affiliates / loyalty | Explicitly out of scope |
+| Guest checkout | Not supported — login/register required at checkout (by design) |
+| Gamification (wheels, mini-games, XP) | Out of scope |
 | P7 production hardening | CSRF, monitoring, load tests — see `PROJECT_PLAN_2.md` §P7 |
 | **`kenji-gateway` repo** | **Scaffold** at `/var/www/kenji-gateway` — `POST /v1/charge`, GRA notify, raffle callback; not production card/M-Pesa |
 

@@ -93,6 +93,59 @@ export async function releaseTicketsByNumbers(
   });
 }
 
+/** Re-reserve specific ticket numbers after a failed payment (same numbers when still available). */
+export async function reserveSpecificTickets(
+  client: TenantPrismaClient,
+  raffleId: string,
+  ticketNumbers: number[],
+  sessionId: string,
+  userId: string,
+  reservedUntil: Date,
+): Promise<number[]> {
+  if (ticketNumbers.length === 0) return [];
+
+  await client.tickets.updateMany({
+    where: {
+      raffle_id: raffleId,
+      ticket_number: { in: ticketNumbers },
+      status: "available",
+    },
+    data: {
+      status: "reserved",
+      session_id: sessionId,
+      user_id: userId,
+      reserved_until: reservedUntil,
+    },
+  });
+
+  const rows = await client.tickets.findMany({
+    where: {
+      raffle_id: raffleId,
+      ticket_number: { in: ticketNumbers },
+      status: "reserved",
+      user_id: userId,
+    },
+    select: { ticket_number: true },
+    orderBy: { ticket_number: "asc" },
+  });
+
+  const reserved = rows.map((r) => r.ticket_number);
+  const shortfall = ticketNumbers.length - reserved.length;
+  if (shortfall > 0) {
+    const extra = await reserveTickets(
+      client,
+      raffleId,
+      shortfall,
+      sessionId,
+      userId,
+      reservedUntil,
+    );
+    reserved.push(...extra.map((t) => t.ticket_number));
+  }
+
+  return reserved.sort((a, b) => a - b);
+}
+
 export async function releaseExpiredReservations(client: TenantPrismaClient) {
   const now = new Date();
   const expired = await client.tickets.findMany({

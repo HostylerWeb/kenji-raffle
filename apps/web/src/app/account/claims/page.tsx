@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { getPlayerToken, playerFetch } from "@/lib/player-api";
+import { AccountPageHeader } from "@/components/AccountPageHeader";
+import { playerFetch } from "@/lib/player-api";
+import { formatKes } from "@/lib/format";
 
 type Claim = {
   id: string;
@@ -29,9 +29,9 @@ type ShippingAddress = {
 };
 
 export default function AccountClaimsPage() {
-  const router = useRouter();
-  const [claims, setClaims] = useState<Claim[]>([]);
+  const [claims, setClaims] = useState<Claim[] | null>(null);
   const [addresses, setAddresses] = useState<ShippingAddress[]>([]);
+  const [error, setError] = useState("");
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState({
     county: "",
@@ -47,13 +47,19 @@ export default function AccountClaimsPage() {
   });
 
   useEffect(() => {
-    if (!getPlayerToken()) {
-      router.replace("/login?next=/account/claims");
-      return;
-    }
-    playerFetch<Claim[]>("/v1/account/prize-claims").then(setClaims);
-    playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses").then(setAddresses);
-  }, [router]);
+    Promise.all([
+      playerFetch<Claim[]>("/v1/account/prize-claims"),
+      playerFetch<ShippingAddress[]>("/v1/account/shipping-addresses"),
+    ])
+      .then(([c, a]) => {
+        setClaims(c);
+        setAddresses(a);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load prize claims");
+        setClaims([]);
+      });
+  }, []);
 
   function applySavedAddress(addressId: string) {
     const addr = addresses.find((a) => a.id === addressId);
@@ -66,50 +72,70 @@ export default function AccountClaimsPage() {
     });
   }
 
-  async function saveAddress(id: string) {
-    await playerFetch(`/v1/account/prize-claims/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(form),
-    });
-    setEditing(null);
-    setClaims(await playerFetch<Claim[]>("/v1/account/prize-claims"));
+  async function saveAddress(claimId: string) {
+    setError("");
+    try {
+      await playerFetch(`/v1/account/prize-claims/${claimId}`, {
+        method: "PATCH",
+        body: JSON.stringify(form),
+      });
+      setClaims(await playerFetch<Claim[]>("/v1/account/prize-claims"));
+      setEditing(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save address");
+    }
   }
 
-  async function requestWithdrawal(id: string) {
-    await playerFetch(`/v1/account/prize-claims/${id}/withdrawal`, {
-      method: "POST",
-      body: JSON.stringify(withdrawForm),
-    });
-    setClaims(await playerFetch<Claim[]>("/v1/account/prize-claims"));
+  async function requestWithdrawal(claimId: string) {
+    setError("");
+    try {
+      await playerFetch(`/v1/account/prize-claims/${claimId}/withdrawal`, {
+        method: "POST",
+        body: JSON.stringify(withdrawForm),
+      });
+      setClaims(await playerFetch<Claim[]>("/v1/account/prize-claims"));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not request withdrawal");
+    }
   }
+
+  if (!claims) return <div className="site-skeleton" style={{ height: 120 }} />;
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-      <p><Link href="/account">← Account</Link></p>
-      <h1>Prize claims</h1>
+    <>
+      <AccountPageHeader
+        title="Prize claims"
+        description="Claim physical prizes or request cash withdrawals for instant wins."
+      />
 
-      {claims.length === 0 && (
-        <p className="muted">No prize claims yet. Win a physical or cash prize to claim it here.</p>
+      {error && <p className="site-error">{error}</p>}
+
+      {claims.length === 0 && !error && (
+        <div className="site-empty site-card">
+          <p className="site-empty__title">No prize claims yet</p>
+          <p className="site-muted">Win a physical or cash prize to claim it here.</p>
+        </div>
       )}
 
       {claims.map((c) => (
-        <div key={c.id} className="card" style={{ marginBottom: 16 }}>
-          <p><strong>{c.prize_name ?? "Prize"}</strong> · {c.source}</p>
-          <p className="muted">
-            Type: {c.prize_type}
-            {c.prize_value != null && ` · KES ${c.prize_value.toLocaleString()}`}
-            · Status: {c.status}
+        <div key={c.id} className="site-card site-account-section">
+          <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 16 }}>
+            {c.prize_name ?? "Prize"}
+          </p>
+          <p className="site-muted" style={{ margin: 0 }}>
+            {c.source} · {c.prize_type}
+            {c.prize_value != null && ` · ${formatKes(c.prize_value)}`}
+            · Status: <strong>{c.status}</strong>
           </p>
 
           {c.prize_type === "physical" && (
             <>
               {editing === c.id ? (
-                <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
+                <div className="site-form" style={{ marginTop: 16 }}>
                   {addresses.length > 0 && (
                     <label>
                       Use saved address
                       <select
-                        className="input"
                         defaultValue=""
                         onChange={(e) => {
                           if (e.target.value) applySavedAddress(e.target.value);
@@ -124,59 +150,44 @@ export default function AccountClaimsPage() {
                       </select>
                     </label>
                   )}
-                  <input
-                    className="input"
-                    placeholder="Address line"
-                    value={form.address_line}
-                    onChange={(e) =>
-                      setForm({ ...form, address_line: e.target.value })
-                    }
-                  />
-                  <input
-                    className="input"
-                    placeholder="Town"
-                    value={form.town}
-                    onChange={(e) => setForm({ ...form, town: e.target.value })}
-                  />
-                  <input
-                    className="input"
-                    placeholder="County"
-                    value={form.county}
-                    onChange={(e) =>
-                      setForm({ ...form, county: e.target.value })
-                    }
-                  />
-                  <input
-                    className="input"
-                    placeholder="Postal code"
-                    value={form.postal_code}
-                    onChange={(e) =>
-                      setForm({ ...form, postal_code: e.target.value })
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => saveAddress(c.id)}
-                  >
+                  <label>
+                    Address line
+                    <input value={form.address_line} onChange={(e) => setForm({ ...form, address_line: e.target.value })} />
+                  </label>
+                  <div className="site-form__row">
+                    <label>
+                      Town
+                      <input value={form.town} onChange={(e) => setForm({ ...form, town: e.target.value })} />
+                    </label>
+                    <label>
+                      County
+                      <input value={form.county} onChange={(e) => setForm({ ...form, county: e.target.value })} />
+                    </label>
+                  </div>
+                  <label>
+                    Postal code
+                    <input value={form.postal_code} onChange={(e) => setForm({ ...form, postal_code: e.target.value })} />
+                  </label>
+                  <button type="button" className="site-btn site-btn--primary" onClick={() => saveAddress(c.id)}>
                     Save address
                   </button>
                 </div>
               ) : (
-                <div style={{ marginTop: 8 }}>
+                <div style={{ marginTop: 12 }}>
                   {c.address_line ? (
-                    <p>
+                    <p className="site-muted">
                       {c.address_line}
                       {c.town && `, ${c.town}`}
                       {c.county && `, ${c.county}`}
                       {c.postal_code && ` ${c.postal_code}`}
                     </p>
                   ) : (
-                    <p className="muted">Add your shipping address.</p>
+                    <p className="site-muted">Add your shipping address.</p>
                   )}
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="site-btn site-btn--secondary site-btn--sm"
+                    style={{ marginTop: 8 }}
                     onClick={() => {
                       setEditing(c.id);
                       setForm({
@@ -195,77 +206,58 @@ export default function AccountClaimsPage() {
           )}
 
           {c.prize_type === "cash" && !c.withdrawal && (
-            <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
-              <select
-                className="input"
-                value={withdrawForm.method}
-                onChange={(e) =>
-                  setWithdrawForm({
-                    ...withdrawForm,
-                    method: e.target.value as "mpesa" | "bank",
-                  })
-                }
-              >
-                <option value="mpesa">M-Pesa</option>
-                <option value="bank">Bank transfer</option>
-              </select>
-              <input
-                className="input"
-                placeholder="Account name"
-                value={withdrawForm.account_name}
-                onChange={(e) =>
-                  setWithdrawForm({
-                    ...withdrawForm,
-                    account_name: e.target.value,
-                  })
-                }
-              />
-              <input
-                className="input"
-                placeholder={
-                  withdrawForm.method === "mpesa"
-                    ? "M-Pesa phone number"
-                    : "Account number"
-                }
-                value={withdrawForm.account_number}
-                onChange={(e) =>
-                  setWithdrawForm({
-                    ...withdrawForm,
-                    account_number: e.target.value,
-                  })
-                }
-              />
-              {withdrawForm.method === "bank" && (
-                <input
-                  className="input"
-                  placeholder="Bank name"
-                  value={withdrawForm.bank_name}
+            <div className="site-form" style={{ marginTop: 16 }}>
+              <label>
+                Method
+                <select
+                  value={withdrawForm.method}
                   onChange={(e) =>
                     setWithdrawForm({
                       ...withdrawForm,
-                      bank_name: e.target.value,
+                      method: e.target.value as "mpesa" | "bank",
                     })
                   }
+                >
+                  <option value="mpesa">M-Pesa</option>
+                  <option value="bank">Bank transfer</option>
+                </select>
+              </label>
+              <label>
+                Account name
+                <input
+                  value={withdrawForm.account_name}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, account_name: e.target.value })}
                 />
+              </label>
+              <label>
+                {withdrawForm.method === "mpesa" ? "M-Pesa phone number" : "Account number"}
+                <input
+                  value={withdrawForm.account_number}
+                  onChange={(e) => setWithdrawForm({ ...withdrawForm, account_number: e.target.value })}
+                />
+              </label>
+              {withdrawForm.method === "bank" && (
+                <label>
+                  Bank name
+                  <input
+                    value={withdrawForm.bank_name}
+                    onChange={(e) => setWithdrawForm({ ...withdrawForm, bank_name: e.target.value })}
+                  />
+                </label>
               )}
-              <button
-                type="button"
-                className="btn"
-                onClick={() => requestWithdrawal(c.id)}
-              >
+              <button type="button" className="site-btn site-btn--primary" onClick={() => requestWithdrawal(c.id)}>
                 Request withdrawal
               </button>
             </div>
           )}
 
           {c.withdrawal && (
-            <p style={{ marginTop: 8 }}>
-              Withdrawal: {c.withdrawal.method} · KES{" "}
-              {c.withdrawal.amount.toLocaleString()} · {c.withdrawal.status}
+            <p className="site-muted" style={{ marginTop: 12, marginBottom: 0 }}>
+              Withdrawal: {c.withdrawal.method} · {formatKes(c.withdrawal.amount)} · {c.withdrawal.status}
             </p>
           )}
         </div>
       ))}
-    </main>
+    </>
   );
 }

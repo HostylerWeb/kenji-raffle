@@ -27,6 +27,16 @@ function parseTicketNumbers(json: Prisma.JsonValue): number[] {
   return json.filter((n) => typeof n === "number") as number[];
 }
 
+function cartItemsWhere(sessionId: string, playerId?: string) {
+  return {
+    expires_at: { gt: new Date() },
+    OR: [
+      { session_id: sessionId },
+      ...(playerId ? [{ user_id: playerId }] : []),
+    ],
+  };
+}
+
 @Injectable()
 export class CartService {
   constructor(
@@ -40,16 +50,9 @@ export class CartService {
     player?: PlayerAuthUser,
   ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
-    const now = new Date();
 
     const items = await client.cart_items.findMany({
-      where: {
-        expires_at: { gt: now },
-        OR: [
-          { session_id: sessionId },
-          ...(player ? [{ user_id: player.id }] : []),
-        ],
-      },
+      where: cartItemsWhere(sessionId, player?.id),
       include: {
         raffle: {
           select: {
@@ -58,6 +61,7 @@ export class CartService {
             slug: true,
             ticket_price: true,
             status: true,
+            featured_image_url: true,
           },
         },
       },
@@ -73,6 +77,7 @@ export class CartService {
         raffle_id: item.raffle_id,
         raffle_title: item.raffle.title,
         raffle_slug: item.raffle.slug,
+        featured_image_url: item.raffle.featured_image_url,
         ticket_quantity: item.ticket_quantity,
         unit_price: decimal(item.unit_price),
         subtotal: decimal(item.subtotal),
@@ -84,6 +89,20 @@ export class CartService {
       subtotal,
       expires_at: items[0]?.expires_at.toISOString() ?? null,
     };
+  }
+
+  /** Lightweight count for header badge — avoids raffle joins. */
+  async getCartCount(
+    tenant: TenantContext,
+    sessionId: string,
+    player?: PlayerAuthUser,
+  ) {
+    const client = await this.tenantConnection.getClient(tenant.operatorId);
+    const result = await client.cart_items.aggregate({
+      where: cartItemsWhere(sessionId, player?.id),
+      _sum: { ticket_quantity: true },
+    });
+    return { count: result._sum.ticket_quantity ?? 0 };
   }
 
   async addItem(

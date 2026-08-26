@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { playerFetch } from "@/lib/player-api";
+import { notifyCartUpdated } from "@/lib/cart-events";
+import { getPublicApiUrl } from "@/lib/api-config";
+import { playerFetch, getTenantHost } from "@/lib/player-api";
+import { formatKes } from "@/lib/format";
 import { trackPurchase } from "@/components/AnalyticsScripts";
 
 type Confirmation = {
@@ -13,37 +16,32 @@ type Confirmation = {
   instant_wins?: { name: string; prize_type: string; prize_value: number }[];
 };
 
-type TenantContext = {
-  analytics?: { ga4_measurement_id?: string; facebook_pixel_id?: string } | null;
-};
-
 export default function CheckoutSuccessClient() {
   const params = useSearchParams();
   const orderId = params.get("order_id") ?? params.get("order");
   const [data, setData] = useState<Confirmation | null>(null);
   const [error, setError] = useState("");
-  const [tenant, setTenant] = useState<TenantContext | null>(null);
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002"}/v1/tenant/context`, {
-      headers: {
-        "x-forwarded-host":
-          typeof window !== "undefined"
-            ? window.location.host
-            : process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local",
-      },
-    })
-      .then((r) => r.json())
-      .then(setTenant)
-      .catch(() => undefined);
+    notifyCartUpdated();
   }, []);
 
   useEffect(() => {
     if (!orderId) return;
-    playerFetch<Confirmation>(`/v1/account/orders/${orderId}`)
+    let analytics: { ga4_measurement_id?: string; facebook_pixel_id?: string } | null = null;
+    fetch(`${getPublicApiUrl()}/v1/tenant/context`, {
+      headers: {
+        "x-forwarded-host": getTenantHost(),
+      },
+    })
+      .then((r) => r.json())
+      .then((ctx) => {
+        analytics = ctx.analytics ?? null;
+        return playerFetch<Confirmation>(`/v1/account/orders/${orderId}`);
+      })
       .then((confirmation) => {
         setData(confirmation);
-        trackPurchase(tenant?.analytics ?? null, {
+        trackPurchase(analytics, {
           order_id: confirmation.order_id,
           total: confirmation.total,
         });
@@ -51,33 +49,62 @@ export default function CheckoutSuccessClient() {
       .catch((err) =>
         setError(err instanceof Error ? err.message : "Could not load order"),
       );
-  }, [orderId, tenant]);
+  }, [orderId]);
+
+  if (!orderId) {
+    return (
+      <div className="site-container site-container--narrow">
+        <h1 className="site-page-title">Order not found</h1>
+        <p className="site-lead" style={{ marginBottom: 24 }}>
+          We couldn&apos;t find your order confirmation. Check your account orders or try checkout again.
+        </p>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Link href="/account/orders" className="site-btn site-btn--primary">
+            View my orders
+          </Link>
+          <Link href="/cart" className="site-btn site-btn--secondary">
+            Back to cart
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Payment successful</h1>
-      <div className="card">
-        <p>Thank you! Your order is confirmed.</p>
-        {orderId && <p className="muted">Order ID: {orderId}</p>}
-        {error && <p className="error">{error}</p>}
+    <div className="site-container site-container--narrow">
+      <div className="site-success-icon" aria-hidden>✓</div>
+      <h1 className="site-page-title">You&apos;re in!</h1>
+      <p className="site-lead" style={{ marginBottom: 24 }}>
+        Payment successful. Good luck — your tickets are confirmed below.
+      </p>
+
+      <div className="site-card">
+        <p className="site-muted">Order {orderId}</p>
+        {error && <p className="site-error">{error}</p>}
         {data && (
           <>
-            <p>Total: KES {data.total.toLocaleString()}</p>
-            <h2 style={{ marginTop: 16 }}>Your tickets</h2>
-            <ul>
+            <p style={{ fontSize: 18, fontWeight: 700, marginTop: 0 }}>
+              Total paid: {formatKes(data.total)}
+            </p>
+            <h2 className="site-section-title">Your tickets</h2>
+            <ul className="site-ticket-list">
               {data.tickets.map((t, i) => (
-                <li key={i}>
-                  {t.raffle_title} — #{t.ticket_number}
+                <li key={i} className="site-ticket-pill">
+                  <span>{t.raffle_title}</span>
+                  <strong>#{t.ticket_number}</strong>
                 </li>
               ))}
             </ul>
             {data.instant_wins && data.instant_wins.length > 0 && (
               <>
-                <h2 style={{ marginTop: 16 }}>Instant wins!</h2>
-                <ul>
+                <h2 className="site-section-title" style={{ marginTop: 24 }}>
+                  Instant wins!
+                </h2>
+                <ul className="site-ticket-list">
                   {data.instant_wins.map((w, i) => (
-                    <li key={i}>
-                      {w.name} ({w.prize_type}) — KES {w.prize_value}
+                    <li key={i} className="site-ticket-pill" style={{ background: "var(--site-accent-soft)" }}>
+                      <span>{w.name}</span>
+                      <strong>{formatKes(w.prize_value)}</strong>
                     </li>
                   ))}
                 </ul>
@@ -86,11 +113,20 @@ export default function CheckoutSuccessClient() {
           </>
         )}
       </div>
-      <p style={{ marginTop: 16 }}>
-        <Link href="/account/orders">View all orders</Link>
-        {" · "}
-        <Link href="/raffles">Browse more raffles</Link>
-      </p>
-    </main>
+
+      <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+        <Link href="/account/tickets" className="site-btn site-btn--primary">
+          View my tickets
+        </Link>
+        {data?.instant_wins && data.instant_wins.length > 0 && (
+          <Link href="/account/wins" className="site-btn site-btn--secondary">
+            View my wins
+          </Link>
+        )}
+        <Link href="/raffles" className="site-btn site-btn--secondary">
+          Browse more raffles
+        </Link>
+      </div>
+    </div>
   );
 }

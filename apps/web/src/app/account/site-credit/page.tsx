@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { getPlayerToken, playerFetch } from "@/lib/player-api";
+import { AccountPageHeader } from "@/components/AccountPageHeader";
+import { playerFetch } from "@/lib/player-api";
+import { formatDateTime, formatKes } from "@/lib/format";
 
 type Transaction = {
   id: string;
@@ -14,74 +14,76 @@ type Transaction = {
   created_at: string;
 };
 
-type ListResponse = {
-  items: Transaction[];
-  total: number;
-};
-
-type Me = {
-  site_credit_balance: number;
-};
-
 export default function SiteCreditPage() {
-  const router = useRouter();
   const [balance, setBalance] = useState(0);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[] | null>(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!getPlayerToken()) {
-      router.replace("/login?next=/account/site-credit");
-      return;
-    }
     Promise.all([
-      playerFetch<Me>("/v1/me"),
-      playerFetch<ListResponse>("/v1/account/site-credit/transactions"),
-    ]).then(([me, tx]) => {
-      setBalance(me.site_credit_balance);
-      setTransactions(tx.items);
-    });
-  }, [router]);
+      playerFetch<{ site_credit_balance: number }>("/v1/me"),
+      playerFetch<{ items: Transaction[] }>("/v1/account/site-credit/transactions"),
+    ])
+      .then(([me, tx]) => {
+        setBalance(me.site_credit_balance);
+        setTransactions(tx.items);
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to load site credit");
+        setTransactions([]);
+      });
+  }, []);
 
   return (
-    <main style={{ maxWidth: 640, margin: "0 auto", padding: "24px 20px" }}>
-      <p><Link href="/account">← Account</Link></p>
-      <h1>Site credit</h1>
-      <div className="card">
-        <p className="muted">Current balance</p>
-        <p style={{ fontSize: 28, fontWeight: 700 }}>
-          KES {balance.toLocaleString()}
+    <>
+      <AccountPageHeader
+        title="Site credit"
+        description="Your instant-win credit balance and transaction history."
+      />
+      {error && <p className="site-error">{error}</p>}
+      <div className="site-card site-card--highlight">
+        <p className="site-muted" style={{ margin: 0 }}>Current balance</p>
+        <p style={{ fontSize: 32, fontWeight: 800, margin: "8px 0 0" }}>{formatKes(balance)}</p>
+        <p className="site-muted" style={{ margin: "12px 0 0", fontSize: 13 }}>
+          Instant win credits are applied automatically at checkout.
         </p>
       </div>
 
-      <h2 style={{ marginTop: 24 }}>Transaction history</h2>
-      {transactions.length === 0 && (
-        <p className="muted">No transactions yet.</p>
-      )}
-      <table className="table" style={{ width: "100%" }}>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Amount</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {transactions.map((t) => (
-            <tr key={t.id}>
-              <td className="muted">
-                {new Date(t.created_at).toLocaleString()}
-              </td>
-              <td>{t.type}</td>
-              <td>
-                {t.type === "credit" ? "+" : "−"}KES{" "}
-                {t.amount.toLocaleString()}
-              </td>
-              <td>{t.note ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </main>
+      <h2 className="site-section-title site-account-section">Transaction history</h2>
+      {!transactions ? (
+        <div className="site-skeleton" style={{ height: 100 }} />
+      ) : transactions.length === 0 && !error ? (
+        <div className="site-empty site-card">
+          <p className="site-empty__title">No transactions yet</p>
+          <p className="site-muted">Credits from instant wins will appear here.</p>
+        </div>
+      ) : transactions.length > 0 ? (
+        <div className="site-card site-table-wrap">
+          <table className="site-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((t) => (
+                <tr key={t.id}>
+                  <td className="site-muted">{formatDateTime(t.created_at)}</td>
+                  <td>{t.type}</td>
+                  <td style={{ fontWeight: 600 }}>
+                    {t.type === "credit" ? "+" : "−"}
+                    {formatKes(t.amount)}
+                  </td>
+                  <td>{t.note ?? "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+    </>
   );
 }

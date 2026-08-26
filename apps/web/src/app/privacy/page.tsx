@@ -9,14 +9,16 @@ export default async function PrivacyPage() {
   const text = tenant?.legal?.privacy_text;
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Privacy policy</h1>
-      <p><Link href="/">Home</Link></p>
-      {text ? (
-        <div className="card" style={{ whiteSpace: "pre-wrap" }}>{text}</div>
-      ) : (
-        <p className="muted">Privacy policy has not been configured yet.</p>
-      )}
-    </main>
+    <>
+      <Link href="/" className="site-breadcrumb">← Home</Link>
+      <h1 className="site-page-title">Privacy policy</h1>
+      <div className="site-card" style={{ lineHeight: 1.7 }}>
+        {text ? (
+          <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>
+        ) : (
+          <p className="site-muted">Privacy policy has not been configured yet.</p>
+        )}
+      </div>
+    </>
   );
 }

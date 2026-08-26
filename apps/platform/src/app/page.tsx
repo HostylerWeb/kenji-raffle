@@ -2,13 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { platformApi, setAuthSession } from "../lib/api";
+import { AuthShell } from "../components/AuthShell";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@platform.local");
-  const [password, setPassword] = useState("ChangeMe123!");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [mfaRequired, setMfaRequired] = useState(false);
   const [error, setError] = useState("");
@@ -68,11 +68,14 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="login-page">
-      <h1>Platform Console</h1>
-      <p className="muted" style={{ marginBottom: 24 }}>
-        Sign in to manage operator raffle sites.
-      </p>
+    <AuthShell
+      title={forgotMode ? "Reset your password" : "Sign in"}
+      subtitle={
+        forgotMode
+          ? "Enter your email and we will send a secure reset link."
+          : "Use your platform administrator credentials."
+      }
+    >
       {forgotMode ? (
         <form className="form" onSubmit={onForgot}>
           <label>
@@ -82,10 +85,13 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </label>
-          {forgotMessage && <p className="muted">{forgotMessage}</p>}
-          <button type="submit" className="btn">Send reset link</button>
+          {forgotMessage && <p className="form-message muted">{forgotMessage}</p>}
+          <button type="submit" className="btn">
+            Send reset link
+          </button>
           <button
             type="button"
             className="btn btn-secondary"
@@ -103,6 +109,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              autoComplete="email"
             />
           </label>
           <label>
@@ -112,12 +119,13 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              autoComplete="current-password"
             />
           </label>
           {mfaRequired && (
             <>
               <p className="muted login-step">
-                Step 2 — open Google Authenticator and enter your 6-digit code.
+                Step 2 — open your authenticator app and enter the 6-digit code.
               </p>
               <label>
                 2FA code
@@ -137,7 +145,7 @@ export default function LoginPage() {
           <button type="submit" className="btn" disabled={loading}>
             {loading ? "Signing in…" : mfaRequired ? "Verify MFA" : "Sign in"}
           </button>
-          <p className="muted" style={{ marginTop: 12 }}>
+          <p className="form-footer muted">
             <button
               type="button"
               className="link-btn"
@@ -148,6 +156,6 @@ export default function LoginPage() {
           </p>
         </form>
       )}
-    </main>
+    </AuthShell>
   );
 }

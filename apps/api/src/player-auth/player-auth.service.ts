@@ -17,6 +17,11 @@ import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
 import { EmailService } from "../email/email.service";
 import { PlayerTokenStoreService } from "./player-token-store.service";
+import {
+  playerAutoVerifyEmailEnabled,
+  requireJwtRefreshSecret,
+  requireJwtSecret,
+} from "../common/security-config";
 
 @Injectable()
 export class PlayerAuthService {
@@ -51,7 +56,7 @@ export class PlayerAuthService {
     }
 
     const password_hash = await bcrypt.hash(input.password, 10);
-    const autoVerify = process.env.PLAYER_AUTO_VERIFY_EMAIL === "true";
+    const autoVerify = playerAutoVerifyEmailEnabled();
 
     const user = await client.users.create({
       data: {
@@ -70,7 +75,7 @@ export class PlayerAuthService {
       : this.jwtService.sign(
           { sub: user.id, email, purpose: "email-verify" },
           {
-            secret: process.env.JWT_SECRET,
+            secret: requireJwtSecret(),
             expiresIn: "24h",
           },
         );
@@ -148,7 +153,7 @@ export class PlayerAuthService {
         type?: string;
         jti?: string;
       }>(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET,
+        secret: requireJwtRefreshSecret(),
       });
 
       if (payload.aud !== PLAYER_JWT_AUDIENCE || payload.type !== "refresh") {
@@ -204,7 +209,7 @@ export class PlayerAuthService {
         const payload = this.jwtService.verify<{ sub: string; jti?: string }>(
           refreshToken,
           {
-            secret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET,
+            secret: requireJwtRefreshSecret(),
           },
         );
         if (payload.jti && payload.sub === userId) {
@@ -226,7 +231,7 @@ export class PlayerAuthService {
   async verifyEmail(tenant: TenantContext, token: string) {
     try {
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
+        secret: requireJwtSecret(),
       }) as { sub: string; purpose?: string };
 
       if (payload.purpose !== "email-verify") {
@@ -256,7 +261,7 @@ export class PlayerAuthService {
 
     const token = this.jwtService.sign(
       { sub: user.id, purpose: "password-reset" },
-      { secret: process.env.JWT_SECRET, expiresIn: "24h" },
+      { secret: requireJwtSecret(), expiresIn: "24h" },
     );
 
     const supportEmail = await this.getSupportEmail(tenant.operatorId);
@@ -278,7 +283,7 @@ export class PlayerAuthService {
   ) {
     try {
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET,
+        secret: requireJwtSecret(),
       }) as { sub: string; purpose?: string };
 
       if (payload.purpose !== "password-reset") {
@@ -329,7 +334,7 @@ export class PlayerAuthService {
       spending_limit_period: user.spending_limit_period,
       county: user.county,
       kyc_status: user.kyc_status,
-      kyc_document_url: user.kyc_document_url,
+      kyc_document_submitted: Boolean(user.kyc_document_url),
     };
   }
 
@@ -350,7 +355,7 @@ export class PlayerAuthService {
         type: "access",
       },
       {
-        secret: process.env.JWT_SECRET,
+        secret: requireJwtSecret(),
         expiresIn: parseJwtExpires(process.env.JWT_EXPIRES_IN ?? "30m"),
       },
     );
@@ -387,7 +392,7 @@ export class PlayerAuthService {
         jti,
       },
       {
-        secret: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET,
+        secret: requireJwtRefreshSecret(),
         expiresIn: parseJwtExpires(process.env.JWT_REFRESH_EXPIRES_IN ?? "7d"),
       },
     );

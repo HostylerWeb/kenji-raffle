@@ -1,27 +1,41 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { notifyCartUpdated } from "@/lib/cart-events";
 
 export default function CheckoutFailedClient() {
   const params = useSearchParams();
   const orderId = params.get("order");
 
+  useEffect(() => {
+    notifyCartUpdated();
+  }, []);
+
   return (
-    <main style={{ maxWidth: 520, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Payment failed</h1>
-      <div className="card">
-        <p>Your payment could not be completed.</p>
-        {orderId && <p className="muted">Order ID: {orderId}</p>}
-        <p>Your ticket reservations are still in your cart. You can try again.</p>
+    <div className="site-container site-container--narrow">
+      <div className="site-success-icon" style={{ background: "#fee2e2", color: "var(--site-danger)" }} aria-hidden>
+        ✕
       </div>
-      <p style={{ marginTop: 16 }}>
-        <Link href="/checkout" className="btn" style={{ textDecoration: "none" }}>
-          Retry checkout
-        </Link>
-        {" · "}
-        <Link href="/cart">View cart</Link>
+      <h1 className="site-page-title">Payment failed</h1>
+      <p className="site-lead" style={{ marginBottom: 24 }}>
+        Your payment could not be completed. Your tickets have been returned to your cart so you can try again.
       </p>
-    </main>
+      <div className="site-card">
+        {orderId && <p className="site-muted">Order ID: {orderId}</p>}
+        <p className="site-muted" style={{ margin: 0 }}>
+          Review your cart and return to checkout, or view your order history for details.
+        </p>
+      </div>
+      <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+        <Link href="/cart" className="site-btn site-btn--primary">
+          Back to cart
+        </Link>
+        <Link href="/account/orders" className="site-btn site-btn--secondary">
+          View orders
+        </Link>
+      </div>
+    </div>
   );
 }

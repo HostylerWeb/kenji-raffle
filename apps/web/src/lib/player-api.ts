@@ -1,13 +1,12 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
+import { getPublicApiUrl, getTenantHost } from "./api-config";
+import { friendlyPlayerError } from "./player-errors";
+import { notifyPlayerAuthChanged } from "./player-auth";
+
+export { getTenantHost };
+export { usePlayerLoggedIn, useIsClient } from "./player-auth";
+
 const SESSION_KEY = "cart_session_id";
 const REFRESH_KEY = "player_refresh_token";
-
-export function getTenantHost(): string {
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-    return window.location.host;
-  }
-  return process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local";
-}
 
 function createCartSessionId(): string {
   if (
@@ -29,6 +28,11 @@ export function getCartSessionId(): string {
   return id;
 }
 
+export function syncCartSessionId(sessionId?: string | null) {
+  if (typeof window === "undefined" || !sessionId) return;
+  localStorage.setItem(SESSION_KEY, sessionId);
+}
+
 export function getPlayerToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("player_access_token");
@@ -48,6 +52,7 @@ export function setPlayerSession(accessToken: string, refreshToken?: string) {
   if (refreshToken) {
     localStorage.setItem(REFRESH_KEY, refreshToken);
   }
+  notifyPlayerAuthChanged();
 }
 
 export function clearPlayerSession() {
@@ -57,7 +62,7 @@ export function clearPlayerSession() {
   localStorage.removeItem(REFRESH_KEY);
 
   if (refresh && token) {
-    void fetch(`${API}/v1/auth/logout`, {
+    void fetch(`${getPublicApiUrl()}/v1/auth/logout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,6 +72,7 @@ export function clearPlayerSession() {
       body: JSON.stringify({ refresh_token: refresh }),
     }).catch(() => undefined);
   }
+  notifyPlayerAuthChanged();
 }
 
 export function signOutPlayer() {
@@ -80,7 +86,7 @@ async function refreshPlayerToken(): Promise<boolean> {
   const refresh = getPlayerRefreshToken();
   if (!refresh) return false;
 
-  const res = await fetch(`${API}/v1/auth/refresh`, {
+  const res = await fetch(`${getPublicApiUrl()}/v1/auth/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -115,7 +121,7 @@ export async function playerFetch<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API}${path}`, { ...options, headers });
+  const res = await fetch(`${getPublicApiUrl()}${path}`, { ...options, headers });
 
   if (res.status === 401 && !retried && (await refreshPlayerToken())) {
     return playerFetch<T>(path, options, true);
@@ -131,19 +137,23 @@ export async function playerFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(
-      typeof body.message === "string" ? body.message : `Request failed (${res.status})`,
-    );
+    const raw =
+      typeof body.message === "string" ? body.message : `Request failed (${res.status})`;
+    throw new Error(friendlyPlayerError(raw));
   }
-  return res.json() as Promise<T>;
+  const data = (await res.json()) as T & { session_id?: string };
+  if (path.startsWith("/v1/cart")) {
+    syncCartSessionId(data.session_id);
+  }
+  return data as T;
 }
 
-export const playerApi = API;
+export const playerApi = getPublicApiUrl();
 
 export async function playerUpload(
   path: string,
   file: File,
-): Promise<{ url: string; kyc_status?: string; kyc_document_url?: string }> {
+): Promise<{ kyc_status?: string; kyc_document_submitted?: boolean }> {
   const token = getPlayerToken();
   const form = new FormData();
   form.append("file", file);
@@ -155,7 +165,7 @@ export async function playerUpload(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${getPublicApiUrl()}${path}`, {
     method: "POST",
     headers,
     body: form,
@@ -163,9 +173,8 @@ export async function playerUpload(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(
-      typeof body.message === "string" ? body.message : "Upload failed",
-    );
+    const raw = typeof body.message === "string" ? body.message : "Upload failed";
+    throw new Error(friendlyPlayerError(raw));
   }
 
   return res.json();

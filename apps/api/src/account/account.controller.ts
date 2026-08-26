@@ -8,10 +8,12 @@ import {
   Post,
   Query,
   Req,
+  Res,
   UseGuards,
   BadRequestException,
+  NotFoundException,
 } from "@nestjs/common";
-import type { FastifyRequest } from "fastify";
+import type { FastifyReply, FastifyRequest } from "fastify";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min } from "class-validator";
 import type { PlayerAuthUser, TenantContext } from "@kenji-raffle/shared";
@@ -29,6 +31,10 @@ class UpdateProfileDto {
 
   @IsOptional()
   @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
   county?: string;
 
   @IsOptional()
@@ -39,11 +45,6 @@ class UpdateProfileDto {
   @IsOptional()
   @IsIn(["weekly", "monthly"])
   spending_limit_period?: "weekly" | "monthly" | null;
-}
-
-class SubmitKycDto {
-  @IsString()
-  document_url!: string;
 }
 
 class UpdatePrizeClaimDto {
@@ -173,13 +174,21 @@ export class AccountController {
     return this.account.activatePlaySafe(tenant, player);
   }
 
-  @Post("kyc")
-  submitKyc(
+  @Get("kyc/document")
+  async getKycDocument(
     @TenantCtx() tenant: TenantContext,
     @CurrentPlayer() player: PlayerAuthUser,
-    @Body() body: SubmitKycDto,
+    @Res() reply: FastifyReply,
   ) {
-    return this.account.submitKyc(tenant, player, body.document_url);
+    const storageKey = await this.account.getKycStorageKey(tenant, player);
+    const resolved = this.media.resolveKycStorageKey(storageKey);
+    if (!resolved || !resolved.startsWith(`tenants/${tenant.operatorId}/`)) {
+      throw new NotFoundException("KYC document not found");
+    }
+    const { stream, mimeType } = await this.media.openStream(resolved);
+    reply.header("Content-Type", mimeType);
+    reply.header("Cache-Control", "private, no-store");
+    return reply.send(stream);
   }
 
   @Post("kyc/upload")
@@ -209,14 +218,14 @@ export class AccountController {
       );
     }
 
-    const saved = await this.media.save(
+    const saved = await this.media.saveKyc(
       tenant.operatorId,
       buffer,
       mimeType,
       originalName,
     );
 
-    return this.account.submitKyc(tenant, player, saved.url);
+    return this.account.submitKyc(tenant, player, saved.storage_key);
   }
 
   @Get("prize-claims")

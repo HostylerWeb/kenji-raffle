@@ -57,11 +57,27 @@ export class DevMockGatewayController {
   <script>
     const orderId = ${JSON.stringify(orderId)};
     const amount = ${JSON.stringify(Number(amount))};
+    const secret = ${JSON.stringify(secret)};
     const taxRate = 0.30;
     const feeRate = ${JSON.stringify(Number(process.env.DEFAULT_GATEWAY_FEE_RATE ?? 0.025))};
     const tax = Math.round(amount * taxRate * 100) / 100;
     const operator = Math.round((amount - tax) * 100) / 100;
     const fee = Math.round(amount * feeRate * 100) / 100;
+
+    async function signBody(bodyJson) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        "raw",
+        enc.encode(secret),
+        { name: "HMAC", hash: "SHA-256" },
+        false,
+        ["sign"],
+      );
+      const sig = await crypto.subtle.sign("HMAC", key, enc.encode(bodyJson));
+      return Array.from(new Uint8Array(sig))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
 
     async function callback(status) {
       const body = status === "completed"
@@ -77,14 +93,19 @@ export class DevMockGatewayController {
           }
         : { order_id: orderId, status: "failed", decline_reason: "Dev mock decline" };
 
+      const bodyJson = JSON.stringify(body);
+      const signature = await signBody(bodyJson);
+      const timestamp = String(Date.now());
+
       const res = await fetch(${JSON.stringify(callbackUrl)}, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-gateway-signature": ${JSON.stringify(secret)},
+          "x-gateway-signature": signature,
+          "x-gateway-timestamp": timestamp,
           "x-forwarded-host": ${JSON.stringify(forwardedHost)},
         },
-        body: JSON.stringify(body),
+        body: bodyJson,
       });
       const data = await res.json().catch(() => ({}));
       document.getElementById("msg").textContent = res.ok

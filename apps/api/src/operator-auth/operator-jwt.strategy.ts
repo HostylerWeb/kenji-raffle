@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import type { OperatorAuthUser } from "@kenji-raffle/shared";
 import { OPERATOR_JWT_AUDIENCE } from "@kenji-raffle/shared";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
+import { requireJwtSecret } from "../common/security-config";
 
 interface JwtPayload {
   sub: string;
@@ -23,7 +24,7 @@ export class OperatorJwtStrategy extends PassportStrategy(
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? "dev-secret",
+      secretOrKey: requireJwtSecret(),
     });
   }
 

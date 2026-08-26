@@ -1,4 +1,7 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
+import { getPublicApiUrl, getTenantHost } from "./api-config";
+
+export { getTenantHost };
+
 const OPERATOR_REFRESH_KEY = "operator_refresh_token";
 
 export type OperatorStaffRole = "owner" | "manager" | "support" | "finance";
@@ -46,7 +49,7 @@ export function clearOperatorSession() {
   localStorage.removeItem(OPERATOR_REFRESH_KEY);
 
   if (refresh && token) {
-    void fetch(`${API}/v1/admin/auth/logout`, {
+    void fetch(`${getPublicApiUrl()}/v1/admin/auth/logout`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +65,7 @@ async function refreshOperatorToken(): Promise<boolean> {
   const refresh = localStorage.getItem(OPERATOR_REFRESH_KEY);
   if (!refresh) return false;
 
-  const res = await fetch(`${API}/v1/admin/auth/refresh`, {
+  const res = await fetch(`${getPublicApiUrl()}/v1/admin/auth/refresh`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -82,13 +85,6 @@ async function refreshOperatorToken(): Promise<boolean> {
   return true;
 }
 
-export function getTenantHost(): string {
-  if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-    return window.location.host;
-  }
-  return process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local";
-}
-
 export async function operatorFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -104,7 +100,7 @@ export async function operatorFetch<T>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API}${path}`, { ...options, headers });
+  const res = await fetch(`${getPublicApiUrl()}${path}`, { ...options, headers });
 
   if (res.status === 401 && !retried && (await refreshOperatorToken())) {
     return operatorFetch<T>(path, options, true);
@@ -128,7 +124,7 @@ export async function operatorFetch<T>(
   return res.json() as Promise<T>;
 }
 
-export const tenantApi = API;
+export const tenantApi = getPublicApiUrl();
 
 export async function operatorUpload(
   path: string,
@@ -144,7 +140,7 @@ export async function operatorUpload(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${getPublicApiUrl()}${path}`, {
     method: "POST",
     headers,
     body: form,

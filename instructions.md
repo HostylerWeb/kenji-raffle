@@ -110,11 +110,17 @@ rm -rf apps/platform/.next && npm run dev:platform  # :3003
 
 Operator admin (per tenant): `owner@{slug}.local` / `ChangeMe123!` — e.g. demo → `owner@demo.local`
 
+Demo player test account (`demo.force42.com`): `player@demo.local` / `ChangeMe123!` — seed with `python3 scripts/seed-demo-tenant.py`. Populate public winners after purchases with `python3 scripts/run-demo-draw.py`.
+
+**Demo ops:** [docs/DEMO_RUNBOOK.md](docs/DEMO_RUNBOOK.md) (refresh + stakeholder script), [docs/DEMO_GRA.md](docs/DEMO_GRA.md) (platform worker → GRA relay, not tenant sites).
+
 Demo tenant hostname: `demo.kenji-raffle.local` (add to `/etc/hosts` when provisioned).
 
 ## Player flows (public site)
 
-Players use the **tenant web** (`{slug}.kenji-raffle.local:3002`), not the platform console.
+Players use the **tenant web** (`{slug}.kenji-raffle.local:3002` or custom domain), not the platform console.
+
+**UI/UX delivery plan:** [docs/PLAYER_SITE_UI_PLAN.md](docs/PLAYER_SITE_UI_PLAN.md)
 
 | Step | URL / API |
 |------|-----------|

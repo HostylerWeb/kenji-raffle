@@ -9,14 +9,16 @@ export default async function TermsPage() {
   const text = tenant?.legal?.terms_text;
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Terms & conditions</h1>
-      <p><Link href="/">Home</Link></p>
-      {text ? (
-        <div className="card" style={{ whiteSpace: "pre-wrap" }}>{text}</div>
-      ) : (
-        <p className="muted">Terms have not been configured yet.</p>
-      )}
-    </main>
+    <>
+      <Link href="/" className="site-breadcrumb">← Home</Link>
+      <h1 className="site-page-title">Terms of use</h1>
+      <div className="site-card" style={{ lineHeight: 1.7 }}>
+        {text ? (
+          <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>
+        ) : (
+          <p className="site-muted">Terms of use have not been configured yet.</p>
+        )}
+      </div>
+    </>
   );
 }

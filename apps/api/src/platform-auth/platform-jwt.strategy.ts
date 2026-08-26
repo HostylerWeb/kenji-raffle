@@ -5,6 +5,7 @@ import type { FastifyRequest } from "fastify";
 import type { PlatformAuthUser } from "@kenji-raffle/shared";
 import { PLATFORM_JWT_AUDIENCE } from "@kenji-raffle/shared";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
+import { requireJwtSecret } from "../common/security-config";
 
 interface JwtPayload {
   sub: string;
@@ -34,7 +35,7 @@ export class PlatformJwtStrategy extends PassportStrategy(Strategy, "platform-jw
         (req) => jwtFromRequest(req as FastifyRequest),
       ]),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? "dev-secret",
+      secretOrKey: requireJwtSecret(),
     });
   }
 

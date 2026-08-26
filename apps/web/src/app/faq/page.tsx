@@ -9,14 +9,19 @@ export default async function FaqPage() {
   const text = tenant?.legal?.faq_text;
 
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>FAQ</h1>
-      <p><Link href="/">Home</Link></p>
-      {text ? (
-        <div className="card" style={{ whiteSpace: "pre-wrap" }}>{text}</div>
-      ) : (
-        <p className="muted">FAQ content has not been configured yet.</p>
-      )}
-    </main>
+    <>
+      <Link href="/" className="site-breadcrumb">← Home</Link>
+      <h1 className="site-page-title">FAQ</h1>
+      <div className="site-card" style={{ lineHeight: 1.7 }}>
+        {text ? (
+          <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>
+        ) : (
+          <p className="site-muted">
+            FAQ content has not been configured yet. Please{" "}
+            <Link href="/contact">contact the operator</Link> for assistance.
+          </p>
+        )}
+      </div>
+    </>
   );
 }

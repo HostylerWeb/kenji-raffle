@@ -17,7 +17,6 @@ import {
   IsUUID,
   Min,
 } from "class-validator";
-import { randomUUID } from "crypto";
 import type { PlayerAuthUser, TenantContext } from "@kenji-raffle/shared";
 import { PublicRoute, TenantCtx } from "../tenant/tenant.decorators";
 import { OptionalPlayerAuthGuard } from "../player-auth/optional-player.guard";
@@ -25,6 +24,7 @@ import { CurrentPlayer, OptionalPlayer } from "../player-auth/player.decorators"
 import { PlayerAuthGuard } from "../player-auth/player-auth.guard";
 import { PlayerTenantGuard } from "../player-auth/player-tenant.guard";
 import { CartService } from "./cart.service";
+import { resolveCartSessionId } from "./cart-session";
 
 class AddCartItemDto {
   @IsUUID()
@@ -46,11 +46,6 @@ class ValidateCouponDto {
   code!: string;
 }
 
-export function resolveCartSessionId(header?: string): string {
-  if (header && header.length >= 8) return header;
-  return randomUUID();
-}
-
 @ApiTags("cart")
 @Controller("v1")
 export class CartController {
@@ -67,6 +62,19 @@ export class CartController {
   ) {
     const sessionId = resolveCartSessionId(sessionHeader);
     return this.cartService.getCart(tenant, sessionId, player);
+  }
+
+  @PublicRoute()
+  @OptionalPlayer()
+  @UseGuards(OptionalPlayerAuthGuard)
+  @Get("cart/count")
+  getCartCount(
+    @TenantCtx() tenant: TenantContext,
+    @Headers("x-cart-session") sessionHeader: string | undefined,
+    @CurrentPlayer() player?: PlayerAuthUser,
+  ) {
+    const sessionId = resolveCartSessionId(sessionHeader);
+    return this.cartService.getCartCount(tenant, sessionId, player);
   }
 
   @PublicRoute()

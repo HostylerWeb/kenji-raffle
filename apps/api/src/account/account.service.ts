@@ -22,12 +22,18 @@ export class AccountService {
 
   async getMe(tenant: TenantContext, player: PlayerAuthUser) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
-    const user = await client.users.findUnique({ where: { id: player.id } });
+    const [user, activeTicketCount] = await Promise.all([
+      client.users.findUnique({ where: { id: player.id } }),
+      client.tickets.count({
+        where: { user_id: player.id, status: "purchased" },
+      }),
+    ]);
     if (!user) throw new NotFoundException("User not found");
 
     return {
       id: user.id,
       email: user.email,
+      phone: user.phone,
       full_name: user.full_name,
       email_verified: Boolean(user.email_verified_at),
       site_credit_balance: decimal(user.site_credit_balance),
@@ -37,7 +43,8 @@ export class AccountService {
       spending_limit_period: user.spending_limit_period,
       county: user.county,
       kyc_status: user.kyc_status,
-      kyc_document_url: user.kyc_document_url,
+      kyc_document_submitted: Boolean(user.kyc_document_url),
+      active_ticket_count: activeTicketCount,
     };
   }
 
@@ -228,6 +235,7 @@ export class AccountService {
     player: PlayerAuthUser,
     input: {
       full_name?: string;
+      phone?: string;
       county?: string;
       spending_limit?: number | null;
       spending_limit_period?: "weekly" | "monthly" | null;
@@ -246,6 +254,7 @@ export class AccountService {
       where: { id: player.id },
       data: {
         full_name: input.full_name,
+        phone: input.phone?.trim() || undefined,
         county: input.county,
         spending_limit: input.spending_limit ?? null,
         spending_limit_period: input.spending_limit_period ?? null,
@@ -255,6 +264,7 @@ export class AccountService {
     return {
       id: user.id,
       full_name: user.full_name,
+      phone: user.phone,
       county: user.county,
       spending_limit: user.spending_limit ? decimal(user.spending_limit) : null,
       spending_limit_period: user.spending_limit_period,
@@ -299,21 +309,33 @@ export class AccountService {
   async submitKyc(
     tenant: TenantContext,
     player: PlayerAuthUser,
-    documentUrl: string,
+    storageKey: string,
   ) {
     const client = await this.tenantConnection.getClient(tenant.operatorId);
     const user = await client.users.update({
       where: { id: player.id },
       data: {
-        kyc_document_url: documentUrl,
+        kyc_document_url: storageKey,
         kyc_status: "pending",
       },
     });
 
     return {
       kyc_status: user.kyc_status,
-      kyc_document_url: user.kyc_document_url,
+      kyc_document_submitted: true,
     };
+  }
+
+  async getKycStorageKey(
+    tenant: TenantContext,
+    player: PlayerAuthUser,
+  ): Promise<string> {
+    const client = await this.tenantConnection.getClient(tenant.operatorId);
+    const user = await client.users.findUnique({ where: { id: player.id } });
+    if (!user?.kyc_document_url) {
+      throw new NotFoundException("KYC document not found");
+    }
+    return user.kyc_document_url;
   }
 
   async listPrizeClaims(tenant: TenantContext, player: PlayerAuthUser) {

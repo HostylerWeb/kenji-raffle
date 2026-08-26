@@ -9,6 +9,7 @@ import { AdminFileUpload } from "@/components/admin/AdminFileUpload";
 import { AdminFilters } from "@/components/admin/AdminFilters";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { useAdminToast } from "@/components/admin/AdminToast";
+import { getPublicApiUrl, getTenantHost } from "@/lib/api-config";
 import { getOperatorToken, operatorFetch } from "@/lib/api";
 
 type MediaItem = {
@@ -25,8 +26,6 @@ type MediaListResponse = {
   page: number;
   limit: number;
 };
-
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
 
 export default function AdminMediaPage() {
   const router = useRouter();
@@ -57,12 +56,9 @@ export default function AdminMediaPage() {
       const token = getOperatorToken();
       const form = new FormData();
       form.append("file", file);
-      const host =
-        typeof window !== "undefined" && window.location.hostname !== "localhost"
-          ? window.location.host
-          : process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local";
+      const host = getTenantHost();
 
-      const res = await fetch(`${API}/v1/admin/media/upload`, {
+      const res = await fetch(`${getPublicApiUrl()}/v1/admin/media/upload`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

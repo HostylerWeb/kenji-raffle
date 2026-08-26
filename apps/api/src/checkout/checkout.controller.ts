@@ -1,14 +1,16 @@
-import { Body, Controller, Headers, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Headers, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import { IsOptional, IsString, IsUUID } from "class-validator";
+import type { FastifyRequest } from "fastify";
 import type { PlayerAuthUser, TenantContext } from "@kenji-raffle/shared";
 import { PublicRoute, TenantCtx } from "../tenant/tenant.decorators";
 import { PlayerAuthGuard } from "../player-auth/player-auth.guard";
 import { PlayerTenantGuard } from "../player-auth/player-tenant.guard";
 import { CurrentPlayer } from "../player-auth/player.decorators";
-import { resolveCartSessionId } from "../cart/cart.controller";
+import { resolveCartSessionId } from "../cart/cart-session";
 import { CheckoutService } from "./checkout.service";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
+import { verifyGatewayCallbackSignature } from "./checkout-gateway.helper";
 
 class CheckoutDto {
   @IsOptional()
@@ -17,6 +19,36 @@ class CheckoutDto {
 
   @IsOptional()
   apply_site_credit?: boolean;
+
+  @IsOptional()
+  @IsString()
+  full_name?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  county?: string;
+
+  @IsOptional()
+  @IsString()
+  address_line?: string;
+
+  @IsOptional()
+  @IsString()
+  town?: string;
+
+  @IsOptional()
+  @IsString()
+  postal_code?: string;
+}
+
+class ResumeCheckoutDto {
+  @IsOptional()
+  @IsUUID()
+  order_id?: string;
 }
 
 class CashFlowsCallbackDto {
@@ -52,6 +84,27 @@ export class CheckoutController {
       sessionId,
       body.coupon_code,
       body.apply_site_credit,
+      {
+        full_name: body.full_name,
+        phone: body.phone,
+        county: body.county,
+        address_line: body.address_line,
+        town: body.town,
+        postal_code: body.postal_code,
+      },
+    );
+  }
+
+  @Post("resume")
+  resumePending(
+    @TenantCtx() tenant: TenantContext,
+    @CurrentPlayer() player: PlayerAuthUser,
+    @Body() body: ResumeCheckoutDto,
+  ) {
+    return this.checkoutService.resumePendingCheckout(
+      tenant,
+      player,
+      body.order_id,
     );
   }
 }
@@ -99,9 +152,16 @@ export class PaymentsController {
   fail(
     @TenantCtx() tenant: TenantContext,
     @CurrentPlayer() player: PlayerAuthUser,
+    @Headers("x-cart-session") sessionHeader: string | undefined,
     @Body() body: CompletePaymentDto,
   ) {
-    return this.checkoutService.failPayment(tenant, player, body.order_id);
+    const sessionId = resolveCartSessionId(sessionHeader);
+    return this.checkoutService.failPayment(
+      tenant,
+      player,
+      body.order_id,
+      sessionId,
+    );
   }
 
   @PublicRoute()
@@ -109,7 +169,9 @@ export class PaymentsController {
   async harambeCallback(
     @TenantCtx() tenant: TenantContext,
     @Body() body: HarambeCallbackDto,
+    @Req() req: FastifyRequest,
     @Headers("x-harambe-signature") signature?: string,
+    @Headers("x-gateway-timestamp") gatewayTimestamp?: string,
   ) {
     return this.checkoutService.handleGatewayCallback(
       tenant,
@@ -119,6 +181,8 @@ export class PaymentsController {
         external_transaction_id: body.transaction_id?.trim(),
       },
       signature,
+      req.rawBody,
+      gatewayTimestamp,
     );
   }
 
@@ -127,7 +191,9 @@ export class PaymentsController {
   async cashflowsCallback(
     @TenantCtx() tenant: TenantContext,
     @Body() body: CashFlowsCallbackDto,
+    @Req() req: FastifyRequest,
     @Headers("x-cashflows-signature") signature?: string,
+    @Headers("x-gateway-timestamp") gatewayTimestamp?: string,
   ) {
     const mode = process.env.CASHFLOWS_PAYMENT_MODE ?? "disabled";
     if (mode !== "live") {
@@ -135,10 +201,14 @@ export class PaymentsController {
     }
 
     const expectedSecret = process.env.CASHFLOWS_CALLBACK_SECRET?.trim();
-    if (!expectedSecret) {
-      return { ok: false, reason: "callback_secret_not_configured" };
-    }
-    if (signature !== expectedSecret) {
+    if (
+      !verifyGatewayCallbackSignature(
+        signature,
+        expectedSecret,
+        req.rawBody,
+        gatewayTimestamp,
+      )
+    ) {
       return { ok: false, reason: "invalid_signature" };
     }
 
@@ -159,6 +229,9 @@ export class PaymentsController {
           external_transaction_id: body.transaction_id?.trim(),
         },
         signature,
+        req.rawBody,
+        gatewayTimestamp,
+        { signatureVerified: true },
       );
     }
 
@@ -166,6 +239,9 @@ export class PaymentsController {
       tenant,
       { order_id: body.order_id, status: "failed" },
       signature,
+      req.rawBody,
+      gatewayTimestamp,
+      { signatureVerified: true },
     );
   }
 }

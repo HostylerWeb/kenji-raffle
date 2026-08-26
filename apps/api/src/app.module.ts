@@ -15,6 +15,7 @@ import { AccountModule } from "./account/account.module";
 import { ContactModule } from "./contact/contact.module";
 import { TenantContextGuard } from "./tenant/tenant-context.guard";
 import { TenantRateLimitGuard } from "./tenant/tenant-rate-limit.guard";
+import { AuthRateLimitGuard } from "./common/auth-rate-limit.guard";
 import { RequestLoggingInterceptor } from "./common/request-logging.interceptor";
 import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 
@@ -43,6 +44,10 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
     {
       provide: APP_GUARD,
       useClass: TenantRateLimitGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: AuthRateLimitGuard,
     },
     {
       provide: APP_INTERCEPTOR,

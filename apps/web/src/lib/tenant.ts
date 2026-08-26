@@ -1,7 +1,7 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
+import { getDevTenantHost, getPublicApiUrl } from "./api-config";
 
 export async function getTenantContext(host: string) {
-  const res = await fetch(`${API}/v1/tenant/context`, {
+  const res = await fetch(`${getPublicApiUrl()}/v1/tenant/context`, {
     headers: { "x-forwarded-host": host },
     cache: "no-store",
   });
@@ -13,7 +13,7 @@ export async function publicFetch<T>(
   path: string,
   host: string,
 ): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`${getPublicApiUrl()}${path}`, {
     headers: { "x-forwarded-host": host },
     cache: "no-store",
   });
@@ -26,8 +26,7 @@ export async function publicFetch<T>(
 export function getRequestHost(
   headerStore: { get(name: string): string | null },
 ): string {
-  const devTenant =
-    process.env.NEXT_PUBLIC_DEV_TENANT_HOST ?? "demo.kenji-raffle.local";
+  const devTenant = getDevTenantHost();
   const raw =
     headerStore.get("x-forwarded-host") ??
     headerStore.get("host") ??

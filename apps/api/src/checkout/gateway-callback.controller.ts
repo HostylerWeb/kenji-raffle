@@ -1,4 +1,4 @@
-import { Body, Controller, Headers, Post } from "@nestjs/common";
+import { Body, Controller, Headers, Post, Req } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import {
   IsNumber,
@@ -7,6 +7,7 @@ import {
   IsUUID,
   IsIn,
 } from "class-validator";
+import type { FastifyRequest } from "fastify";
 import type { TenantContext } from "@kenji-raffle/shared";
 import { PublicRoute, TenantCtx } from "../tenant/tenant.decorators";
 import { CheckoutService } from "./checkout.service";
@@ -58,13 +59,17 @@ export class GatewayCallbackController {
   gatewayCallback(
     @TenantCtx() tenant: TenantContext,
     @Body() body: GatewayCallbackDto,
+    @Req() req: FastifyRequest,
     @Headers("x-gateway-signature") gatewaySignature?: string,
     @Headers("x-harambe-signature") harambeSignature?: string,
+    @Headers("x-gateway-timestamp") gatewayTimestamp?: string,
   ) {
     return this.checkoutService.handleGatewayCallback(
       tenant,
       body,
       gatewaySignature ?? harambeSignature,
+      req.rawBody,
+      gatewayTimestamp,
     );
   }
 }

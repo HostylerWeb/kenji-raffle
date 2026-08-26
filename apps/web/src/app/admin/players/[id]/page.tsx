@@ -19,7 +19,7 @@ import {
 } from "@/components/admin/AdminIcons";
 import { useAdminToast } from "@/components/admin/AdminToast";
 import { AdminPagination, formatDate } from "@/components/admin/AdminPagination";
-import { getOperatorToken, operatorFetch } from "@/lib/api";
+import { getOperatorToken, getTenantHost, operatorFetch, tenantApi } from "@/lib/api";
 
 type PlayerStats = {
   completed_orders: number;
@@ -50,7 +50,7 @@ type PlayerProfile = {
   registration_ip: string | null;
   site_credit_balance: number;
   kyc_status: string;
-  kyc_document_url: string | null;
+  kyc_document_submitted: boolean;
   account_disabled: boolean;
   play_safe_active: boolean;
   play_safe_until: string | null;
@@ -291,12 +291,34 @@ export default function AdminPlayerDetailPage() {
                   <DetailItem label="Registration IP">{player.registration_ip ?? "—"}</DetailItem>
                   <DetailItem label="KYC">
                     <AdminStatusBadge status={player.kyc_status} />
-                    {player.kyc_document_url && (
+                    {player.kyc_document_submitted && (
                       <>
                         {" · "}
-                        <a href={player.kyc_document_url} target="_blank" rel="noreferrer">
+                        <button
+                          type="button"
+                          className="admin-link-button"
+                          onClick={async () => {
+                            const token = getOperatorToken();
+                            if (!token) return;
+                            const res = await fetch(
+                              `${tenantApi}/v1/admin/players/${player.id}/kyc/document`,
+                              {
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                  "x-forwarded-host": getTenantHost(),
+                                },
+                              },
+                            );
+                            if (!res.ok) {
+                              toast("Could not load KYC document");
+                              return;
+                            }
+                            const blob = await res.blob();
+                            window.open(URL.createObjectURL(blob), "_blank", "noopener,noreferrer");
+                          }}
+                        >
                           View document
-                        </a>
+                        </button>
                       </>
                     )}
                   </DetailItem>

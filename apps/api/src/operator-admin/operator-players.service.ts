@@ -10,6 +10,8 @@ import { TenantAuditService } from "../tenant/tenant-audit.service";
 import { queueGraPlaySafeActivated } from "../gra/gra-outbound.service";
 import { PlatformQueueService } from "../platform/platform-queue.service";
 import { paginate } from "../common/pagination";
+import { MediaStorageService } from "../media/media-storage.service";
+import type { FastifyReply } from "fastify";
 
 function decimal(value: Prisma.Decimal | number): number {
   return Number(value);
@@ -21,6 +23,7 @@ export class OperatorPlayersService {
     private readonly tenantConnection: TenantConnectionService,
     private readonly audit: TenantAuditService,
     private readonly queue: PlatformQueueService,
+    private readonly media: MediaStorageService,
   ) {}
 
   private async client(operatorId: string) {
@@ -34,6 +37,27 @@ export class OperatorPlayersService {
     });
     if (!user) throw new NotFoundException("Player not found");
     return user;
+  }
+
+  async streamKycDocument(
+    operatorId: string,
+    playerId: string,
+    reply: FastifyReply,
+  ) {
+    const client = await this.client(operatorId);
+    await this.ensureUser(client, playerId);
+    const user = await client.users.findUnique({
+      where: { id: playerId },
+      select: { kyc_document_url: true },
+    });
+    const storageKey = this.media.resolveKycStorageKey(user?.kyc_document_url);
+    if (!storageKey || !storageKey.startsWith(`tenants/${operatorId}/`)) {
+      throw new NotFoundException("KYC document not found");
+    }
+    const { stream, mimeType } = await this.media.openStream(storageKey);
+    reply.header("Content-Type", mimeType);
+    reply.header("Cache-Control", "private, no-store");
+    return reply.send(stream);
   }
 
   async list(
@@ -85,7 +109,7 @@ export class OperatorPlayersService {
         county: u.county,
         site_credit_balance: decimal(u.site_credit_balance),
         kyc_status: u.kyc_status,
-        kyc_document_url: u.kyc_document_url,
+        kyc_document_submitted: Boolean(u.kyc_document_url),
         account_disabled: u.account_disabled,
         last_login_at: u.last_login_at?.toISOString() ?? null,
         created_at: u.created_at.toISOString(),
@@ -170,7 +194,7 @@ export class OperatorPlayersService {
       registration_ip: user.registration_ip,
       site_credit_balance: decimal(user.site_credit_balance),
       kyc_status: user.kyc_status,
-      kyc_document_url: user.kyc_document_url,
+      kyc_document_submitted: Boolean(user.kyc_document_url),
       account_disabled: user.account_disabled,
       play_safe_active: user.play_safe_active,
       play_safe_until: user.play_safe_until?.toISOString() ?? null,

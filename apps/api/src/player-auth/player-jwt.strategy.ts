@@ -3,6 +3,7 @@ import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PLAYER_JWT_AUDIENCE } from "@kenji-raffle/shared";
 import type { PlayerAuthUser } from "@kenji-raffle/shared";
+import { requireJwtSecret } from "../common/security-config";
 
 type JwtPayload = {
   sub: string;
@@ -18,7 +19,7 @@ export class PlayerJwtStrategy extends PassportStrategy(Strategy, "player-jwt") 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET ?? "dev-secret",
+      secretOrKey: requireJwtSecret(),
     });
   }
 

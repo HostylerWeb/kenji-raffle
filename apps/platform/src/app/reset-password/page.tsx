@@ -4,6 +4,7 @@ import { FormEvent, Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { platformApi } from "../../lib/api";
+import { AuthShell } from "../../components/AuthShell";
 
 function ResetForm() {
   const params = useSearchParams();
@@ -52,14 +53,15 @@ function ResetForm() {
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
+          autoComplete="new-password"
         />
       </label>
       {error && <p className="error">{error}</p>}
-      {message && <p className="muted">{message}</p>}
+      {message && <p className="form-message muted">{message}</p>}
       <button type="submit" className="btn" disabled={loading}>
         {loading ? "Updating…" : "Update password"}
       </button>
-      <p className="muted" style={{ marginTop: 16 }}>
+      <p className="form-footer muted">
         <Link href="/">Back to sign in</Link>
       </p>
     </form>
@@ -68,14 +70,13 @@ function ResetForm() {
 
 export default function PlatformResetPasswordPage() {
   return (
-    <main className="login-page">
-      <h1>Reset password</h1>
-      <p className="muted" style={{ marginBottom: 24 }}>
-        Use the link from your email, or paste the token, then choose a new password.
-      </p>
+    <AuthShell
+      title="Choose a new password"
+      subtitle="Use the link from your email, or paste the token below."
+    >
       <Suspense fallback={<p className="muted">Loading…</p>}>
         <ResetForm />
       </Suspense>
-    </main>
+    </AuthShell>
   );
 }

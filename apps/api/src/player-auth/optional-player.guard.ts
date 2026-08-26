@@ -2,6 +2,7 @@ import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { AuthGuard } from "@nestjs/passport";
@@ -35,9 +36,13 @@ export class OptionalPlayerAuthGuard extends AuthGuard("player-jwt") {
     err: unknown,
     user: TUser,
     _info?: unknown,
-    _context?: ExecutionContext,
-    _status?: unknown,
+    context?: ExecutionContext,
   ): TUser {
+    const request = context?.switchToHttp().getRequest();
+    const auth = request?.headers?.authorization;
+    if (auth?.startsWith("Bearer ") && (err || !user)) {
+      throw new UnauthorizedException("Invalid or expired token");
+    }
     if (err || !user) {
       return undefined as TUser;
     }

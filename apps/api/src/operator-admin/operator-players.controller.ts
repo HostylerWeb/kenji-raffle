@@ -5,9 +5,11 @@ import {
   Param,
   Patch,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
+import type { FastifyReply } from "fastify";
 import { IsBoolean, IsIn, IsNumber, IsOptional, IsString, Min } from "class-validator";
 import type { OperatorAuthUser, TenantContext } from "@kenji-raffle/shared";
 import { OperatorAuthGuard } from "../operator-auth/operator-auth.guard";
@@ -119,6 +121,16 @@ export class OperatorPlayersController {
       Number(page) || 1,
       Number(limit) || 25,
     );
+  }
+
+  @OperatorRoles("owner", "manager", "support")
+  @Get(":id/kyc/document")
+  async getKycDocument(
+    @TenantCtx() tenant: TenantContext,
+    @Param("id") id: string,
+    @Res() reply: FastifyReply,
+  ) {
+    return this.players.streamKycDocument(tenant.operatorId, id, reply);
   }
 
   @Get(":id")

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { playerFetch } from "@/lib/player-api";
+import { AuthShell } from "@/components/AuthShell";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -29,18 +30,21 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main style={{ maxWidth: 420, margin: "0 auto", padding: "24px 20px" }}>
-      <h1>Forgot password</h1>
-      <form className="form card" onSubmit={onSubmit}>
+    <AuthShell title="Reset password" subtitle="Enter your email and we'll send a reset link.">
+      <form className="site-form" onSubmit={onSubmit}>
         <label>
           Email
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
         </label>
-        {error && <p className="error">{error}</p>}
-        {message && <p style={{ color: "#15803d" }}>{message}</p>}
-        <button type="submit" className="btn" disabled={loading}>Send reset link</button>
+        {error && <p className="site-error">{error}</p>}
+        {message && <p className="site-success-text">{message}</p>}
+        <button type="submit" className="site-btn site-btn--primary site-btn--block" disabled={loading}>
+          Send reset link
+        </button>
+        <p className="site-muted" style={{ textAlign: "center", margin: 0 }}>
+          <Link href="/login">Back to sign in</Link>
+        </p>
       </form>
-      <p style={{ marginTop: 16 }}><Link href="/login">Back to login</Link></p>
-    </main>
+    </AuthShell>
   );
 }

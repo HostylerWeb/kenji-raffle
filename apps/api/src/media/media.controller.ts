@@ -15,6 +15,7 @@ import { MediaStorageService } from "./media-storage.service";
 export class MediaController {
   constructor(private readonly storage: MediaStorageService) {}
 
+  /** Public marketing/operator uploads only — KYC files are never served here. */
   @PublicRoute()
   @Get("files/:operatorId/:name")
   async serveFile(
@@ -22,10 +23,18 @@ export class MediaController {
     @Param("name") name: string,
     @Res() reply: FastifyReply,
   ) {
-    if (name.includes("..") || operatorId.includes("..")) {
+    if (
+      name.includes("..") ||
+      operatorId.includes("..") ||
+      name.startsWith("kyc/") ||
+      name.includes("/kyc/")
+    ) {
       throw new NotFoundException("File not found");
     }
     const storageKey = `tenants/${operatorId}/${name}`;
+    if (this.storage.isKycStorageKey(storageKey)) {
+      throw new NotFoundException("File not found");
+    }
     const { stream, mimeType } = await this.storage.openStream(storageKey);
     reply.header("Content-Type", mimeType);
     reply.header("Cache-Control", "public, max-age=86400");

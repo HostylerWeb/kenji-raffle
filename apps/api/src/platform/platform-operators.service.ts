@@ -707,6 +707,9 @@ export class PlatformOperatorsService {
       feature_flags?: unknown;
       gra_api_key_encrypted: string | null;
       gra_hmac_secret_encrypted: string | null;
+      gra_last_heartbeat_at: Date | null;
+      gra_last_heartbeat_status: string | null;
+      gra_last_heartbeat_error: string | null;
     } | null;
   }) {
     return {
