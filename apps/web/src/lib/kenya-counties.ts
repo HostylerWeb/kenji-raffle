@@ -1,1 +1,1 @@
-export { KENYA_COUNTIES, getKenyaRegionForCounty } from "@kenji-raffle/shared";
+export { KENYA_COUNTIES, getKenyaRegionForCounty } from "@kenji-raffle/shared/kenya-geography";

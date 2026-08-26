@@ -4,6 +4,16 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./kenya-geography": {
+      "types": "./dist/kenya-geography.d.ts",
+      "default": "./dist/kenya-geography.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
