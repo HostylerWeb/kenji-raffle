@@ -105,6 +105,48 @@ Tenant sites (`demo.force42.com`, operator custom domains) call `https://api.for
 
 **After `git pull`:** if operator pages return **500 Internal server error**, run `npm run migrate:platform` — new GRA onboarding columns live in platform migrations (e.g. `operator_settings.legal_name`).
 
+### Domain or VPS change — what to update (CORS + URLs)
+
+When you move to a new base domain (e.g. `force42.com` → `kenji-raffle.co.ke`) or a new VPS, **CORS is env-driven** — you normally do **not** edit application code unless you add new custom request headers.
+
+| Layer | File / place | What to set |
+|-------|----------------|-------------|
+| **API CORS allowlist** | VPS `/var/www/Kenji-raffle/.env` → `CORS_ALLOWED_ORIGINS` | Comma-separated browser origins that may call the API. Include platform console, demo/staging tenant, wildcard for operator subdomains, payment gateway, GRA console if needed. Example: `https://platform.NEWDOMAIN,https://demo.NEWDOMAIN,https://*.NEWDOMAIN,https://pay.NEWDOMAIN,https://console.NEWDOMAIN` |
+| **API public URL** | Same `.env` → `API_PUBLIC_URL` | `https://api.NEWDOMAIN` — used in emails, KYC links, callbacks |
+| **Platform console (browser → API)** | Same `.env` → `NEXT_PUBLIC_PLATFORM_API_URL` | `https://api.NEWDOMAIN` (not `/platform-api` on production) |
+| **Platform console URL** | `NEXT_PUBLIC_PLATFORM_URL`, `NEXT_PUBLIC_PLATFORM_HOSTNAME` | `https://platform.NEWDOMAIN` |
+| **Tenant sites (browser → API)** | Same `.env` → `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_TENANT_BASE_DOMAIN` | `https://api.NEWDOMAIN` and `NEWDOMAIN` (fallback if env missing) |
+| **Tenant web build env** | `apps/web/.env.production` on VPS | Mirror `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_TENANT_BASE_DOMAIN` — used at **build time** |
+| **Operator custom domains** | `CORS_ALLOWED_ORIGINS` | Add each verified custom hostname **or** use `https://*.NEWDOMAIN` wildcard for subdomains only; apex custom domains (e.g. `www.brand.co.ke`) must be listed explicitly — see [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md) |
+| **CORS allowed headers** | `apps/api/src/main.ts` | **Rarely change.** Lists `X-Forwarded-Host`, `X-Cart-Session`, etc. Only touch if you add new custom headers to browser fetch calls |
+| **CORS origin logic** | `apps/api/src/common/security-config.ts` | **Rarely change.** Parses `CORS_ALLOWED_ORIGINS` and supports `https://*.domain` wildcards |
+| **Local dev proxy only** | `apps/platform/next.config.js`, local `.env` `NEXT_PUBLIC_PLATFORM_API_URL="/platform-api"` | Not used on production (`NODE_ENV=production` disables rewrites) |
+| **Reverse proxy / DNS** | Nginx/Apache templates under `deploy/`, Cloudflare DNS | Point `api.`, `platform.`, `*.` hostnames to VPS — not CORS, but required for traffic to reach the API |
+| **GRA / gateway callbacks** | Kenji `.env`: `GRA_INTEGRATIONS_URL`, `KENJI_PLATFORM_CALLBACK_URL`; GRA `.env` | Update if console/ingest hostnames change — separate from browser CORS |
+
+**After changing any `NEXT_PUBLIC_*` or `CORS_ALLOWED_ORIGINS` on the VPS:**
+
+```bash
+cd /var/www/Kenji-raffle
+set -a && source .env && set +a
+npm run build                    # rebakes Next.js public URLs
+pm2 restart raffle-api raffle-web raffle-platform raffle-worker
+```
+
+**Verify CORS** (replace origins with your new domain):
+
+```bash
+curl -sI -X OPTIONS "https://api.NEWDOMAIN/v1/admin/auth/login" \
+  -H "Origin: https://demo.NEWDOMAIN" \
+  -H "Access-Control-Request-Method: POST" \
+  -H "Access-Control-Request-Headers: content-type,x-forwarded-host" \
+  | grep -i access-control
+```
+
+You should see `access-control-allow-origin` and `X-Forwarded-Host` in `access-control-allow-headers`.
+
+**Also documented in:** [docs/VPS_DEPLOYMENT.md](docs/VPS_DEPLOYMENT.md) §6 (production `.env`), [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md) (CORS checklist), [docs/OPERATOR_ONBOARDING.md](docs/OPERATOR_ONBOARDING.md) (custom domain CORS).
+
 ## Ops runbook
 
 | Issue | Fix |

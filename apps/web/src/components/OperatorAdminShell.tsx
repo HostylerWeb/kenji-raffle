@@ -35,6 +35,7 @@ export function OperatorAdminShell({
   const accent = branding?.primary_color ?? "#00a551";
   const [user, setUser] = useState<ReturnType<typeof getOperatorUser>>(null);
   const [onboardingBanner, setOnboardingBanner] = useState<string | null>(null);
+  const [navBadges, setNavBadges] = useState<Record<string, number>>({});
 
   useEffect(() => {
     setUser(getOperatorUser());
@@ -74,24 +75,18 @@ export function OperatorAdminShell({
   }, [pathname, user?.role]);
 
   useEffect(() => {
-    if (!user || (user.role !== "owner" && user.role !== "manager")) return;
-    if (pathname.startsWith("/admin/onboarding")) return;
-    if (pathname.startsWith("/admin/settings")) return;
-    if (pathname === "/admin" || pathname === "/admin/") return;
-    if (pathname === "/admin/login") return;
-
-    operatorFetch<{ legal_profile_locked: boolean; gra_application_status: string }>(
-      "/v1/admin/onboarding/status",
+    if (!getOperatorToken()) return;
+    operatorFetch<{ pending_claims: number; pending_withdrawals: number }>(
+      "/v1/admin/dashboard",
     )
-      .then((status) => {
-        const incomplete =
-          !status.legal_profile_locked || status.gra_application_status === "not_started";
-        if (incomplete) {
-          router.replace("/admin/onboarding");
-        }
+      .then((dashboard) => {
+        setNavBadges({
+          "/admin/prize-claims": dashboard.pending_claims,
+          "/admin/withdrawals": dashboard.pending_withdrawals,
+        });
       })
       .catch(() => undefined);
-  }, [pathname, router, user]);
+  }, [pathname]);
 
   const role = user?.role ?? "owner";
 
@@ -149,7 +144,9 @@ export function OperatorAdminShell({
           {visibleSections.map((section) => (
             <div key={section.label} className="admin-sidebar__section">
               <div className="admin-sidebar__section-label">{section.label}</div>
-              {section.items.map((item) => (
+              {section.items.map((item) => {
+                const badge = navBadges[item.href];
+                return (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -160,9 +157,13 @@ export function OperatorAdminShell({
                   }`}
                 >
                   {item.icon}
-                  {item.label}
+                  <span className="admin-sidebar__link-label">
+                    {item.label}
+                    {badge > 0 ? ` (${badge})` : ""}
+                  </span>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           ))}
         </nav>

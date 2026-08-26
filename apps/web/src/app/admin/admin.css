@@ -136,6 +136,10 @@
   flex-shrink: 0;
 }
 
+.admin-sidebar__link-label {
+  min-width: 0;
+}
+
 .admin-sidebar__link:hover {
   text-decoration: none;
 }
