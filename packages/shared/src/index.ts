@@ -69,6 +69,12 @@ export {
   slugifyDatabaseName,
 } from "./crypto";
 export { slugify } from "./slug";
+export {
+  KENYA_COUNTIES,
+  KENYA_COUNTY_TO_REGION,
+  getKenyaRegionForCounty,
+  type KenyaCounty,
+} from "./kenya-geography";
 export { fisherYatesShuffle, pickRandomItems } from "./random";
 export { enqueueProcessGraOutbound, PLATFORM_QUEUE_NAME } from "./gra-relay-queue";
 export {

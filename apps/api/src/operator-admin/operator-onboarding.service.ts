@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import type { OperatorAuthUser, TenantContext } from "@kenji-raffle/shared";
 import {
+  getKenyaRegionForCounty,
   isGraComplianceReady,
   signPlatformIntegrationBody,
   type GraOperatorApplicationPayload,
@@ -92,6 +93,11 @@ export class OperatorOnboardingService {
       );
     }
 
+    const county = input.county?.trim() || settings.county;
+    const region =
+      getKenyaRegionForCounty(county) ??
+      (input.region?.trim() || settings.region);
+
     const updated = await this.platformPrisma.client.operator_settings.update({
       where: { operator_id: tenant.operatorId },
       data: {
@@ -104,8 +110,8 @@ export class OperatorOnboardingService {
           input.beneficial_owner?.trim() || settings.beneficial_owner,
         business_email: input.business_email?.trim() || settings.business_email,
         business_phone: input.business_phone?.trim() || settings.business_phone,
-        county: input.county?.trim() || settings.county,
-        region: input.region?.trim() || settings.region,
+        county,
+        region,
         website: input.website?.trim() || settings.website,
       },
     });
@@ -142,9 +148,17 @@ export class OperatorOnboardingService {
       }
     }
 
+    const derivedRegion = getKenyaRegionForCounty(profile.county);
+    if (profile.county?.trim() && !derivedRegion) {
+      throw new BadRequestException("Could not determine region for selected county");
+    }
+
     const updated = await this.platformPrisma.client.operator_settings.update({
       where: { operator_id: tenant.operatorId },
-      data: { legal_profile_locked_at: new Date() },
+      data: {
+        legal_profile_locked_at: new Date(),
+        ...(derivedRegion ? { region: derivedRegion } : {}),
+      },
     });
 
     await this.audit.log(

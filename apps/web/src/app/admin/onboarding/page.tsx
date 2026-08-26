@@ -9,6 +9,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { useAdminToast } from "@/components/admin/AdminToast";
 import { getOperatorToken, operatorFetch } from "@/lib/api";
+import { KENYA_COUNTIES, getKenyaRegionForCounty } from "@/lib/kenya-counties";
 
 type LegalProfile = {
   legal_name: string | null;
@@ -36,15 +37,9 @@ type OnboardingStatus = {
   checkout_enabled: boolean;
 };
 
-const KENYA_COUNTIES = [
-  "Nairobi",
-  "Mombasa",
-  "Kiambu",
-  "Nakuru",
-  "Kisumu",
-  "Machakos",
-  "Other",
-];
+function resolveRegion(county: string, existingRegion?: string | null) {
+  return getKenyaRegionForCounty(county) ?? existingRegion ?? "";
+}
 
 export default function OperatorOnboardingPage() {
   const router = useRouter();
@@ -76,8 +71,13 @@ export default function OperatorOnboardingPage() {
     setBusinessEmail(data.business_email ?? "");
     setBusinessPhone(data.business_phone ?? "");
     setCounty(data.county ?? "");
-    setRegion(data.region ?? "");
+    setRegion(resolveRegion(data.county ?? "", data.region));
     setWebsite(data.website ?? "");
+  }
+
+  function handleCountyChange(nextCounty: string) {
+    setCounty(nextCounty);
+    setRegion(resolveRegion(nextCounty));
   }
 
   async function load() {
@@ -159,6 +159,35 @@ export default function OperatorOnboardingPage() {
   const locked = Boolean(profile?.legal_profile_locked_at);
   const graStatus = status?.gra_application_status ?? "not_started";
 
+  const lockProfileSummary = (
+    <dl>
+      <dt>Company</dt>
+      <dd>{legalName.trim() || "—"}</dd>
+      <dt>Trading name</dt>
+      <dd>{tradingName.trim() || "—"}</dd>
+      <dt>Reg. no.</dt>
+      <dd>{registrationNumber.trim() || "—"}</dd>
+      <dt>KRA PIN</dt>
+      <dd>{kraPin.trim() || "—"}</dd>
+      <dt>Beneficial owner</dt>
+      <dd>{beneficialOwner.trim() || "—"}</dd>
+      <dt>Email</dt>
+      <dd>{businessEmail.trim() || "—"}</dd>
+      <dt>Phone</dt>
+      <dd>{businessPhone.trim() || "—"}</dd>
+      <dt>County</dt>
+      <dd>{county.trim() || "—"}</dd>
+      <dt>Region</dt>
+      <dd>{region.trim() || "—"}</dd>
+      {website.trim() ? (
+        <>
+          <dt>Website</dt>
+          <dd>{website.trim()}</dd>
+        </>
+      ) : null}
+    </dl>
+  );
+
   return (
     <OperatorAdminShell
       title="GRA onboarding"
@@ -208,7 +237,10 @@ export default function OperatorOnboardingPage() {
               <p>Legal profile confirmed. Submit your GRA connection request below.</p>
             )}
             {!locked && (
-              <p>Enter your company details, save, then confirm to lock them before requesting GRA.</p>
+              <p>
+                Enter your company details (registered name, trading name, and beneficial owner),
+                save, then confirm to lock them before requesting GRA.
+              </p>
             )}
           </div>
         </div>
@@ -228,12 +260,30 @@ export default function OperatorOnboardingPage() {
         <form className="admin-form admin-panel__body" onSubmit={saveProfile}>
           <div className="admin-form__grid">
             <label>
-              Legal name
-              <input value={legalName} onChange={(e) => setLegalName(e.target.value)} required disabled={locked} />
+              Registered company name
+              <input
+                value={legalName}
+                onChange={(e) => setLegalName(e.target.value)}
+                required
+                disabled={locked}
+                placeholder="Safari Jackpot Ltd"
+              />
+              <span className="field-hint">
+                Legal entity name as on your certificate of incorporation — not a person&apos;s name.
+              </span>
             </label>
             <label>
-              Trading name
-              <input value={tradingName} onChange={(e) => setTradingName(e.target.value)} required disabled={locked} />
+              Trading / brand name
+              <input
+                value={tradingName}
+                onChange={(e) => setTradingName(e.target.value)}
+                required
+                disabled={locked}
+                placeholder="Safari Jackpot Raffles"
+              />
+              <span className="field-hint">
+                Name customers know you by. Can match the registered company name.
+              </span>
             </label>
             <label>
               Registration number
@@ -242,20 +292,31 @@ export default function OperatorOnboardingPage() {
                 onChange={(e) => setRegistrationNumber(e.target.value)}
                 required
                 disabled={locked}
+                placeholder="PVT-XXXXXX"
               />
             </label>
             <label>
               KRA PIN
-              <input value={kraPin} onChange={(e) => setKraPin(e.target.value)} required disabled={locked} />
+              <input
+                value={kraPin}
+                onChange={(e) => setKraPin(e.target.value)}
+                required
+                disabled={locked}
+                placeholder="P051234567A"
+              />
             </label>
             <label>
-              Beneficial owner
+              Beneficial owner (full legal name)
               <input
                 value={beneficialOwner}
                 onChange={(e) => setBeneficialOwner(e.target.value)}
                 required
                 disabled={locked}
+                placeholder="Jane Wanjiku Kamau"
               />
+              <span className="field-hint">
+                Full legal name of the person who ultimately owns or controls the business.
+              </span>
             </label>
             <label>
               Business email
@@ -274,11 +335,17 @@ export default function OperatorOnboardingPage() {
                 onChange={(e) => setBusinessPhone(e.target.value)}
                 required
                 disabled={locked}
+                placeholder="+254712345678"
               />
             </label>
             <label>
               County
-              <select value={county} onChange={(e) => setCounty(e.target.value)} required disabled={locked}>
+              <select
+                value={county}
+                onChange={(e) => handleCountyChange(e.target.value)}
+                required
+                disabled={locked}
+              >
                 <option value="">Select county</option>
                 {KENYA_COUNTIES.map((c) => (
                   <option key={c} value={c}>
@@ -289,11 +356,18 @@ export default function OperatorOnboardingPage() {
             </label>
             <label>
               Region
-              <input value={region} onChange={(e) => setRegion(e.target.value)} disabled={locked} />
+              <input value={region} readOnly disabled={locked} placeholder="Select a county first" />
+              <span className="field-hint">Filled automatically from your county selection.</span>
             </label>
             <label>
-              Website (optional)
-              <input value={website} onChange={(e) => setWebsite(e.target.value)} disabled={locked} />
+              Your domain URL / website (optional)
+              <input
+                type="url"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                disabled={locked}
+                placeholder="https://your-domain.co.ke"
+              />
             </label>
           </div>
 
@@ -305,8 +379,9 @@ export default function OperatorOnboardingPage() {
               <AdminConfirm
                 title="Lock legal profile?"
                 body="Review every field carefully. After you type CONFIRM, these details cannot be changed without platform support."
+                details={lockProfileSummary}
                 confirmLabel="Lock profile"
-                promptLabel='Type CONFIRM to lock'
+                promptLabel="Type CONFIRM to lock"
                 onConfirm={confirmProfile}
               >
                 {(open) => (

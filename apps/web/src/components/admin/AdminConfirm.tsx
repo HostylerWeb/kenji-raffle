@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 export function AdminConfirm({
   title,
   body,
+  details,
   confirmLabel = "Confirm",
   danger,
   promptLabel,
@@ -13,6 +14,7 @@ export function AdminConfirm({
 }: {
   title: string;
   body: string;
+  details?: ReactNode;
   confirmLabel?: string;
   danger?: boolean;
   promptLabel?: string;
@@ -60,6 +62,7 @@ export function AdminConfirm({
             </div>
             <div className="admin-modal__body">
               <p>{body}</p>
+              {details ? <div className="admin-confirm-summary">{details}</div> : null}
               {promptLabel ? (
                 <label>
                   {promptLabel}

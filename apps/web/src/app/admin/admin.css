@@ -2365,6 +2365,37 @@
   color: var(--admin-text-muted);
 }
 
+.admin-confirm-summary {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: #fff;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.admin-confirm-summary dl {
+  display: grid;
+  grid-template-columns: minmax(7rem, 38%) 1fr;
+  gap: 6px 10px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.admin-confirm-summary dt {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-weight: 600;
+}
+
+.admin-confirm-summary dd {
+  margin: 0;
+  color: var(--admin-text);
+  word-break: break-word;
+}
+
 .admin-modal__body label {
   margin-bottom: 0;
 }
