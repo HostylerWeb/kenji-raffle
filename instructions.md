@@ -85,10 +85,30 @@ Platform login: `admin@platform.local` / `ChangeMe123!`
 
 Custom domains: set `CUSTOM_DOMAIN_CNAME_TARGET` in `.env` (default ingress target shown in operator domain DNS instructions).
 
+## Local dev — CORS and API proxy
+
+The platform console and tenant sites use **custom hostnames** in `/etc/hosts` (e.g. `platform.kenji-raffle.local`, `demo.kenji-raffle.local`), while the API listens on **`localhost:4002`**. Browsers treat those as **different origins**, so calling `http://localhost:4002` directly from the UI causes **“Failed to fetch”** on login and other actions (CORS preflight fails).
+
+**Fix (local only):** the platform Next app proxies API calls on the **same origin**:
+
+| What | Value |
+|------|--------|
+| Browser calls | `http://platform.kenji-raffle.local:3003/platform-api/...` |
+| Next.js forwards to | `http://127.0.0.1:4002/...` (see `apps/platform/next.config.js`) |
+| `.env` | `NEXT_PUBLIC_PLATFORM_API_URL="/platform-api"` |
+
+Use **`platform.kenji-raffle.local:3003`** (not bare `localhost:3003`) so hostnames match `/etc/hosts`. Restart `dev:platform` after changing `next.config.js` or `NEXT_PUBLIC_*` vars.
+
+**Production (VPS)** is different: the platform build uses `NEXT_PUBLIC_PLATFORM_API_URL=https://api.force42.com`, and the API allowlists origins via `CORS_ALLOWED_ORIGINS` (see [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)). The `/platform-api` rewrite is **disabled when `NODE_ENV=production`** — live traffic always hits the public API URL directly.
+
+**After `git pull`:** if operator pages return **500 Internal server error**, run `npm run migrate:platform` — new GRA onboarding columns live in platform migrations (e.g. `operator_settings.legal_name`).
+
 ## Ops runbook
 
 | Issue | Fix |
 |-------|-----|
+| Platform login **“Failed to fetch”** on `*.kenji-raffle.local:3003` | Use `NEXT_PUBLIC_PLATFORM_API_URL="/platform-api"` and access via `platform.kenji-raffle.local:3003` (not cross-origin `localhost:4002`). Restart `dev:platform`. See **Local dev — CORS and API proxy** above. |
+| Operator detail **500 Internal server error** after pull | Run `npm run migrate:platform` (missing `operator_settings.*` columns). |
 | Operator stuck in onboarding | Ensure `npm run dev:worker` is running; check **System** page for failed jobs |
 | **System → Worker “Not running”** | Start `npm run dev:worker` from repo root. Heartbeat expires after ~2 min if the process stops. Page auto-refreshes every 30s. |
 | **System → Queue failed (high count)** | Usually the worker ran **without `.env`** (`PLATFORM_DATABASE_URL`, `CREDENTIALS_ENCRYPTION_KEY`). Restart worker (it loads `.env` via `--env-file`). On **System**, admins can **Clear failed jobs** after fixing. |

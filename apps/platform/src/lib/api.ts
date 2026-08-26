@@ -1,4 +1,6 @@
-const API = process.env.NEXT_PUBLIC_PLATFORM_API_URL ?? "http://localhost:4002";
+const API =
+  process.env.NEXT_PUBLIC_PLATFORM_API_URL?.replace(/\/$/, "") ??
+  "/platform-api";
 const USE_COOKIES =
   process.env.NEXT_PUBLIC_PLATFORM_AUTH_COOKIES === "true";
 
