@@ -972,11 +972,12 @@ export default function OperatorDetailPage() {
         </div>
       )}
 
-      {admin && operator.status === "archived" && (
+      {admin && operator.slug !== "demo" && (
         <div className="card" style={{ marginBottom: 16 }}>
           <h2 style={{ marginTop: 0 }}>Permanent delete</h2>
           <p className="muted">
-            Drops tenant database and removes operator registry. Cannot be undone.
+            Removes the operator from Kenji (tenant database, domains, settings)
+            and from GRA (application and registry records). Cannot be undone.
           </p>
           <label>
             Confirm slug <code>{operator.slug}</code>

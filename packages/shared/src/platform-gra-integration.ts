@@ -75,3 +75,51 @@ export type GraApplicationRejectedPayload = {
   status: "rejected";
   rejection_reason: string;
 };
+
+export type GraPlatformOperatorTeardownPayload = {
+  platform_operator_id: string;
+  gra_registry_id?: string;
+};
+
+export async function requestGraPlatformOperatorTeardown(
+  platformOperatorId: string,
+  graRegistryId?: string,
+): Promise<{ ok: true; skipped?: boolean }> {
+  const graBase = process.env.GRA_INTEGRATIONS_URL?.trim();
+  const secret = process.env.PLATFORM_GRA_INTEGRATION_SECRET?.trim();
+  if (!graBase || !secret) {
+    return { ok: true, skipped: true };
+  }
+
+  const payload: GraPlatformOperatorTeardownPayload = {
+    platform_operator_id: platformOperatorId,
+    ...(graRegistryId ? { gra_registry_id: graRegistryId } : {}),
+  };
+  const bodyJson = JSON.stringify(payload);
+  const signature = signPlatformIntegrationBody(bodyJson, secret);
+
+  const res = await fetch(
+    `${graBase.replace(/\/$/, "")}/platform-operators/teardown`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Platform-Signature": signature,
+      },
+      body: bodyJson,
+    },
+  );
+
+  if (res.status === 404) {
+    return { ok: true };
+  }
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(
+      `GRA operator teardown failed (${res.status}): ${errText.slice(0, 200)}`,
+    );
+  }
+
+  return { ok: true };
+}

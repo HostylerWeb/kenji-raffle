@@ -43,6 +43,14 @@ enum platform_role {
   platform_support
 }
 
+enum gra_application_status {
+  not_started
+  submitted
+  pending_review
+  approved
+  rejected
+}
+
 model operators {
   id               String          @id @default(uuid()) @db.Uuid
   gra_registry_id  String          @unique
@@ -96,28 +104,46 @@ model operator_domains {
 }
 
 model operator_settings {
-  id                             String    @id @default(uuid()) @db.Uuid
-  operator_id                    String    @unique @db.Uuid
-  logo_url                       String?
-  primary_color                  String?
-  support_email                  String?
-  footer_licence_text            String?
-  social_links                   Json?
-  gra_api_key_encrypted          String?
-  gra_hmac_secret_encrypted      String?
-  gra_last_heartbeat_at          DateTime? @db.Timestamptz(6)
-  gra_last_heartbeat_status      String?
-  gra_last_heartbeat_error       String?
-  payment_merchant_ref_encrypted String?
-  feature_flags                  Json      @default("{}")
-  ga4_measurement_id             String?
-  facebook_pixel_id              String?
-  analytics_enabled              Boolean   @default(false)
-  faq_text                       String?
-  terms_text                     String?
-  privacy_text                   String?
-  created_at                     DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at                     DateTime  @updatedAt @db.Timestamptz(6)
+  id                                 String                 @id @default(uuid()) @db.Uuid
+  operator_id                        String                 @unique @db.Uuid
+  logo_url                           String?
+  primary_color                      String?
+  support_email                      String?
+  footer_licence_text                String?
+  social_links                       Json?
+  gra_api_key_encrypted              String?
+  gra_hmac_secret_encrypted          String?
+  gra_last_heartbeat_at              DateTime?              @db.Timestamptz(6)
+  gra_last_heartbeat_status          String?
+  gra_last_heartbeat_error           String?
+  payment_merchant_ref_encrypted     String?
+  feature_flags                      Json                   @default("{}")
+  ga4_measurement_id                 String?
+  facebook_pixel_id                  String?
+  analytics_enabled                  Boolean                @default(false)
+  faq_text                           String?
+  terms_text                         String?
+  privacy_text                       String?
+  legal_name                         String?
+  trading_name                       String?
+  registration_number                String?
+  kra_pin                            String?
+  beneficial_owner                   String?
+  business_email                     String?
+  business_phone                     String?
+  county                             String?
+  region                             String?
+  website                            String?
+  legal_profile_locked_at            DateTime?              @db.Timestamptz(6)
+  gra_application_status             gra_application_status @default(not_started)
+  gra_application_id                 String?                @db.Uuid
+  gra_application_submitted_at       DateTime?              @db.Timestamptz(6)
+  gra_approved_at                    DateTime?              @db.Timestamptz(6)
+  gra_rejection_reason               String?
+  provision_owner_email              String?
+  provision_owner_password_encrypted String?
+  created_at                         DateTime               @default(now()) @db.Timestamptz(6)
+  updated_at                         DateTime               @updatedAt @db.Timestamptz(6)
 
   operator operators @relation(fields: [operator_id], references: [id], onDelete: Cascade)
 }

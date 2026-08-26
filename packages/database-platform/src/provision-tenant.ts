@@ -7,6 +7,7 @@ import {
   encryptSecret,
   requireEnv,
   slugifyDatabaseName,
+  decryptSecret,
 } from "@kenji-raffle/shared";
 import { TENANT_SCHEMA_VERSION } from "./tenant-schema-version";
 import { platformPrisma } from "./index";
@@ -30,7 +31,7 @@ export async function provisionTenantForOperator(
 
   const operator = await platformPrisma.operators.findUnique({
     where: { id: operatorId },
-    include: { tenant_database: true },
+    include: { tenant_database: true, settings: true },
   });
 
   if (!operator) {
@@ -49,7 +50,9 @@ export async function provisionTenantForOperator(
       operatorId: operator.id,
       databaseName: operator.tenant_database.database_name,
       hostname,
-      ownerEmail: `owner@${operator.slug}.local`,
+      ownerEmail:
+        operator.settings?.provision_owner_email ??
+        `owner@${operator.slug}.local`,
     };
   }
 
@@ -154,8 +157,18 @@ export async function provisionTenantForOperator(
 
     const tenantClient = new Client({ connectionString: connectionUrl });
     await tenantClient.connect();
-    const ownerEmail = `owner@${slug}.local`;
-    const ownerHash = await bcrypt.hash("ChangeMe123!", 12);
+    const defaultOwnerEmail = `owner@${slug}.local`;
+    const defaultOwnerPassword = "ChangeMe123!";
+    const ownerEmail =
+      operator.settings?.provision_owner_email?.trim().toLowerCase() ||
+      defaultOwnerEmail;
+    let ownerPassword = defaultOwnerPassword;
+    const encryptedOwnerPassword =
+      operator.settings?.provision_owner_password_encrypted;
+    if (encryptedOwnerPassword) {
+      ownerPassword = decryptSecret(encryptedOwnerPassword, encryptionKey);
+    }
+    const ownerHash = await bcrypt.hash(ownerPassword, 12);
     await tenantClient.query(
       `INSERT INTO operator_staff (id, email, password_hash, role, created_at, updated_at)
        VALUES (gen_random_uuid(), $1, $2, 'owner', NOW(), NOW())
@@ -163,6 +176,11 @@ export async function provisionTenantForOperator(
       [ownerEmail, ownerHash],
     );
     await tenantClient.end();
+
+    await platformPrisma.operator_settings.update({
+      where: { operator_id: operator.id },
+      data: { provision_owner_password_encrypted: null },
+    });
 
     await platformPrisma.tenant_databases.update({
       where: { operator_id: operator.id },

@@ -55,10 +55,12 @@ export {
   signPlatformIntegrationBody,
   verifyPlatformIntegrationSignature,
   isGraComplianceReady,
+  requestGraPlatformOperatorTeardown,
   type GraApplicationStatus,
   type GraOperatorApplicationPayload,
   type GraCredentialsCallbackPayload,
   type GraApplicationRejectedPayload,
+  type GraPlatformOperatorTeardownPayload,
 } from "./platform-gra-integration";
 export {
   encryptSecret,

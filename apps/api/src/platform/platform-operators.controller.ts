@@ -56,6 +56,17 @@ class CreateOperatorDto {
   @IsString()
   @MaxLength(64)
   licence_number?: string;
+
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(255)
+  owner_email?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  owner_password?: string;
 }
 
 class UpdateOperatorDto {

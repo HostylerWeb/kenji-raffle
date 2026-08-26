@@ -110,6 +110,17 @@ export const platform_role: {
 
 export type platform_role = (typeof platform_role)[keyof typeof platform_role]
 
+
+export const gra_application_status: {
+  not_started: 'not_started',
+  submitted: 'submitted',
+  pending_review: 'pending_review',
+  approved: 'approved',
+  rejected: 'rejected'
+};
+
+export type gra_application_status = (typeof gra_application_status)[keyof typeof gra_application_status]
+
 }
 
 export type operator_status = $Enums.operator_status
@@ -135,6 +146,10 @@ export const tenant_database_status: typeof $Enums.tenant_database_status
 export type platform_role = $Enums.platform_role
 
 export const platform_role: typeof $Enums.platform_role
+
+export type gra_application_status = $Enums.gra_application_status
+
+export const gra_application_status: typeof $Enums.gra_application_status
 
 /**
  * ##  Prisma Client ʲˢ
@@ -5252,6 +5267,24 @@ export namespace Prisma {
     faq_text: string | null
     terms_text: string | null
     privacy_text: string | null
+    legal_name: string | null
+    trading_name: string | null
+    registration_number: string | null
+    kra_pin: string | null
+    beneficial_owner: string | null
+    business_email: string | null
+    business_phone: string | null
+    county: string | null
+    region: string | null
+    website: string | null
+    legal_profile_locked_at: Date | null
+    gra_application_status: $Enums.gra_application_status | null
+    gra_application_id: string | null
+    gra_application_submitted_at: Date | null
+    gra_approved_at: Date | null
+    gra_rejection_reason: string | null
+    provision_owner_email: string | null
+    provision_owner_password_encrypted: string | null
     created_at: Date | null
     updated_at: Date | null
   }
@@ -5275,6 +5308,24 @@ export namespace Prisma {
     faq_text: string | null
     terms_text: string | null
     privacy_text: string | null
+    legal_name: string | null
+    trading_name: string | null
+    registration_number: string | null
+    kra_pin: string | null
+    beneficial_owner: string | null
+    business_email: string | null
+    business_phone: string | null
+    county: string | null
+    region: string | null
+    website: string | null
+    legal_profile_locked_at: Date | null
+    gra_application_status: $Enums.gra_application_status | null
+    gra_application_id: string | null
+    gra_application_submitted_at: Date | null
+    gra_approved_at: Date | null
+    gra_rejection_reason: string | null
+    provision_owner_email: string | null
+    provision_owner_password_encrypted: string | null
     created_at: Date | null
     updated_at: Date | null
   }
@@ -5300,6 +5351,24 @@ export namespace Prisma {
     faq_text: number
     terms_text: number
     privacy_text: number
+    legal_name: number
+    trading_name: number
+    registration_number: number
+    kra_pin: number
+    beneficial_owner: number
+    business_email: number
+    business_phone: number
+    county: number
+    region: number
+    website: number
+    legal_profile_locked_at: number
+    gra_application_status: number
+    gra_application_id: number
+    gra_application_submitted_at: number
+    gra_approved_at: number
+    gra_rejection_reason: number
+    provision_owner_email: number
+    provision_owner_password_encrypted: number
     created_at: number
     updated_at: number
     _all: number
@@ -5325,6 +5394,24 @@ export namespace Prisma {
     faq_text?: true
     terms_text?: true
     privacy_text?: true
+    legal_name?: true
+    trading_name?: true
+    registration_number?: true
+    kra_pin?: true
+    beneficial_owner?: true
+    business_email?: true
+    business_phone?: true
+    county?: true
+    region?: true
+    website?: true
+    legal_profile_locked_at?: true
+    gra_application_status?: true
+    gra_application_id?: true
+    gra_application_submitted_at?: true
+    gra_approved_at?: true
+    gra_rejection_reason?: true
+    provision_owner_email?: true
+    provision_owner_password_encrypted?: true
     created_at?: true
     updated_at?: true
   }
@@ -5348,6 +5435,24 @@ export namespace Prisma {
     faq_text?: true
     terms_text?: true
     privacy_text?: true
+    legal_name?: true
+    trading_name?: true
+    registration_number?: true
+    kra_pin?: true
+    beneficial_owner?: true
+    business_email?: true
+    business_phone?: true
+    county?: true
+    region?: true
+    website?: true
+    legal_profile_locked_at?: true
+    gra_application_status?: true
+    gra_application_id?: true
+    gra_application_submitted_at?: true
+    gra_approved_at?: true
+    gra_rejection_reason?: true
+    provision_owner_email?: true
+    provision_owner_password_encrypted?: true
     created_at?: true
     updated_at?: true
   }
@@ -5373,6 +5478,24 @@ export namespace Prisma {
     faq_text?: true
     terms_text?: true
     privacy_text?: true
+    legal_name?: true
+    trading_name?: true
+    registration_number?: true
+    kra_pin?: true
+    beneficial_owner?: true
+    business_email?: true
+    business_phone?: true
+    county?: true
+    region?: true
+    website?: true
+    legal_profile_locked_at?: true
+    gra_application_status?: true
+    gra_application_id?: true
+    gra_application_submitted_at?: true
+    gra_approved_at?: true
+    gra_rejection_reason?: true
+    provision_owner_email?: true
+    provision_owner_password_encrypted?: true
     created_at?: true
     updated_at?: true
     _all?: true
@@ -5471,6 +5594,24 @@ export namespace Prisma {
     faq_text: string | null
     terms_text: string | null
     privacy_text: string | null
+    legal_name: string | null
+    trading_name: string | null
+    registration_number: string | null
+    kra_pin: string | null
+    beneficial_owner: string | null
+    business_email: string | null
+    business_phone: string | null
+    county: string | null
+    region: string | null
+    website: string | null
+    legal_profile_locked_at: Date | null
+    gra_application_status: $Enums.gra_application_status
+    gra_application_id: string | null
+    gra_application_submitted_at: Date | null
+    gra_approved_at: Date | null
+    gra_rejection_reason: string | null
+    provision_owner_email: string | null
+    provision_owner_password_encrypted: string | null
     created_at: Date
     updated_at: Date
     _count: Operator_settingsCountAggregateOutputType | null
@@ -5513,6 +5654,24 @@ export namespace Prisma {
     faq_text?: boolean
     terms_text?: boolean
     privacy_text?: boolean
+    legal_name?: boolean
+    trading_name?: boolean
+    registration_number?: boolean
+    kra_pin?: boolean
+    beneficial_owner?: boolean
+    business_email?: boolean
+    business_phone?: boolean
+    county?: boolean
+    region?: boolean
+    website?: boolean
+    legal_profile_locked_at?: boolean
+    gra_application_status?: boolean
+    gra_application_id?: boolean
+    gra_application_submitted_at?: boolean
+    gra_approved_at?: boolean
+    gra_rejection_reason?: boolean
+    provision_owner_email?: boolean
+    provision_owner_password_encrypted?: boolean
     created_at?: boolean
     updated_at?: boolean
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
@@ -5539,6 +5698,24 @@ export namespace Prisma {
     faq_text?: boolean
     terms_text?: boolean
     privacy_text?: boolean
+    legal_name?: boolean
+    trading_name?: boolean
+    registration_number?: boolean
+    kra_pin?: boolean
+    beneficial_owner?: boolean
+    business_email?: boolean
+    business_phone?: boolean
+    county?: boolean
+    region?: boolean
+    website?: boolean
+    legal_profile_locked_at?: boolean
+    gra_application_status?: boolean
+    gra_application_id?: boolean
+    gra_application_submitted_at?: boolean
+    gra_approved_at?: boolean
+    gra_rejection_reason?: boolean
+    provision_owner_email?: boolean
+    provision_owner_password_encrypted?: boolean
     created_at?: boolean
     updated_at?: boolean
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
@@ -5565,6 +5742,24 @@ export namespace Prisma {
     faq_text?: boolean
     terms_text?: boolean
     privacy_text?: boolean
+    legal_name?: boolean
+    trading_name?: boolean
+    registration_number?: boolean
+    kra_pin?: boolean
+    beneficial_owner?: boolean
+    business_email?: boolean
+    business_phone?: boolean
+    county?: boolean
+    region?: boolean
+    website?: boolean
+    legal_profile_locked_at?: boolean
+    gra_application_status?: boolean
+    gra_application_id?: boolean
+    gra_application_submitted_at?: boolean
+    gra_approved_at?: boolean
+    gra_rejection_reason?: boolean
+    provision_owner_email?: boolean
+    provision_owner_password_encrypted?: boolean
     created_at?: boolean
     updated_at?: boolean
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
@@ -5591,11 +5786,29 @@ export namespace Prisma {
     faq_text?: boolean
     terms_text?: boolean
     privacy_text?: boolean
+    legal_name?: boolean
+    trading_name?: boolean
+    registration_number?: boolean
+    kra_pin?: boolean
+    beneficial_owner?: boolean
+    business_email?: boolean
+    business_phone?: boolean
+    county?: boolean
+    region?: boolean
+    website?: boolean
+    legal_profile_locked_at?: boolean
+    gra_application_status?: boolean
+    gra_application_id?: boolean
+    gra_application_submitted_at?: boolean
+    gra_approved_at?: boolean
+    gra_rejection_reason?: boolean
+    provision_owner_email?: boolean
+    provision_owner_password_encrypted?: boolean
     created_at?: boolean
     updated_at?: boolean
   }
 
-  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "primary_color" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "gra_last_heartbeat_at" | "gra_last_heartbeat_status" | "gra_last_heartbeat_error" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
+  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "primary_color" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "gra_last_heartbeat_at" | "gra_last_heartbeat_status" | "gra_last_heartbeat_error" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "legal_name" | "trading_name" | "registration_number" | "kra_pin" | "beneficial_owner" | "business_email" | "business_phone" | "county" | "region" | "website" | "legal_profile_locked_at" | "gra_application_status" | "gra_application_id" | "gra_application_submitted_at" | "gra_approved_at" | "gra_rejection_reason" | "provision_owner_email" | "provision_owner_password_encrypted" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
   export type operator_settingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
   }
@@ -5632,6 +5845,24 @@ export namespace Prisma {
       faq_text: string | null
       terms_text: string | null
       privacy_text: string | null
+      legal_name: string | null
+      trading_name: string | null
+      registration_number: string | null
+      kra_pin: string | null
+      beneficial_owner: string | null
+      business_email: string | null
+      business_phone: string | null
+      county: string | null
+      region: string | null
+      website: string | null
+      legal_profile_locked_at: Date | null
+      gra_application_status: $Enums.gra_application_status
+      gra_application_id: string | null
+      gra_application_submitted_at: Date | null
+      gra_approved_at: Date | null
+      gra_rejection_reason: string | null
+      provision_owner_email: string | null
+      provision_owner_password_encrypted: string | null
       created_at: Date
       updated_at: Date
     }, ExtArgs["result"]["operator_settings"]>
@@ -6078,6 +6309,24 @@ export namespace Prisma {
     readonly faq_text: FieldRef<"operator_settings", 'String'>
     readonly terms_text: FieldRef<"operator_settings", 'String'>
     readonly privacy_text: FieldRef<"operator_settings", 'String'>
+    readonly legal_name: FieldRef<"operator_settings", 'String'>
+    readonly trading_name: FieldRef<"operator_settings", 'String'>
+    readonly registration_number: FieldRef<"operator_settings", 'String'>
+    readonly kra_pin: FieldRef<"operator_settings", 'String'>
+    readonly beneficial_owner: FieldRef<"operator_settings", 'String'>
+    readonly business_email: FieldRef<"operator_settings", 'String'>
+    readonly business_phone: FieldRef<"operator_settings", 'String'>
+    readonly county: FieldRef<"operator_settings", 'String'>
+    readonly region: FieldRef<"operator_settings", 'String'>
+    readonly website: FieldRef<"operator_settings", 'String'>
+    readonly legal_profile_locked_at: FieldRef<"operator_settings", 'DateTime'>
+    readonly gra_application_status: FieldRef<"operator_settings", 'gra_application_status'>
+    readonly gra_application_id: FieldRef<"operator_settings", 'String'>
+    readonly gra_application_submitted_at: FieldRef<"operator_settings", 'DateTime'>
+    readonly gra_approved_at: FieldRef<"operator_settings", 'DateTime'>
+    readonly gra_rejection_reason: FieldRef<"operator_settings", 'String'>
+    readonly provision_owner_email: FieldRef<"operator_settings", 'String'>
+    readonly provision_owner_password_encrypted: FieldRef<"operator_settings", 'String'>
     readonly created_at: FieldRef<"operator_settings", 'DateTime'>
     readonly updated_at: FieldRef<"operator_settings", 'DateTime'>
   }
@@ -11067,6 +11316,24 @@ export namespace Prisma {
     faq_text: 'faq_text',
     terms_text: 'terms_text',
     privacy_text: 'privacy_text',
+    legal_name: 'legal_name',
+    trading_name: 'trading_name',
+    registration_number: 'registration_number',
+    kra_pin: 'kra_pin',
+    beneficial_owner: 'beneficial_owner',
+    business_email: 'business_email',
+    business_phone: 'business_phone',
+    county: 'county',
+    region: 'region',
+    website: 'website',
+    legal_profile_locked_at: 'legal_profile_locked_at',
+    gra_application_status: 'gra_application_status',
+    gra_application_id: 'gra_application_id',
+    gra_application_submitted_at: 'gra_application_submitted_at',
+    gra_approved_at: 'gra_approved_at',
+    gra_rejection_reason: 'gra_rejection_reason',
+    provision_owner_email: 'provision_owner_email',
+    provision_owner_password_encrypted: 'provision_owner_password_encrypted',
     created_at: 'created_at',
     updated_at: 'updated_at'
   };
@@ -11329,6 +11596,20 @@ export namespace Prisma {
    * Reference to a field of type 'QueryMode'
    */
   export type EnumQueryModeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'QueryMode'>
+    
+
+
+  /**
+   * Reference to a field of type 'gra_application_status'
+   */
+  export type Enumgra_application_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'gra_application_status'>
+    
+
+
+  /**
+   * Reference to a field of type 'gra_application_status[]'
+   */
+  export type ListEnumgra_application_statusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'gra_application_status[]'>
     
 
 
@@ -11648,6 +11929,24 @@ export namespace Prisma {
     faq_text?: StringNullableFilter<"operator_settings"> | string | null
     terms_text?: StringNullableFilter<"operator_settings"> | string | null
     privacy_text?: StringNullableFilter<"operator_settings"> | string | null
+    legal_name?: StringNullableFilter<"operator_settings"> | string | null
+    trading_name?: StringNullableFilter<"operator_settings"> | string | null
+    registration_number?: StringNullableFilter<"operator_settings"> | string | null
+    kra_pin?: StringNullableFilter<"operator_settings"> | string | null
+    beneficial_owner?: StringNullableFilter<"operator_settings"> | string | null
+    business_email?: StringNullableFilter<"operator_settings"> | string | null
+    business_phone?: StringNullableFilter<"operator_settings"> | string | null
+    county?: StringNullableFilter<"operator_settings"> | string | null
+    region?: StringNullableFilter<"operator_settings"> | string | null
+    website?: StringNullableFilter<"operator_settings"> | string | null
+    legal_profile_locked_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_application_status?: Enumgra_application_statusFilter<"operator_settings"> | $Enums.gra_application_status
+    gra_application_id?: UuidNullableFilter<"operator_settings"> | string | null
+    gra_application_submitted_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_approved_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_rejection_reason?: StringNullableFilter<"operator_settings"> | string | null
+    provision_owner_email?: StringNullableFilter<"operator_settings"> | string | null
+    provision_owner_password_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     created_at?: DateTimeFilter<"operator_settings"> | Date | string
     updated_at?: DateTimeFilter<"operator_settings"> | Date | string
     operator?: XOR<OperatorsScalarRelationFilter, operatorsWhereInput>
@@ -11674,6 +11973,24 @@ export namespace Prisma {
     faq_text?: SortOrderInput | SortOrder
     terms_text?: SortOrderInput | SortOrder
     privacy_text?: SortOrderInput | SortOrder
+    legal_name?: SortOrderInput | SortOrder
+    trading_name?: SortOrderInput | SortOrder
+    registration_number?: SortOrderInput | SortOrder
+    kra_pin?: SortOrderInput | SortOrder
+    beneficial_owner?: SortOrderInput | SortOrder
+    business_email?: SortOrderInput | SortOrder
+    business_phone?: SortOrderInput | SortOrder
+    county?: SortOrderInput | SortOrder
+    region?: SortOrderInput | SortOrder
+    website?: SortOrderInput | SortOrder
+    legal_profile_locked_at?: SortOrderInput | SortOrder
+    gra_application_status?: SortOrder
+    gra_application_id?: SortOrderInput | SortOrder
+    gra_application_submitted_at?: SortOrderInput | SortOrder
+    gra_approved_at?: SortOrderInput | SortOrder
+    gra_rejection_reason?: SortOrderInput | SortOrder
+    provision_owner_email?: SortOrderInput | SortOrder
+    provision_owner_password_encrypted?: SortOrderInput | SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
     operator?: operatorsOrderByWithRelationInput
@@ -11703,6 +12020,24 @@ export namespace Prisma {
     faq_text?: StringNullableFilter<"operator_settings"> | string | null
     terms_text?: StringNullableFilter<"operator_settings"> | string | null
     privacy_text?: StringNullableFilter<"operator_settings"> | string | null
+    legal_name?: StringNullableFilter<"operator_settings"> | string | null
+    trading_name?: StringNullableFilter<"operator_settings"> | string | null
+    registration_number?: StringNullableFilter<"operator_settings"> | string | null
+    kra_pin?: StringNullableFilter<"operator_settings"> | string | null
+    beneficial_owner?: StringNullableFilter<"operator_settings"> | string | null
+    business_email?: StringNullableFilter<"operator_settings"> | string | null
+    business_phone?: StringNullableFilter<"operator_settings"> | string | null
+    county?: StringNullableFilter<"operator_settings"> | string | null
+    region?: StringNullableFilter<"operator_settings"> | string | null
+    website?: StringNullableFilter<"operator_settings"> | string | null
+    legal_profile_locked_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_application_status?: Enumgra_application_statusFilter<"operator_settings"> | $Enums.gra_application_status
+    gra_application_id?: UuidNullableFilter<"operator_settings"> | string | null
+    gra_application_submitted_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_approved_at?: DateTimeNullableFilter<"operator_settings"> | Date | string | null
+    gra_rejection_reason?: StringNullableFilter<"operator_settings"> | string | null
+    provision_owner_email?: StringNullableFilter<"operator_settings"> | string | null
+    provision_owner_password_encrypted?: StringNullableFilter<"operator_settings"> | string | null
     created_at?: DateTimeFilter<"operator_settings"> | Date | string
     updated_at?: DateTimeFilter<"operator_settings"> | Date | string
     operator?: XOR<OperatorsScalarRelationFilter, operatorsWhereInput>
@@ -11729,6 +12064,24 @@ export namespace Prisma {
     faq_text?: SortOrderInput | SortOrder
     terms_text?: SortOrderInput | SortOrder
     privacy_text?: SortOrderInput | SortOrder
+    legal_name?: SortOrderInput | SortOrder
+    trading_name?: SortOrderInput | SortOrder
+    registration_number?: SortOrderInput | SortOrder
+    kra_pin?: SortOrderInput | SortOrder
+    beneficial_owner?: SortOrderInput | SortOrder
+    business_email?: SortOrderInput | SortOrder
+    business_phone?: SortOrderInput | SortOrder
+    county?: SortOrderInput | SortOrder
+    region?: SortOrderInput | SortOrder
+    website?: SortOrderInput | SortOrder
+    legal_profile_locked_at?: SortOrderInput | SortOrder
+    gra_application_status?: SortOrder
+    gra_application_id?: SortOrderInput | SortOrder
+    gra_application_submitted_at?: SortOrderInput | SortOrder
+    gra_approved_at?: SortOrderInput | SortOrder
+    gra_rejection_reason?: SortOrderInput | SortOrder
+    provision_owner_email?: SortOrderInput | SortOrder
+    provision_owner_password_encrypted?: SortOrderInput | SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
     _count?: operator_settingsCountOrderByAggregateInput
@@ -11760,6 +12113,24 @@ export namespace Prisma {
     faq_text?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     terms_text?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     privacy_text?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    legal_name?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    trading_name?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    registration_number?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    kra_pin?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    beneficial_owner?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    business_email?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    business_phone?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    county?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    region?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    website?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    legal_profile_locked_at?: DateTimeNullableWithAggregatesFilter<"operator_settings"> | Date | string | null
+    gra_application_status?: Enumgra_application_statusWithAggregatesFilter<"operator_settings"> | $Enums.gra_application_status
+    gra_application_id?: UuidNullableWithAggregatesFilter<"operator_settings"> | string | null
+    gra_application_submitted_at?: DateTimeNullableWithAggregatesFilter<"operator_settings"> | Date | string | null
+    gra_approved_at?: DateTimeNullableWithAggregatesFilter<"operator_settings"> | Date | string | null
+    gra_rejection_reason?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    provision_owner_email?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    provision_owner_password_encrypted?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"operator_settings"> | Date | string
     updated_at?: DateTimeWithAggregatesFilter<"operator_settings"> | Date | string
   }
@@ -12377,6 +12748,24 @@ export namespace Prisma {
     faq_text?: string | null
     terms_text?: string | null
     privacy_text?: string | null
+    legal_name?: string | null
+    trading_name?: string | null
+    registration_number?: string | null
+    kra_pin?: string | null
+    beneficial_owner?: string | null
+    business_email?: string | null
+    business_phone?: string | null
+    county?: string | null
+    region?: string | null
+    website?: string | null
+    legal_profile_locked_at?: Date | string | null
+    gra_application_status?: $Enums.gra_application_status
+    gra_application_id?: string | null
+    gra_application_submitted_at?: Date | string | null
+    gra_approved_at?: Date | string | null
+    gra_rejection_reason?: string | null
+    provision_owner_email?: string | null
+    provision_owner_password_encrypted?: string | null
     created_at?: Date | string
     updated_at?: Date | string
     operator: operatorsCreateNestedOneWithoutSettingsInput
@@ -12403,6 +12792,24 @@ export namespace Prisma {
     faq_text?: string | null
     terms_text?: string | null
     privacy_text?: string | null
+    legal_name?: string | null
+    trading_name?: string | null
+    registration_number?: string | null
+    kra_pin?: string | null
+    beneficial_owner?: string | null
+    business_email?: string | null
+    business_phone?: string | null
+    county?: string | null
+    region?: string | null
+    website?: string | null
+    legal_profile_locked_at?: Date | string | null
+    gra_application_status?: $Enums.gra_application_status
+    gra_application_id?: string | null
+    gra_application_submitted_at?: Date | string | null
+    gra_approved_at?: Date | string | null
+    gra_rejection_reason?: string | null
+    provision_owner_email?: string | null
+    provision_owner_password_encrypted?: string | null
     created_at?: Date | string
     updated_at?: Date | string
   }
@@ -12427,6 +12834,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
     operator?: operatorsUpdateOneRequiredWithoutSettingsNestedInput
@@ -12453,6 +12878,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12478,6 +12921,24 @@ export namespace Prisma {
     faq_text?: string | null
     terms_text?: string | null
     privacy_text?: string | null
+    legal_name?: string | null
+    trading_name?: string | null
+    registration_number?: string | null
+    kra_pin?: string | null
+    beneficial_owner?: string | null
+    business_email?: string | null
+    business_phone?: string | null
+    county?: string | null
+    region?: string | null
+    website?: string | null
+    legal_profile_locked_at?: Date | string | null
+    gra_application_status?: $Enums.gra_application_status
+    gra_application_id?: string | null
+    gra_application_submitted_at?: Date | string | null
+    gra_approved_at?: Date | string | null
+    gra_rejection_reason?: string | null
+    provision_owner_email?: string | null
+    provision_owner_password_encrypted?: string | null
     created_at?: Date | string
     updated_at?: Date | string
   }
@@ -12502,6 +12963,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12527,6 +13006,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13381,6 +13878,25 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type Enumgra_application_statusFilter<$PrismaModel = never> = {
+    equals?: $Enums.gra_application_status | Enumgra_application_statusFieldRefInput<$PrismaModel>
+    in?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    not?: NestedEnumgra_application_statusFilter<$PrismaModel> | $Enums.gra_application_status
+  }
+
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
   export type operator_settingsCountOrderByAggregateInput = {
     id?: SortOrder
     operator_id?: SortOrder
@@ -13402,6 +13918,24 @@ export namespace Prisma {
     faq_text?: SortOrder
     terms_text?: SortOrder
     privacy_text?: SortOrder
+    legal_name?: SortOrder
+    trading_name?: SortOrder
+    registration_number?: SortOrder
+    kra_pin?: SortOrder
+    beneficial_owner?: SortOrder
+    business_email?: SortOrder
+    business_phone?: SortOrder
+    county?: SortOrder
+    region?: SortOrder
+    website?: SortOrder
+    legal_profile_locked_at?: SortOrder
+    gra_application_status?: SortOrder
+    gra_application_id?: SortOrder
+    gra_application_submitted_at?: SortOrder
+    gra_approved_at?: SortOrder
+    gra_rejection_reason?: SortOrder
+    provision_owner_email?: SortOrder
+    provision_owner_password_encrypted?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
   }
@@ -13425,6 +13959,24 @@ export namespace Prisma {
     faq_text?: SortOrder
     terms_text?: SortOrder
     privacy_text?: SortOrder
+    legal_name?: SortOrder
+    trading_name?: SortOrder
+    registration_number?: SortOrder
+    kra_pin?: SortOrder
+    beneficial_owner?: SortOrder
+    business_email?: SortOrder
+    business_phone?: SortOrder
+    county?: SortOrder
+    region?: SortOrder
+    website?: SortOrder
+    legal_profile_locked_at?: SortOrder
+    gra_application_status?: SortOrder
+    gra_application_id?: SortOrder
+    gra_application_submitted_at?: SortOrder
+    gra_approved_at?: SortOrder
+    gra_rejection_reason?: SortOrder
+    provision_owner_email?: SortOrder
+    provision_owner_password_encrypted?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
   }
@@ -13448,6 +14000,24 @@ export namespace Prisma {
     faq_text?: SortOrder
     terms_text?: SortOrder
     privacy_text?: SortOrder
+    legal_name?: SortOrder
+    trading_name?: SortOrder
+    registration_number?: SortOrder
+    kra_pin?: SortOrder
+    beneficial_owner?: SortOrder
+    business_email?: SortOrder
+    business_phone?: SortOrder
+    county?: SortOrder
+    region?: SortOrder
+    website?: SortOrder
+    legal_profile_locked_at?: SortOrder
+    gra_application_status?: SortOrder
+    gra_application_id?: SortOrder
+    gra_application_submitted_at?: SortOrder
+    gra_approved_at?: SortOrder
+    gra_rejection_reason?: SortOrder
+    provision_owner_email?: SortOrder
+    provision_owner_password_encrypted?: SortOrder
     created_at?: SortOrder
     updated_at?: SortOrder
   }
@@ -13504,6 +14074,31 @@ export namespace Prisma {
     _max?: NestedJsonFilter<$PrismaModel>
   }
 
+  export type Enumgra_application_statusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.gra_application_status | Enumgra_application_statusFieldRefInput<$PrismaModel>
+    in?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    not?: NestedEnumgra_application_statusWithAggregatesFilter<$PrismaModel> | $Enums.gra_application_status
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumgra_application_statusFilter<$PrismaModel>
+    _max?: NestedEnumgra_application_statusFilter<$PrismaModel>
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type Enumplatform_roleFilter<$PrismaModel = never> = {
     equals?: $Enums.platform_role | Enumplatform_roleFieldRefInput<$PrismaModel>
     in?: $Enums.platform_role[] | ListEnumplatform_roleFieldRefInput<$PrismaModel>
@@ -13557,18 +14152,6 @@ export namespace Prisma {
     _max?: NestedEnumplatform_roleFilter<$PrismaModel>
   }
 
-  export type UuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
-  }
-
   export type Platform_usersNullableScalarRelationFilter = {
     is?: platform_usersWhereInput | null
     isNot?: platform_usersWhereInput | null
@@ -13608,21 +14191,6 @@ export namespace Prisma {
     entity_type?: SortOrder
     entity_id?: SortOrder
     created_at?: SortOrder
-  }
-
-  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    mode?: QueryMode
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type IntNullableFilter<$PrismaModel = never> = {
@@ -14028,6 +14596,10 @@ export namespace Prisma {
     create?: XOR<operatorsCreateWithoutSettingsInput, operatorsUncheckedCreateWithoutSettingsInput>
     connectOrCreate?: operatorsCreateOrConnectWithoutSettingsInput
     connect?: operatorsWhereUniqueInput
+  }
+
+  export type Enumgra_application_statusFieldUpdateOperationsInput = {
+    set?: $Enums.gra_application_status
   }
 
   export type operatorsUpdateOneRequiredWithoutSettingsNestedInput = {
@@ -14448,6 +15020,24 @@ export namespace Prisma {
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
   }
+
+  export type NestedEnumgra_application_statusFilter<$PrismaModel = never> = {
+    equals?: $Enums.gra_application_status | Enumgra_application_statusFieldRefInput<$PrismaModel>
+    in?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    not?: NestedEnumgra_application_statusFilter<$PrismaModel> | $Enums.gra_application_status
+  }
+
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
   export type NestedJsonNullableFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -14495,6 +15085,30 @@ export namespace Prisma {
     not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
+  export type NestedEnumgra_application_statusWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.gra_application_status | Enumgra_application_statusFieldRefInput<$PrismaModel>
+    in?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    notIn?: $Enums.gra_application_status[] | ListEnumgra_application_statusFieldRefInput<$PrismaModel>
+    not?: NestedEnumgra_application_statusWithAggregatesFilter<$PrismaModel> | $Enums.gra_application_status
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumgra_application_statusFilter<$PrismaModel>
+    _max?: NestedEnumgra_application_statusFilter<$PrismaModel>
+  }
+
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type NestedEnumplatform_roleFilter<$PrismaModel = never> = {
     equals?: $Enums.platform_role | Enumplatform_roleFieldRefInput<$PrismaModel>
     in?: $Enums.platform_role[] | ListEnumplatform_roleFieldRefInput<$PrismaModel>
@@ -14510,31 +15124,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumplatform_roleFilter<$PrismaModel>
     _max?: NestedEnumplatform_roleFilter<$PrismaModel>
-  }
-
-  export type NestedUuidNullableFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
-  }
-
-  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -14651,6 +15240,24 @@ export namespace Prisma {
     faq_text?: string | null
     terms_text?: string | null
     privacy_text?: string | null
+    legal_name?: string | null
+    trading_name?: string | null
+    registration_number?: string | null
+    kra_pin?: string | null
+    beneficial_owner?: string | null
+    business_email?: string | null
+    business_phone?: string | null
+    county?: string | null
+    region?: string | null
+    website?: string | null
+    legal_profile_locked_at?: Date | string | null
+    gra_application_status?: $Enums.gra_application_status
+    gra_application_id?: string | null
+    gra_application_submitted_at?: Date | string | null
+    gra_approved_at?: Date | string | null
+    gra_rejection_reason?: string | null
+    provision_owner_email?: string | null
+    provision_owner_password_encrypted?: string | null
     created_at?: Date | string
     updated_at?: Date | string
   }
@@ -14675,6 +15282,24 @@ export namespace Prisma {
     faq_text?: string | null
     terms_text?: string | null
     privacy_text?: string | null
+    legal_name?: string | null
+    trading_name?: string | null
+    registration_number?: string | null
+    kra_pin?: string | null
+    beneficial_owner?: string | null
+    business_email?: string | null
+    business_phone?: string | null
+    county?: string | null
+    region?: string | null
+    website?: string | null
+    legal_profile_locked_at?: Date | string | null
+    gra_application_status?: $Enums.gra_application_status
+    gra_application_id?: string | null
+    gra_application_submitted_at?: Date | string | null
+    gra_approved_at?: Date | string | null
+    gra_rejection_reason?: string | null
+    provision_owner_email?: string | null
+    provision_owner_password_encrypted?: string | null
     created_at?: Date | string
     updated_at?: Date | string
   }
@@ -14850,6 +15475,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -14874,6 +15517,24 @@ export namespace Prisma {
     faq_text?: NullableStringFieldUpdateOperationsInput | string | null
     terms_text?: NullableStringFieldUpdateOperationsInput | string | null
     privacy_text?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_name?: NullableStringFieldUpdateOperationsInput | string | null
+    trading_name?: NullableStringFieldUpdateOperationsInput | string | null
+    registration_number?: NullableStringFieldUpdateOperationsInput | string | null
+    kra_pin?: NullableStringFieldUpdateOperationsInput | string | null
+    beneficial_owner?: NullableStringFieldUpdateOperationsInput | string | null
+    business_email?: NullableStringFieldUpdateOperationsInput | string | null
+    business_phone?: NullableStringFieldUpdateOperationsInput | string | null
+    county?: NullableStringFieldUpdateOperationsInput | string | null
+    region?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    legal_profile_locked_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_application_status?: Enumgra_application_statusFieldUpdateOperationsInput | $Enums.gra_application_status
+    gra_application_id?: NullableStringFieldUpdateOperationsInput | string | null
+    gra_application_submitted_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_approved_at?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    gra_rejection_reason?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_email?: NullableStringFieldUpdateOperationsInput | string | null
+    provision_owner_password_encrypted?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     updated_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }

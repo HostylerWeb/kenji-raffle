@@ -27,6 +27,8 @@ export default function NewOperatorPage() {
   const [slugEdited, setSlugEdited] = useState(false);
   const [graId, setGraId] = useState("");
   const [licence, setLicence] = useState("");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [ownerPassword, setOwnerPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -42,18 +44,29 @@ export default function NewOperatorPage() {
     setError("");
 
     try {
-      const created = await platformFetch<{ id: string }>(
-        "/v1/platform/operators",
-        {
-          method: "POST",
-          body: JSON.stringify({
-            name,
-            slug: effectiveSlug,
-            gra_registry_id: graId || undefined,
-            licence_number: licence || undefined,
-          }),
-        },
-      );
+      const created = await platformFetch<{
+        id: string;
+        owner_login?: { email: string; temporary_password?: string };
+      }>("/v1/platform/operators", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          slug: effectiveSlug,
+          gra_registry_id: graId || undefined,
+          licence_number: licence || undefined,
+          owner_email: ownerEmail.trim() || undefined,
+          owner_password: ownerPassword || undefined,
+        }),
+      });
+      if (created.owner_login?.temporary_password) {
+        window.alert(
+          `Operator created. Owner login: ${created.owner_login.email} / ${created.owner_login.temporary_password}`,
+        );
+      } else if (created.owner_login?.email) {
+        window.alert(
+          `Operator created. Owner login email: ${created.owner_login.email}`,
+        );
+      }
       router.push(`/operators/${created.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create operator");
@@ -126,6 +139,34 @@ export default function NewOperatorPage() {
               placeholder="Same as GRA ID if omitted"
             />
           </label>
+          <div className="card" style={{ marginBottom: 16, padding: 12 }}>
+            <h3 style={{ marginTop: 0 }}>Owner admin login (optional)</h3>
+            <p className="muted">
+              Sets the initial <code>/admin</code> owner account when the tenant
+              database is provisioned. Defaults to{" "}
+              <code>{`owner@${effectiveSlug || "slug"}.local`}</code> with password{" "}
+              <code>ChangeMe123!</code> when omitted.
+            </p>
+            <label>
+              Owner email
+              <input
+                type="email"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                placeholder={`owner@${effectiveSlug || "slug"}.local`}
+              />
+            </label>
+            <label>
+              Owner password
+              <input
+                type="password"
+                value={ownerPassword}
+                onChange={(e) => setOwnerPassword(e.target.value)}
+                placeholder="Min 8 characters (optional)"
+                minLength={8}
+              />
+            </label>
+          </div>
           {error && <p className="error">{error}</p>}
           <div className="actions">
             <button type="submit" className="btn" disabled={loading}>

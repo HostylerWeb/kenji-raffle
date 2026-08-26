@@ -32,6 +32,8 @@ export type CreateOperatorInput = {
   slug: string;
   gra_registry_id?: string;
   licence_number?: string;
+  owner_email?: string;
+  owner_password?: string;
 };
 
 export type UpdateOperatorInput = {
@@ -90,6 +92,24 @@ export class PlatformOperatorsService {
       throw new ConflictException("GRA registry id is already in use");
     }
 
+    const ownerEmail = input.owner_email?.trim().toLowerCase();
+    if (ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+      throw new BadRequestException("Owner email is invalid");
+    }
+    if (input.owner_password && input.owner_password.length < 8) {
+      throw new BadRequestException(
+        "Owner password must be at least 8 characters",
+      );
+    }
+    if (input.owner_password && !ownerEmail) {
+      throw new BadRequestException(
+        "Owner email is required when setting an owner password",
+      );
+    }
+
+    const encryptionKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
+    const resolvedOwnerEmail = ownerEmail ?? `owner@${slug}.local`;
+
     const operator = await this.platformPrisma.client.operators.create({
       data: {
         name: input.name.trim(),
@@ -107,6 +127,10 @@ export class PlatformOperatorsService {
         feature_flags: { checkout_enabled: false },
         primary_color: "#00a551",
         support_email: `support@${slug}.local`,
+        provision_owner_email: resolvedOwnerEmail,
+        provision_owner_password_encrypted: input.owner_password
+          ? encryptSecret(input.owner_password, encryptionKey)
+          : null,
       },
     });
 
@@ -118,10 +142,24 @@ export class PlatformOperatorsService {
       "operators",
       operator.id,
       operator.id,
-      { slug, gra_registry_id: graId },
+      {
+        slug,
+        gra_registry_id: graId,
+        owner_email: resolvedOwnerEmail,
+        owner_password_custom: Boolean(input.owner_password),
+      },
     );
 
-    return this.getById(operator.id);
+    const created = await this.getById(operator.id);
+    return {
+      ...created,
+      owner_login: {
+        email: resolvedOwnerEmail,
+        ...(input.owner_password
+          ? {}
+          : { temporary_password: "ChangeMe123!" }),
+      },
+    };
   }
 
   async getById(id: string) {
@@ -313,10 +351,8 @@ export class PlatformOperatorsService {
     confirmSlug: string,
   ) {
     const operator = await this.getOperatorOrThrow(operatorId);
-    if (operator.status !== "archived") {
-      throw new BadRequestException(
-        "Operator must be archived before permanent delete",
-      );
+    if (operator.slug === "demo") {
+      throw new BadRequestException('Operator slug "demo" is protected from deletion');
     }
     if (confirmSlug.trim().toLowerCase() !== operator.slug) {
       throw new BadRequestException("Slug confirmation does not match");

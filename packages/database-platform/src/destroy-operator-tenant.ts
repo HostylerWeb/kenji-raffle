@@ -1,6 +1,8 @@
 import { Client } from "pg";
-import { requireEnv } from "@kenji-raffle/shared";
+import { requireEnv, requestGraPlatformOperatorTeardown } from "@kenji-raffle/shared";
 import { platformPrisma } from "./index";
+
+const PROTECTED_OPERATOR_SLUGS = new Set(["demo"]);
 
 export async function destroyOperatorTenant(operatorId: string): Promise<void> {
   const adminUrl = requireEnv("DATABASE_ADMIN_URL");
@@ -14,9 +16,14 @@ export async function destroyOperatorTenant(operatorId: string): Promise<void> {
     throw new Error("Operator not found");
   }
 
-  if (operator.status !== "archived") {
-    throw new Error("Operator must be archived before hard delete");
+  if (PROTECTED_OPERATOR_SLUGS.has(operator.slug)) {
+    throw new Error(`Operator slug "${operator.slug}" is protected from deletion`);
   }
+
+  await requestGraPlatformOperatorTeardown(
+    operator.id,
+    operator.gra_registry_id,
+  );
 
   const dbName = operator.tenant_database?.database_name;
   const dbUser = operator.tenant_database?.database_user;

@@ -182,6 +182,24 @@ exports.Prisma.Operator_settingsScalarFieldEnum = {
   faq_text: 'faq_text',
   terms_text: 'terms_text',
   privacy_text: 'privacy_text',
+  legal_name: 'legal_name',
+  trading_name: 'trading_name',
+  registration_number: 'registration_number',
+  kra_pin: 'kra_pin',
+  beneficial_owner: 'beneficial_owner',
+  business_email: 'business_email',
+  business_phone: 'business_phone',
+  county: 'county',
+  region: 'region',
+  website: 'website',
+  legal_profile_locked_at: 'legal_profile_locked_at',
+  gra_application_status: 'gra_application_status',
+  gra_application_id: 'gra_application_id',
+  gra_application_submitted_at: 'gra_application_submitted_at',
+  gra_approved_at: 'gra_approved_at',
+  gra_rejection_reason: 'gra_rejection_reason',
+  provision_owner_email: 'provision_owner_email',
+  provision_owner_password_encrypted: 'provision_owner_password_encrypted',
   created_at: 'created_at',
   updated_at: 'updated_at'
 };
@@ -289,6 +307,14 @@ exports.domain_verification_status = exports.$Enums.domain_verification_status =
 exports.ssl_status = exports.$Enums.ssl_status = {
   pending: 'pending',
   active: 'active'
+};
+
+exports.gra_application_status = exports.$Enums.gra_application_status = {
+  not_started: 'not_started',
+  submitted: 'submitted',
+  pending_review: 'pending_review',
+  approved: 'approved',
+  rejected: 'rejected'
 };
 
 exports.platform_role = exports.$Enums.platform_role = {
