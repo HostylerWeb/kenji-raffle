@@ -85,7 +85,13 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Platform-Signature"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Platform-Signature",
+      "X-Forwarded-Host",
+      "X-Cart-Session",
+    ],
   });
 
   app.useGlobalPipes(

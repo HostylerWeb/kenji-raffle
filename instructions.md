@@ -101,6 +101,8 @@ Use **`platform.kenji-raffle.local:3003`** (not bare `localhost:3003`) so hostna
 
 **Production (VPS)** is different: the platform build uses `NEXT_PUBLIC_PLATFORM_API_URL=https://api.force42.com`, and the API allowlists origins via `CORS_ALLOWED_ORIGINS` (see [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)). The `/platform-api` rewrite is **disabled when `NODE_ENV=production`** — live traffic always hits the public API URL directly.
 
+Tenant sites (`demo.force42.com`, operator custom domains) call `https://api.force42.com` with the **`X-Forwarded-Host`** header so the API resolves the correct tenant. That header must appear in the API CORS **`allowedHeaders`** list (`apps/api/src/main.ts`). If it is missing, browser logins show **“Failed to fetch”** even though `curl` works.
+
 **After `git pull`:** if operator pages return **500 Internal server error**, run `npm run migrate:platform` — new GRA onboarding columns live in platform migrations (e.g. `operator_settings.legal_name`).
 
 ## Ops runbook
@@ -108,6 +110,7 @@ Use **`platform.kenji-raffle.local:3003`** (not bare `localhost:3003`) so hostna
 | Issue | Fix |
 |-------|-----|
 | Platform login **“Failed to fetch”** on `*.kenji-raffle.local:3003` | Use `NEXT_PUBLIC_PLATFORM_API_URL="/platform-api"` and access via `platform.kenji-raffle.local:3003` (not cross-origin `localhost:4002`). Restart `dev:platform`. See **Local dev — CORS and API proxy** above. |
+| Tenant / operator admin **“Failed to fetch”** on live `*.force42.com` | API CORS must allow `X-Forwarded-Host` (and `X-Cart-Session` for checkout). Restart `dev:api` / redeploy `raffle-api`. |
 | Operator detail **500 Internal server error** after pull | Run `npm run migrate:platform` (missing `operator_settings.*` columns). |
 | Operator stuck in onboarding | Ensure `npm run dev:worker` is running; check **System** page for failed jobs |
 | **System → Worker “Not running”** | Start `npm run dev:worker` from repo root. Heartbeat expires after ~2 min if the process stops. Page auto-refreshes every 30s. |
