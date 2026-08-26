@@ -5252,7 +5252,9 @@ export namespace Prisma {
     id: string | null
     operator_id: string | null
     logo_url: string | null
+    footer_logo_url: string | null
     primary_color: string | null
+    theme_preset: string | null
     support_email: string | null
     footer_licence_text: string | null
     gra_api_key_encrypted: string | null
@@ -5293,7 +5295,9 @@ export namespace Prisma {
     id: string | null
     operator_id: string | null
     logo_url: string | null
+    footer_logo_url: string | null
     primary_color: string | null
+    theme_preset: string | null
     support_email: string | null
     footer_licence_text: string | null
     gra_api_key_encrypted: string | null
@@ -5334,7 +5338,10 @@ export namespace Prisma {
     id: number
     operator_id: number
     logo_url: number
+    footer_logo_url: number
     primary_color: number
+    theme_preset: number
+    theme_config: number
     support_email: number
     footer_licence_text: number
     social_links: number
@@ -5379,7 +5386,9 @@ export namespace Prisma {
     id?: true
     operator_id?: true
     logo_url?: true
+    footer_logo_url?: true
     primary_color?: true
+    theme_preset?: true
     support_email?: true
     footer_licence_text?: true
     gra_api_key_encrypted?: true
@@ -5420,7 +5429,9 @@ export namespace Prisma {
     id?: true
     operator_id?: true
     logo_url?: true
+    footer_logo_url?: true
     primary_color?: true
+    theme_preset?: true
     support_email?: true
     footer_licence_text?: true
     gra_api_key_encrypted?: true
@@ -5461,7 +5472,10 @@ export namespace Prisma {
     id?: true
     operator_id?: true
     logo_url?: true
+    footer_logo_url?: true
     primary_color?: true
+    theme_preset?: true
+    theme_config?: true
     support_email?: true
     footer_licence_text?: true
     social_links?: true
@@ -5577,7 +5591,10 @@ export namespace Prisma {
     id: string
     operator_id: string
     logo_url: string | null
+    footer_logo_url: string | null
     primary_color: string | null
+    theme_preset: string | null
+    theme_config: JsonValue | null
     support_email: string | null
     footer_licence_text: string | null
     social_links: JsonValue | null
@@ -5637,7 +5654,10 @@ export namespace Prisma {
     id?: boolean
     operator_id?: boolean
     logo_url?: boolean
+    footer_logo_url?: boolean
     primary_color?: boolean
+    theme_preset?: boolean
+    theme_config?: boolean
     support_email?: boolean
     footer_licence_text?: boolean
     social_links?: boolean
@@ -5681,7 +5701,10 @@ export namespace Prisma {
     id?: boolean
     operator_id?: boolean
     logo_url?: boolean
+    footer_logo_url?: boolean
     primary_color?: boolean
+    theme_preset?: boolean
+    theme_config?: boolean
     support_email?: boolean
     footer_licence_text?: boolean
     social_links?: boolean
@@ -5725,7 +5748,10 @@ export namespace Prisma {
     id?: boolean
     operator_id?: boolean
     logo_url?: boolean
+    footer_logo_url?: boolean
     primary_color?: boolean
+    theme_preset?: boolean
+    theme_config?: boolean
     support_email?: boolean
     footer_licence_text?: boolean
     social_links?: boolean
@@ -5769,7 +5795,10 @@ export namespace Prisma {
     id?: boolean
     operator_id?: boolean
     logo_url?: boolean
+    footer_logo_url?: boolean
     primary_color?: boolean
+    theme_preset?: boolean
+    theme_config?: boolean
     support_email?: boolean
     footer_licence_text?: boolean
     social_links?: boolean
@@ -5808,7 +5837,7 @@ export namespace Prisma {
     updated_at?: boolean
   }
 
-  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "primary_color" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "gra_last_heartbeat_at" | "gra_last_heartbeat_status" | "gra_last_heartbeat_error" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "legal_name" | "trading_name" | "registration_number" | "kra_pin" | "beneficial_owner" | "business_email" | "business_phone" | "county" | "region" | "website" | "legal_profile_locked_at" | "gra_application_status" | "gra_application_id" | "gra_application_submitted_at" | "gra_approved_at" | "gra_rejection_reason" | "provision_owner_email" | "provision_owner_password_encrypted" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
+  export type operator_settingsOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "operator_id" | "logo_url" | "footer_logo_url" | "primary_color" | "theme_preset" | "theme_config" | "support_email" | "footer_licence_text" | "social_links" | "gra_api_key_encrypted" | "gra_hmac_secret_encrypted" | "gra_last_heartbeat_at" | "gra_last_heartbeat_status" | "gra_last_heartbeat_error" | "payment_merchant_ref_encrypted" | "feature_flags" | "ga4_measurement_id" | "facebook_pixel_id" | "analytics_enabled" | "faq_text" | "terms_text" | "privacy_text" | "legal_name" | "trading_name" | "registration_number" | "kra_pin" | "beneficial_owner" | "business_email" | "business_phone" | "county" | "region" | "website" | "legal_profile_locked_at" | "gra_application_status" | "gra_application_id" | "gra_application_submitted_at" | "gra_approved_at" | "gra_rejection_reason" | "provision_owner_email" | "provision_owner_password_encrypted" | "created_at" | "updated_at", ExtArgs["result"]["operator_settings"]>
   export type operator_settingsInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     operator?: boolean | operatorsDefaultArgs<ExtArgs>
   }
@@ -5828,7 +5857,10 @@ export namespace Prisma {
       id: string
       operator_id: string
       logo_url: string | null
+      footer_logo_url: string | null
       primary_color: string | null
+      theme_preset: string | null
+      theme_config: Prisma.JsonValue | null
       support_email: string | null
       footer_licence_text: string | null
       social_links: Prisma.JsonValue | null
@@ -6292,7 +6324,10 @@ export namespace Prisma {
     readonly id: FieldRef<"operator_settings", 'String'>
     readonly operator_id: FieldRef<"operator_settings", 'String'>
     readonly logo_url: FieldRef<"operator_settings", 'String'>
+    readonly footer_logo_url: FieldRef<"operator_settings", 'String'>
     readonly primary_color: FieldRef<"operator_settings", 'String'>
+    readonly theme_preset: FieldRef<"operator_settings", 'String'>
+    readonly theme_config: FieldRef<"operator_settings", 'Json'>
     readonly support_email: FieldRef<"operator_settings", 'String'>
     readonly footer_licence_text: FieldRef<"operator_settings", 'String'>
     readonly social_links: FieldRef<"operator_settings", 'Json'>
@@ -11299,7 +11334,10 @@ export namespace Prisma {
     id: 'id',
     operator_id: 'operator_id',
     logo_url: 'logo_url',
+    footer_logo_url: 'footer_logo_url',
     primary_color: 'primary_color',
+    theme_preset: 'theme_preset',
+    theme_config: 'theme_config',
     support_email: 'support_email',
     footer_licence_text: 'footer_licence_text',
     social_links: 'social_links',
@@ -11912,7 +11950,10 @@ export namespace Prisma {
     id?: UuidFilter<"operator_settings"> | string
     operator_id?: UuidFilter<"operator_settings"> | string
     logo_url?: StringNullableFilter<"operator_settings"> | string | null
+    footer_logo_url?: StringNullableFilter<"operator_settings"> | string | null
     primary_color?: StringNullableFilter<"operator_settings"> | string | null
+    theme_preset?: StringNullableFilter<"operator_settings"> | string | null
+    theme_config?: JsonNullableFilter<"operator_settings">
     support_email?: StringNullableFilter<"operator_settings"> | string | null
     footer_licence_text?: StringNullableFilter<"operator_settings"> | string | null
     social_links?: JsonNullableFilter<"operator_settings">
@@ -11956,7 +11997,10 @@ export namespace Prisma {
     id?: SortOrder
     operator_id?: SortOrder
     logo_url?: SortOrderInput | SortOrder
+    footer_logo_url?: SortOrderInput | SortOrder
     primary_color?: SortOrderInput | SortOrder
+    theme_preset?: SortOrderInput | SortOrder
+    theme_config?: SortOrderInput | SortOrder
     support_email?: SortOrderInput | SortOrder
     footer_licence_text?: SortOrderInput | SortOrder
     social_links?: SortOrderInput | SortOrder
@@ -12003,7 +12047,10 @@ export namespace Prisma {
     OR?: operator_settingsWhereInput[]
     NOT?: operator_settingsWhereInput | operator_settingsWhereInput[]
     logo_url?: StringNullableFilter<"operator_settings"> | string | null
+    footer_logo_url?: StringNullableFilter<"operator_settings"> | string | null
     primary_color?: StringNullableFilter<"operator_settings"> | string | null
+    theme_preset?: StringNullableFilter<"operator_settings"> | string | null
+    theme_config?: JsonNullableFilter<"operator_settings">
     support_email?: StringNullableFilter<"operator_settings"> | string | null
     footer_licence_text?: StringNullableFilter<"operator_settings"> | string | null
     social_links?: JsonNullableFilter<"operator_settings">
@@ -12047,7 +12094,10 @@ export namespace Prisma {
     id?: SortOrder
     operator_id?: SortOrder
     logo_url?: SortOrderInput | SortOrder
+    footer_logo_url?: SortOrderInput | SortOrder
     primary_color?: SortOrderInput | SortOrder
+    theme_preset?: SortOrderInput | SortOrder
+    theme_config?: SortOrderInput | SortOrder
     support_email?: SortOrderInput | SortOrder
     footer_licence_text?: SortOrderInput | SortOrder
     social_links?: SortOrderInput | SortOrder
@@ -12096,7 +12146,10 @@ export namespace Prisma {
     id?: UuidWithAggregatesFilter<"operator_settings"> | string
     operator_id?: UuidWithAggregatesFilter<"operator_settings"> | string
     logo_url?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    footer_logo_url?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     primary_color?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    theme_preset?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
+    theme_config?: JsonNullableWithAggregatesFilter<"operator_settings">
     support_email?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     footer_licence_text?: StringNullableWithAggregatesFilter<"operator_settings"> | string | null
     social_links?: JsonNullableWithAggregatesFilter<"operator_settings">
@@ -12731,7 +12784,10 @@ export namespace Prisma {
   export type operator_settingsCreateInput = {
     id?: string
     logo_url?: string | null
+    footer_logo_url?: string | null
     primary_color?: string | null
+    theme_preset?: string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: string | null
     footer_licence_text?: string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12775,7 +12831,10 @@ export namespace Prisma {
     id?: string
     operator_id: string
     logo_url?: string | null
+    footer_logo_url?: string | null
     primary_color?: string | null
+    theme_preset?: string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: string | null
     footer_licence_text?: string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12817,7 +12876,10 @@ export namespace Prisma {
   export type operator_settingsUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12861,7 +12923,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     operator_id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12904,7 +12969,10 @@ export namespace Prisma {
     id?: string
     operator_id: string
     logo_url?: string | null
+    footer_logo_url?: string | null
     primary_color?: string | null
+    theme_preset?: string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: string | null
     footer_licence_text?: string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12946,7 +13014,10 @@ export namespace Prisma {
   export type operator_settingsUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -12989,7 +13060,10 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     operator_id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -13901,7 +13975,10 @@ export namespace Prisma {
     id?: SortOrder
     operator_id?: SortOrder
     logo_url?: SortOrder
+    footer_logo_url?: SortOrder
     primary_color?: SortOrder
+    theme_preset?: SortOrder
+    theme_config?: SortOrder
     support_email?: SortOrder
     footer_licence_text?: SortOrder
     social_links?: SortOrder
@@ -13944,7 +14021,9 @@ export namespace Prisma {
     id?: SortOrder
     operator_id?: SortOrder
     logo_url?: SortOrder
+    footer_logo_url?: SortOrder
     primary_color?: SortOrder
+    theme_preset?: SortOrder
     support_email?: SortOrder
     footer_licence_text?: SortOrder
     gra_api_key_encrypted?: SortOrder
@@ -13985,7 +14064,9 @@ export namespace Prisma {
     id?: SortOrder
     operator_id?: SortOrder
     logo_url?: SortOrder
+    footer_logo_url?: SortOrder
     primary_color?: SortOrder
+    theme_preset?: SortOrder
     support_email?: SortOrder
     footer_licence_text?: SortOrder
     gra_api_key_encrypted?: SortOrder
@@ -15223,7 +15304,10 @@ export namespace Prisma {
   export type operator_settingsCreateWithoutOperatorInput = {
     id?: string
     logo_url?: string | null
+    footer_logo_url?: string | null
     primary_color?: string | null
+    theme_preset?: string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: string | null
     footer_licence_text?: string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -15265,7 +15349,10 @@ export namespace Prisma {
   export type operator_settingsUncheckedCreateWithoutOperatorInput = {
     id?: string
     logo_url?: string | null
+    footer_logo_url?: string | null
     primary_color?: string | null
+    theme_preset?: string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: string | null
     footer_licence_text?: string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -15458,7 +15545,10 @@ export namespace Prisma {
   export type operator_settingsUpdateWithoutOperatorInput = {
     id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue
@@ -15500,7 +15590,10 @@ export namespace Prisma {
   export type operator_settingsUncheckedUpdateWithoutOperatorInput = {
     id?: StringFieldUpdateOperationsInput | string
     logo_url?: NullableStringFieldUpdateOperationsInput | string | null
+    footer_logo_url?: NullableStringFieldUpdateOperationsInput | string | null
     primary_color?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_preset?: NullableStringFieldUpdateOperationsInput | string | null
+    theme_config?: NullableJsonNullValueInput | InputJsonValue
     support_email?: NullableStringFieldUpdateOperationsInput | string | null
     footer_licence_text?: NullableStringFieldUpdateOperationsInput | string | null
     social_links?: NullableJsonNullValueInput | InputJsonValue

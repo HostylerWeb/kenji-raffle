@@ -33,8 +33,9 @@ export function PrizeTabs({
   if (!hasMain && !hasInstant) return null;
 
   return (
-    <section style={{ marginTop: 32 }}>
-      <div className="site-tabs" role="tablist" aria-label="Prizes">
+    <section className="site-detail-section">
+      <h2 className="site-section-title site-section-title--lg">Prizes</h2>
+      <div className="site-tabs site-tabs--commerce" role="tablist" aria-label="Prizes">
         {hasMain && (
           <button
             type="button"
@@ -60,10 +61,12 @@ export function PrizeTabs({
       </div>
 
       {tab === "main" && hasMain && (
-        <ul className="site-prize-list" role="tabpanel">
+        <ul className="site-prize-list site-prize-list--commerce" role="tabpanel">
           {mainPrizes.map((prize) => (
             <li key={prize.id} className="site-prize-item">
-              <span>🏆</span>
+              <span className="site-prize-item__icon" aria-hidden>
+                🏆
+              </span>
               <span>
                 <strong>{prize.name}</strong>
                 {prize.value_kes != null && (
@@ -76,10 +79,12 @@ export function PrizeTabs({
       )}
 
       {tab === "instant" && hasInstant && (
-        <ul className="site-prize-list" role="tabpanel">
+        <ul className="site-prize-list site-prize-list--commerce" role="tabpanel">
           {instantPrizes.map((prize) => (
             <li key={prize.id} className="site-prize-item">
-              <span>⚡</span>
+              <span className="site-prize-item__icon" aria-hidden>
+                ⚡
+              </span>
               <span>
                 <strong>{prize.name}</strong>
                 <span className="site-muted"> — {formatKes(prize.prize_value)}</span>

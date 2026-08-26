@@ -13,9 +13,41 @@ export type OperatorSessionUser = {
   operatorId: string;
 };
 
+let refreshInFlight: Promise<boolean> | null = null;
+let proactiveRefreshTimer: ReturnType<typeof setTimeout> | undefined;
+
+function decodeJwtExp(token: string): number | null {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1])) as { exp?: number };
+    return payload.exp ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function scheduleProactiveOperatorRefresh(accessToken: string) {
+  if (typeof window === "undefined") return;
+  const exp = decodeJwtExp(accessToken);
+  if (!exp) return;
+  const msUntilRefresh = exp * 1000 - Date.now() - 2 * 60 * 1000;
+  clearTimeout(proactiveRefreshTimer);
+  if (msUntilRefresh <= 0) {
+    void refreshOperatorToken();
+    return;
+  }
+  proactiveRefreshTimer = setTimeout(() => {
+    void refreshOperatorToken();
+  }, msUntilRefresh);
+}
+
 export function getOperatorToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem("operator_access_token");
+}
+
+export function getOperatorRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(OPERATOR_REFRESH_KEY);
 }
 
 export function getOperatorUser(): OperatorSessionUser | null {
@@ -39,6 +71,7 @@ export function setOperatorSession(
   if (refreshToken) {
     localStorage.setItem(OPERATOR_REFRESH_KEY, refreshToken);
   }
+  scheduleProactiveOperatorRefresh(accessToken);
 }
 
 export function clearOperatorSession() {
@@ -47,6 +80,7 @@ export function clearOperatorSession() {
   localStorage.removeItem("operator_access_token");
   localStorage.removeItem("operator_user");
   localStorage.removeItem(OPERATOR_REFRESH_KEY);
+  clearTimeout(proactiveRefreshTimer);
 
   if (refresh && token) {
     void fetch(`${getPublicApiUrl()}/v1/admin/auth/logout`, {
@@ -62,27 +96,45 @@ export function clearOperatorSession() {
 }
 
 async function refreshOperatorToken(): Promise<boolean> {
-  const refresh = localStorage.getItem(OPERATOR_REFRESH_KEY);
-  if (!refresh) return false;
+  if (refreshInFlight) return refreshInFlight;
 
-  const res = await fetch(`${getPublicApiUrl()}/v1/admin/auth/refresh`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-forwarded-host": getTenantHost(),
-    },
-    body: JSON.stringify({ refresh_token: refresh }),
-  });
+  refreshInFlight = (async () => {
+    const refresh = getOperatorRefreshToken();
+    if (!refresh) return false;
 
-  if (!res.ok) return false;
+    const res = await fetch(`${getPublicApiUrl()}/v1/admin/auth/refresh`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-forwarded-host": getTenantHost(),
+      },
+      body: JSON.stringify({ refresh_token: refresh }),
+    });
 
-  const data = (await res.json()) as {
-    access_token: string;
-    refresh_token?: string;
-    user: OperatorSessionUser;
-  };
-  setOperatorSession(data.access_token, data.user, data.refresh_token);
-  return true;
+    if (!res.ok) return false;
+
+    const data = (await res.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      user: OperatorSessionUser;
+    };
+    setOperatorSession(data.access_token, data.user, data.refresh_token);
+    return true;
+  })();
+
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
+  }
+}
+
+export function bootstrapOperatorAuthSession(): void {
+  if (typeof window === "undefined") return;
+  const token = getOperatorToken();
+  const refresh = getOperatorRefreshToken();
+  if (!token || !refresh) return;
+  scheduleProactiveOperatorRefresh(token);
 }
 
 export async function operatorFetch<T>(
@@ -129,6 +181,7 @@ export const tenantApi = getPublicApiUrl();
 export async function operatorUpload(
   path: string,
   file: File,
+  retried = false,
 ): Promise<{ url: string; storage_key: string }> {
   const token = getOperatorToken();
   const form = new FormData();
@@ -145,6 +198,18 @@ export async function operatorUpload(
     headers,
     body: form,
   });
+
+  if (res.status === 401 && !retried && (await refreshOperatorToken())) {
+    return operatorUpload(path, file, true);
+  }
+
+  if (res.status === 401) {
+    clearOperatorSession();
+    if (typeof window !== "undefined") {
+      window.location.href = "/admin/login";
+    }
+    throw new Error("Unauthorized");
+  }
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

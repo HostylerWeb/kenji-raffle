@@ -11,6 +11,32 @@ function getTimeLeft(endDate: string) {
   return { days, hours, mins, secs, ended: diff === 0 };
 }
 
+function compactCountdownParts(left: ReturnType<typeof getTimeLeft>) {
+  const parts: { value: string; label: string }[] = [];
+  if (left.days > 0) {
+    parts.push({ value: String(left.days), label: "d" });
+  }
+  parts.push(
+    { value: String(left.hours).padStart(2, "0"), label: "h" },
+    { value: String(left.mins).padStart(2, "0"), label: "m" },
+    { value: String(left.secs).padStart(2, "0"), label: "s" },
+  );
+  return parts;
+}
+
+function CompactCountdownPlaceholder() {
+  return (
+    <div className="site-card-countdown site-card-countdown--placeholder" aria-hidden="true">
+      {["h", "m", "s"].map((label) => (
+        <span key={label} className="site-card-countdown__part">
+          <span className="site-card-countdown__value">--</span>
+          <span className="site-card-countdown__label">{label}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function RaffleCountdown({
   endDate,
   compact = false,
@@ -18,22 +44,55 @@ export function RaffleCountdown({
   endDate: string;
   compact?: boolean;
 }) {
+  const [mounted, setMounted] = useState(false);
   const [left, setLeft] = useState(() => getTimeLeft(endDate));
 
   useEffect(() => {
+    setMounted(true);
+    setLeft(getTimeLeft(endDate));
     const id = window.setInterval(() => setLeft(getTimeLeft(endDate)), 1000);
     return () => window.clearInterval(id);
   }, [endDate]);
 
+  if (!mounted) {
+    if (compact) {
+      return <CompactCountdownPlaceholder />;
+    }
+    return (
+      <div className="site-countdown site-countdown--placeholder" aria-hidden="true">
+        <div className="site-countdown__unit">
+          <span className="site-countdown__value">--</span>
+          <span className="site-countdown__label">Loading</span>
+        </div>
+      </div>
+    );
+  }
+
   if (left.ended) {
-    return <span className="site-muted">Ended</span>;
+    return <span className="site-card-countdown__ended">Ended</span>;
   }
 
   if (compact) {
-    const parts = [];
-    if (left.days > 0) parts.push(`${left.days}d`);
-    parts.push(`${left.hours}h ${left.mins}m`);
-    return <span className="site-raffle-card__meta">Ends in {parts.join(" ")}</span>;
+    const parts = compactCountdownParts(left);
+    const ariaLabel = [
+      left.days > 0 ? `${left.days} days` : null,
+      `${left.hours} hours`,
+      `${left.mins} minutes`,
+      `${left.secs} seconds`,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    return (
+      <div className="site-card-countdown" role="timer" aria-live="polite" aria-label={ariaLabel}>
+        {parts.map((part) => (
+          <span key={part.label} className="site-card-countdown__part">
+            <span className="site-card-countdown__value">{part.value}</span>
+            <span className="site-card-countdown__label">{part.label}</span>
+          </span>
+        ))}
+      </div>
+    );
   }
 
   const units = [

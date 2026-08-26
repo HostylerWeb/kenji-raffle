@@ -1,6 +1,7 @@
 "use client";
 
 import { formatKes } from "@/lib/format";
+import { SitePageIntro } from "@/components/SitePageIntro";
 
 export type CheckoutPaymentData = {
   order_id: string;
@@ -30,16 +31,19 @@ export function CheckoutPaymentStep({
   const payUrl = checkout.payment_redirect_url;
 
   return (
-    <div className="site-container--narrow" style={{ maxWidth: 520, margin: "0 auto" }}>
-      <h1 className="site-page-title">{checkout.gateway_display_name}</h1>
-      <div className="site-card">
+    <div className="site-page--narrow">
+      <SitePageIntro
+        title={checkout.gateway_display_name}
+        lead="Complete your payment to confirm your tickets."
+      />
+      <div className="site-card site-card--v2 site-card--highlight">
         {checkout.site_credit_applied != null && checkout.site_credit_applied > 0 && (
           <p className="site-muted">
             Site credit applied: {formatKes(checkout.site_credit_applied)}
           </p>
         )}
-        <p style={{ fontSize: 20, fontWeight: 700 }}>
-          Amount due: {formatKes(checkout.total)}
+        <p className="site-checkout-payment__amount">
+          Amount due: <strong>{formatKes(checkout.total)}</strong>
         </p>
         {isLive ? (
           <>
@@ -49,15 +53,11 @@ export function CheckoutPaymentStep({
               payment succeeds.
             </p>
             {payUrl ? (
-              <a
-                href={payUrl}
-                className="site-btn site-btn--primary site-btn--block"
-                style={{ marginTop: 16 }}
-              >
+              <a href={payUrl} className="site-btn site-btn--primary site-btn--block site-checkout-payment__cta">
                 Continue to payment
               </a>
             ) : (
-              <p className="site-muted" role="alert">
+              <p className="site-error" role="alert">
                 Payment gateway is not configured on this server.
               </p>
             )}
@@ -67,7 +67,7 @@ export function CheckoutPaymentStep({
             <p className="site-muted">
               <strong>Test mode</strong> — mock payment for demos and QA. Choose an outcome:
             </p>
-            <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+            <div className="site-page-actions site-page-actions--inline">
               <button
                 type="button"
                 className="site-btn site-btn--primary"
@@ -88,11 +88,11 @@ export function CheckoutPaymentStep({
           </>
         )}
         {error && (
-          <p className="site-error" role="alert" style={{ marginTop: 16 }}>
+          <p className="site-error" role="alert">
             {error}
           </p>
         )}
-        <p className="site-muted" style={{ fontSize: 12, marginTop: 16 }}>
+        <p className="site-muted site-checkout-payment__meta">
           Order ID: {checkout.order_id}
         </p>
       </div>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { notifyCartUpdated } from "@/lib/cart-events";
+import { SitePageIntro } from "@/components/SitePageIntro";
 
 export default function CheckoutFailedClient() {
   const params = useSearchParams();
@@ -14,21 +15,21 @@ export default function CheckoutFailedClient() {
   }, []);
 
   return (
-    <div className="site-container site-container--narrow">
-      <div className="site-success-icon" style={{ background: "#fee2e2", color: "var(--site-danger)" }} aria-hidden>
+    <div className="site-page--narrow">
+      <div className="site-success-icon site-success-icon--error" aria-hidden>
         ✕
       </div>
-      <h1 className="site-page-title">Payment failed</h1>
-      <p className="site-lead" style={{ marginBottom: 24 }}>
-        Your payment could not be completed. Your tickets have been returned to your cart so you can try again.
-      </p>
-      <div className="site-card">
+      <SitePageIntro
+        title="Payment failed"
+        lead="Your payment could not be completed. Your tickets have been returned to your cart so you can try again."
+      />
+      <div className="site-card site-card--v2">
         {orderId && <p className="site-muted">Order ID: {orderId}</p>}
-        <p className="site-muted" style={{ margin: 0 }}>
+        <p className="site-muted">
           Review your cart and return to checkout, or view your order history for details.
         </p>
       </div>
-      <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+      <div className="site-page-actions">
         <Link href="/cart" className="site-btn site-btn--primary">
           Back to cart
         </Link>

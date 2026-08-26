@@ -47,10 +47,26 @@ export function parseCorsOrigins(): string[] | true {
   return true;
 }
 
+function isLocalDevBrowserOrigin(origin: string): boolean {
+  try {
+    const parsed = new URL(origin);
+    const host = parsed.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    if (host === "kenji-raffle.local" || host.endsWith(".kenji-raffle.local")) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function corsOriginAllowed(origin: string | undefined): boolean {
   const configured = parseCorsOrigins();
   if (configured === true) return true;
   if (!origin) return true;
+  // Dev: always allow local browser origins even when VPS allowlist is exported in shell.
+  if (!isProduction() && isLocalDevBrowserOrigin(origin)) return true;
   if (configured.length === 0) return false;
 
   let originHost: string;

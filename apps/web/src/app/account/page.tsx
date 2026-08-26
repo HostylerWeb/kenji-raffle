@@ -61,23 +61,23 @@ export default function AccountPage() {
         description="Manage your tickets, orders, wins, and account settings."
       />
       {error && <p className="site-error">{error}</p>}
-      <div className="site-card site-card--highlight">
+      <div className="site-card site-card--v2 site-card--highlight">
         <p style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700 }}>
           {me.full_name ?? me.email}
         </p>
         <p className="site-muted" style={{ margin: 0 }}>{me.email}</p>
         <div className="site-stat-grid">
-          <div className="site-card site-card--flat">
+          <div className="site-card site-card--flat site-card--v2">
             <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Site credit</p>
             <p className="site-stat-grid__value">{formatKes(me.site_credit_balance)}</p>
             <p className="site-muted" style={{ margin: "4px 0 0", fontSize: 12 }}>Checkout credit only</p>
           </div>
-          <Link href="/account/tickets" className="site-card site-card--flat" style={{ textDecoration: "none", color: "inherit" }}>
+          <Link href="/account/tickets" className="site-card site-card--flat site-card--v2 site-stat-link">
             <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Active tickets</p>
             <p className="site-stat-grid__value">{(me.active_ticket_count ?? 0).toLocaleString()}</p>
           </Link>
           {me.play_safe_active && (
-            <Link href="/account/play-safe" className="site-card site-card--flat" style={{ textDecoration: "none", color: "inherit" }}>
+            <Link href="/account/play-safe" className="site-card site-card--flat site-card--v2 site-stat-link">
               <p className="site-muted" style={{ margin: 0, fontSize: 13 }}>Play Safe</p>
               <p style={{ margin: "4px 0 0", fontWeight: 600, color: "var(--site-warning)" }}>Active</p>
             </Link>
@@ -94,7 +94,7 @@ export default function AccountPage() {
         ))}
       </div>
 
-      <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div className="site-page-actions">
         <Link href="/raffles" className="site-btn site-btn--primary site-btn--sm">
           Browse raffles
         </Link>

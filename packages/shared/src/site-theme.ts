@@ -12,6 +12,14 @@ export type SiteThemeColors = {
   linkHover: string;
 };
 
+export type SiteThemeFonts = {
+  body: string;
+  heading: string;
+  nav: string;
+  button: string;
+  link: string;
+};
+
 export type SiteThemePresetId =
   | "kenji-green"
   | "ocean-blue"
@@ -20,6 +28,53 @@ export type SiteThemePresetId =
   | "slate-pro"
   | "midnight-dark"
   | "custom";
+
+export const DEFAULT_SITE_FONTS: SiteThemeFonts = {
+  body: "Plus Jakarta Sans",
+  heading: "Plus Jakarta Sans",
+  nav: "Plus Jakarta Sans",
+  button: "Plus Jakarta Sans",
+  link: "Plus Jakarta Sans",
+};
+
+const PRESET_FONTS: Record<Exclude<SiteThemePresetId, "custom">, SiteThemeFonts> = {
+  "kenji-green": DEFAULT_SITE_FONTS,
+  "ocean-blue": {
+    body: "Inter",
+    heading: "Inter",
+    nav: "Inter",
+    button: "Inter",
+    link: "Inter",
+  },
+  "royal-purple": {
+    body: "DM Sans",
+    heading: "Playfair Display",
+    nav: "DM Sans",
+    button: "DM Sans",
+    link: "DM Sans",
+  },
+  "sunset-coral": {
+    body: "Nunito Sans",
+    heading: "Oswald",
+    nav: "Nunito Sans",
+    button: "Nunito Sans",
+    link: "Nunito Sans",
+  },
+  "slate-pro": {
+    body: "Work Sans",
+    heading: "Work Sans",
+    nav: "Work Sans",
+    button: "Work Sans",
+    link: "Work Sans",
+  },
+  "midnight-dark": {
+    body: "Space Grotesk",
+    heading: "Space Grotesk",
+    nav: "Space Grotesk",
+    button: "Space Grotesk",
+    link: "Space Grotesk",
+  },
+};
 
 export const SITE_THEME_PRESETS: Record<
   Exclude<SiteThemePresetId, "custom">,
@@ -131,7 +186,9 @@ const COLOR_KEYS: (keyof SiteThemeColors)[] = [
   "linkHover",
 ];
 
-function isValidHex(value: string): boolean {
+const FONT_KEYS: (keyof SiteThemeFonts)[] = ["body", "heading", "nav", "button", "link"];
+
+export function isValidHexColor(value: string): boolean {
   return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value);
 }
 
@@ -139,18 +196,54 @@ function isGradient(value: string): boolean {
   return value.includes("gradient(");
 }
 
+export function parseFooterGradient(value: string): { top: string; bottom: string } {
+  const match = value.match(
+    /linear-gradient\([^,]+,\s*(#[0-9a-fA-F]{3,6})\s+\d+%,\s*(#[0-9a-fA-F]{3,6})\s+\d+%\)/i,
+  );
+  if (match) {
+    return { top: match[1].toLowerCase(), bottom: match[2].toLowerCase() };
+  }
+  if (isValidHexColor(value)) {
+    return { top: value, bottom: value };
+  }
+  return { top: "#0b1220", bottom: "#0f172a" };
+}
+
+export function buildFooterGradient(top: string, bottom: string): string {
+  return `linear-gradient(180deg, ${top} 0%, ${bottom} 100%)`;
+}
+
 export function sanitizeThemeColor(value: unknown, fallback: string): string {
   if (typeof value !== "string" || !value.trim()) return fallback;
   const trimmed = value.trim();
-  if (isValidHex(trimmed) || isGradient(trimmed)) return trimmed;
+  if (isValidHexColor(trimmed) || isGradient(trimmed)) return trimmed;
   return fallback;
+}
+
+function sanitizeFontFamily(value: unknown, fallback: string): string {
+  if (typeof value !== "string" || !value.trim()) return fallback;
+  return value.trim().slice(0, 80);
+}
+
+function extractFontsFromConfig(
+  overrides: Record<string, unknown>,
+  base: SiteThemeFonts,
+): SiteThemeFonts {
+  const raw = overrides.fonts;
+  if (!raw || typeof raw !== "object") return { ...base };
+  const fontObj = raw as Record<string, unknown>;
+  const resolved = { ...base };
+  for (const key of FONT_KEYS) {
+    resolved[key] = sanitizeFontFamily(fontObj[key], base[key]);
+  }
+  return resolved;
 }
 
 export function resolveSiteTheme(input: {
   themePreset?: string | null;
   primaryColor?: string | null;
   themeConfig?: Record<string, unknown> | null;
-}): SiteThemeColors & { preset: SiteThemePresetId } {
+}): SiteThemeColors & { preset: SiteThemePresetId; fonts: SiteThemeFonts } {
   const presetId = (input.themePreset ?? "kenji-green") as SiteThemePresetId;
   const basePreset =
     presetId !== "custom" && presetId in SITE_THEME_PRESETS
@@ -160,12 +253,18 @@ export function resolveSiteTheme(input: {
   const { label: _l, description: _d, ...base } = basePreset;
   const overrides = input.themeConfig ?? {};
   const resolved: SiteThemeColors = { ...base };
+  const baseFonts =
+    presetId !== "custom" && presetId in PRESET_FONTS
+      ? PRESET_FONTS[presetId as Exclude<SiteThemePresetId, "custom">]
+      : DEFAULT_SITE_FONTS;
 
   for (const key of COLOR_KEYS) {
     resolved[key] = sanitizeThemeColor(overrides[key], base[key]);
   }
 
-  if (input.primaryColor && isValidHex(input.primaryColor.trim())) {
+  let fonts = extractFontsFromConfig(overrides, baseFonts);
+
+  if (input.primaryColor && isValidHexColor(input.primaryColor.trim())) {
     resolved.accent = input.primaryColor.trim();
     if (presetId !== "custom") {
       resolved.buttonBg = input.primaryColor.trim();
@@ -179,14 +278,20 @@ export function resolveSiteTheme(input: {
         resolved[key] = sanitizeThemeColor(overrides[key], resolved[key]);
       }
     }
+    fonts = extractFontsFromConfig(overrides, fonts);
   }
 
-  return { ...resolved, preset: presetId };
+  return { ...resolved, preset: presetId, fonts };
 }
 
 export function themeToCssVariables(
   theme: SiteThemeColors,
+  fonts?: SiteThemeFonts,
 ): Record<string, string> {
+  const f = fonts ?? DEFAULT_SITE_FONTS;
+  const stack = (family: string) =>
+    `"${family.replace(/"/g, "")}", system-ui, -apple-system, sans-serif`;
+
   return {
     "--tenant-accent": theme.accent,
     "--site-header-bg": theme.headerBg,
@@ -199,15 +304,48 @@ export function themeToCssVariables(
     "--site-button-text": theme.buttonText,
     "--site-link-color": theme.linkColor,
     "--site-link-hover": theme.linkHover,
+    "--site-font-body": stack(f.body),
+    "--site-font-heading": stack(f.heading),
+    "--site-font-nav": stack(f.nav),
+    "--site-font-button": stack(f.button),
+    "--site-font-link": stack(f.link),
   };
 }
 
 export function extractThemeConfig(
   colors: SiteThemeColors,
-): Record<string, string> {
-  const out: Record<string, string> = {};
+  fonts?: SiteThemeFonts,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
   for (const key of COLOR_KEYS) {
     out[key] = colors[key];
   }
+  if (fonts) {
+    out.fonts = fonts;
+  }
   return out;
 }
+
+export function extractThemeFonts(resolved: {
+  fonts: SiteThemeFonts;
+}): SiteThemeFonts {
+  return { ...resolved.fonts };
+}
+
+/** Session storage key for unsaved branding draft in admin preview */
+export const BRANDING_DRAFT_STORAGE_KEY = "kenji-branding-draft";
+
+export type BrandingDraft = {
+  operatorName: string;
+  logoUrl: string;
+  footerLogoUrl: string;
+  primaryColor: string;
+  themePreset: SiteThemePresetId;
+  themeColors: SiteThemeColors;
+  themeFonts: SiteThemeFonts;
+  footerLicence: string;
+  supportEmail: string;
+  socialFacebook: string;
+  socialTwitter: string;
+  socialInstagram: string;
+};

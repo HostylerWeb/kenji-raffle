@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import {
   extractThemeConfig,
   resolveSiteTheme,
+  DEFAULT_SITE_FONTS,
   type SiteThemeColors,
+  type SiteThemeFonts,
   type SiteThemePresetId,
 } from "@kenji-raffle/shared/site-theme";
 import { OperatorAdminShell } from "@/components/OperatorAdminShell";
@@ -42,8 +44,10 @@ type Settings = {
   };
 };
 
-function defaultThemeColors(): SiteThemeColors {
-  return resolveSiteTheme({ themePreset: "kenji-green", primaryColor: "#00a551", themeConfig: null });
+function defaultTheme(): { colors: SiteThemeColors; fonts: SiteThemeFonts } {
+  const resolved = resolveSiteTheme({ themePreset: "kenji-green", primaryColor: "#00a551", themeConfig: null });
+  const { preset: _p, fonts, ...colors } = resolved;
+  return { colors, fonts };
 }
 
 export default function SettingsPage() {
@@ -67,7 +71,8 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState("");
   const [footerLogoUrl, setFooterLogoUrl] = useState("");
   const [themePreset, setThemePreset] = useState<SiteThemePresetId>("kenji-green");
-  const [themeColors, setThemeColors] = useState<SiteThemeColors>(defaultThemeColors);
+  const [themeColors, setThemeColors] = useState<SiteThemeColors>(() => defaultTheme().colors);
+  const [themeFonts, setThemeFonts] = useState<SiteThemeFonts>(() => defaultTheme().fonts);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState("");
@@ -105,8 +110,9 @@ export default function SettingsPage() {
           primaryColor: data.branding.primary_color,
           themeConfig: data.branding.theme_config ?? null,
         });
-        const { preset: _p, ...colors } = resolved;
+        const { preset: _p, fonts, ...colors } = resolved;
         setThemeColors(colors);
+        setThemeFonts(fonts);
       })
       .catch(() => router.replace("/admin/login"));
     operatorFetch<{ mfa_enabled: boolean }>("/v1/admin/auth/session")
@@ -140,7 +146,7 @@ export default function SettingsPage() {
           logo_url: logoUrl || null,
           footer_logo_url: footerLogoUrl || null,
           theme_preset: themePreset,
-          theme_config: extractThemeConfig(themeColors),
+          theme_config: extractThemeConfig(themeColors, themeFonts),
         }),
       });
       setSettings(updated);
@@ -225,6 +231,7 @@ export default function SettingsPage() {
                 primaryColor={primaryColor}
                 themePreset={themePreset}
                 themeColors={themeColors}
+                themeFonts={themeFonts}
                 footerLicence={footerLicence}
                 socialFacebook={socialFacebook}
                 socialTwitter={socialTwitter}
@@ -236,6 +243,7 @@ export default function SettingsPage() {
                 onPrimaryColor={setPrimaryColor}
                 onThemePreset={setThemePreset}
                 onThemeColors={setThemeColors}
+                onThemeFonts={setThemeFonts}
                 onFooterLicence={setFooterLicence}
                 onSocialFacebook={setSocialFacebook}
                 onSocialTwitter={setSocialTwitter}

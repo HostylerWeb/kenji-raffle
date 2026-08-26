@@ -6,7 +6,7 @@ import { RaffleCountdown } from "@/components/RaffleCountdown";
 import { RaffleGallery } from "@/components/RaffleGallery";
 import { PrizeTabs } from "@/components/PrizeTabs";
 import { TicketSelector } from "@/components/TicketSelector";
-import { formatDateTime, formatKes } from "@/lib/format";
+import { formatDateTime, formatDrawLabel, formatKes } from "@/lib/format";
 import { getRequestHost, getTenantContext, publicFetch } from "@/lib/tenant";
 
 type RaffleDetail = {
@@ -107,16 +107,18 @@ export default async function RaffleDetailPage({
 
   return (
     <>
-      <Link href="/raffles" className="site-breadcrumb">← All raffles</Link>
+      <Link href="/raffles" className="site-breadcrumb">
+        ← All raffles
+      </Link>
 
-      <div className="site-detail-grid" style={{ marginTop: 8 }}>
-        <div>
+      <div className="site-detail-grid site-detail-grid--commerce">
+        <div className="site-detail-main">
           <RaffleGallery images={images} title={raffle.title} />
 
           {raffle.description && (
-            <section style={{ marginTop: 32 }}>
-              <h2 className="site-section-title">About this raffle</h2>
-              <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{raffle.description}</p>
+            <section className="site-detail-section">
+              <h2 className="site-section-title site-section-title--lg">About this raffle</h2>
+              <div className="site-prose">{raffle.description}</div>
             </section>
           )}
 
@@ -127,43 +129,46 @@ export default async function RaffleDetailPage({
         </div>
 
         <aside className="site-detail-buy">
-          <div className="site-card site-card--highlight">
+          <div className="site-card site-card--buy site-card--v2">
             {raffle.category && (
               <span className="site-raffle-card__category">{raffle.category.name}</span>
             )}
-            <h1 className="site-page-title" style={{ fontSize: 24, marginBottom: 12 }}>
-              {raffle.title}
-            </h1>
+            <h1 className="site-detail-title">{raffle.title}</h1>
 
-            <p style={{ fontSize: 22, fontWeight: 800, margin: "0 0 16px" }}>
+            <p className="site-detail-price">
               {formatKes(raffle.ticket_price)}
-              <span className="site-muted" style={{ fontSize: 14, fontWeight: 500 }}> per ticket</span>
+              <span> per ticket</span>
             </p>
 
             {raffle.end_date && (
-              <div style={{ marginBottom: 16 }}>
-                <p className="site-muted" style={{ marginBottom: 8 }}>Competition ends in</p>
+              <div className="site-detail-countdown">
+                {soldOut ? (
+                  <span className="site-detail-draw site-detail-draw--ended">Ended</span>
+                ) : (
+                  <span className="site-detail-draw">{formatDrawLabel(raffle.end_date)}</span>
+                )}
+                <p className="site-muted site-detail-countdown__label">Competition ends in</p>
                 <RaffleCountdown endDate={raffle.end_date} />
-                <p className="site-muted" style={{ marginTop: 8, fontSize: 12 }}>
+                <p className="site-muted site-detail-countdown__date">
                   {formatDateTime(raffle.end_date)}
                 </p>
               </div>
             )}
 
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                <span className="site-muted">{available.toLocaleString()} left</span>
-                <span className="site-muted">{soldPct}% sold</span>
+            <div className="site-detail-progress">
+              <div className="site-raffle-card__progress-meta">
+                <span>{available.toLocaleString()} left</span>
+                <span>Sold: {soldPct}%</span>
               </div>
-              <div className="site-progress">
+              <div className="site-progress site-progress--commerce">
                 <div className="site-progress__bar" style={{ width: `${soldPct}%` }} />
               </div>
             </div>
 
             {raffle.quantity_discounts && raffle.quantity_discounts.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                <p className="site-muted" style={{ marginBottom: 6 }}>Quantity discounts</p>
-                <ul className="site-muted" style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+              <div className="site-detail-discounts">
+                <p className="site-muted site-detail-discounts__label">Quantity discounts</p>
+                <ul className="site-detail-discounts__list">
                   {raffle.quantity_discounts.map((t) => (
                     <li key={t.min_quantity}>
                       {t.min_quantity}+ tickets —
@@ -177,10 +182,10 @@ export default async function RaffleDetailPage({
             )}
 
             {soldOut ? (
-              <div className="site-empty" style={{ padding: 24 }}>
+              <div className="site-empty site-empty--compact">
                 <p className="site-empty__title">Sold out</p>
                 <p className="site-muted">All tickets for this raffle have been purchased.</p>
-                <Link href="/raffles" className="site-btn site-btn--secondary site-btn--sm" style={{ marginTop: 12 }}>
+                <Link href="/raffles" className="site-btn site-btn--secondary site-btn--sm">
                   Browse other raffles
                 </Link>
               </div>

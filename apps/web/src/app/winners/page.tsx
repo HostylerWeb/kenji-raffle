@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/EmptyState";
+import { SitePageIntro } from "@/components/SitePageIntro";
 import { headers } from "next/headers";
 import { formatDate } from "@/lib/format";
 import { getRequestHost, publicFetch } from "@/lib/tenant";
@@ -23,24 +25,23 @@ export default async function WinnersPage() {
 
   return (
     <>
-      <Link href="/" className="site-breadcrumb">← Home</Link>
-      <h1 className="site-page-title">Winners</h1>
-      <p className="site-lead" style={{ marginBottom: 24 }}>
-        Congratulations to our recent winners. Could you be next?
-      </p>
+      <SitePageIntro
+        breadcrumb="← Home"
+        title="Winners"
+        lead="Congratulations to our recent winners. Could you be next?"
+      />
 
       {winners.length === 0 ? (
-        <div className="site-empty">
-          <h3 className="site-empty__title">No winners yet</h3>
-          <p className="site-muted">Be the first — enter a live raffle today.</p>
-          <Link href="/raffles" className="site-btn site-btn--primary" style={{ marginTop: 16 }}>
-            Browse raffles
-          </Link>
-        </div>
+        <EmptyState
+          title="No winners yet"
+          description="Be the first — enter a live raffle today."
+          actionHref="/raffles"
+          actionLabel="Browse raffles"
+        />
       ) : (
         <>
-          <div className="site-card site-table-wrap site-winners-table">
-            <table className="site-table">
+          <div className="site-card site-card--v2 site-table-wrap site-winners-table">
+            <table className="site-table site-table--commerce">
               <thead>
                 <tr>
                   <th>Raffle</th>
@@ -68,13 +69,11 @@ export default async function WinnersPage() {
             {winners.map((w) => (
               <div key={`card-${w.raffle_title}-${w.ticket_number}`} className="site-winner-card">
                 <p className="site-winner-card__title">{w.raffle_title}</p>
-                <p style={{ margin: "0 0 4px", fontWeight: 700 }}>{w.winner_name}</p>
-                <p className="site-muted" style={{ margin: 0 }}>
+                <p className="site-winner-card__name">{w.winner_name}</p>
+                <p className="site-muted site-winner-card__meta">
                   #{w.ticket_number} · {w.prize_name}
                 </p>
-                <p className="site-muted" style={{ margin: "8px 0 0", fontSize: 13 }}>
-                  {formatDate(w.announced_at)}
-                </p>
+                <p className="site-muted site-winner-card__date">{formatDate(w.announced_at)}</p>
               </div>
             ))}
           </div>

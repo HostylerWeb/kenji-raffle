@@ -16,6 +16,10 @@
     "./site-theme": {
       "types": "./dist/site-theme.d.ts",
       "default": "./dist/site-theme.js"
+    },
+    "./google-fonts-catalog": {
+      "types": "./dist/google-fonts-catalog.d.ts",
+      "default": "./dist/google-fonts-catalog.js"
     }
   },
   "scripts": {

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { RaffleCard, type RaffleCardData } from "@/components/RaffleCard";
+import { CategoryPills } from "@/components/CategoryPills";
 import { EmptyState } from "@/components/EmptyState";
+import { RaffleCard, type RaffleCardData } from "@/components/RaffleCard";
+import { SitePageIntro } from "@/components/SitePageIntro";
 import { getRequestHost, getTenantContext, publicFetch } from "@/lib/tenant";
 
 type Category = { id: string; name: string; slug: string };
@@ -67,13 +69,19 @@ export default async function RafflesPage({
 
   return (
     <>
-      <Link href="/" className="site-breadcrumb">← Home</Link>
-      <h1 className="site-page-title">All raffles</h1>
-      <p className="site-lead" style={{ marginBottom: 24 }}>
-        Enter licensed competitions at {tenant.name}. Filter by category or find raffles ending soon.
-      </p>
+      <SitePageIntro
+        breadcrumb="← Home"
+        title="All raffles"
+        lead={`Enter licensed competitions at ${tenant.name}. Filter by category or find raffles ending soon.`}
+      />
 
-      <div className="site-filters">
+      {categories.length > 0 && (
+        <div className="site-page-block">
+          <CategoryPills categories={categories} activeSlug={params.category} />
+        </div>
+      )}
+
+      <div className="site-raffles-toolbar site-page-block">
         <Link
           href={`/raffles${filterQuery(baseFilters)}`}
           className={`site-filter-chip${!params.category && !params.ending_soon && !params.featured && !params.sort ? " site-filter-chip--active" : ""}`}
@@ -123,7 +131,7 @@ export default async function RafflesPage({
           actionLabel="View all raffles"
         />
       ) : (
-        <div className="site-raffle-grid">
+        <div className="site-raffle-grid site-raffle-grid--commerce">
           {raffles.map((raffle) => (
             <RaffleCard key={raffle.id} raffle={raffle} />
           ))}

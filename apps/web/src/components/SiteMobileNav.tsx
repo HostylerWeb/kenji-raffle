@@ -25,7 +25,7 @@ export function SiteMobileNav() {
   const loggedIn = usePlayerLoggedIn();
 
   return (
-    <nav className="site-mobile-nav" aria-label="Mobile">
+    <nav className="site-mobile-nav site-mobile-nav--commerce" aria-label="Mobile">
       <div className="site-mobile-nav__inner">
         {ITEMS.map((item) => {
           const active = item.exact

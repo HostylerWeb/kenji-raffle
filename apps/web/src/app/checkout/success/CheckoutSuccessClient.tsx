@@ -8,6 +8,7 @@ import { getPublicApiUrl } from "@/lib/api-config";
 import { playerFetch, getTenantHost } from "@/lib/player-api";
 import { formatKes } from "@/lib/format";
 import { trackPurchase } from "@/components/AnalyticsScripts";
+import { SitePageIntro } from "@/components/SitePageIntro";
 
 type Confirmation = {
   order_id: string;
@@ -53,12 +54,12 @@ export default function CheckoutSuccessClient() {
 
   if (!orderId) {
     return (
-      <div className="site-container site-container--narrow">
-        <h1 className="site-page-title">Order not found</h1>
-        <p className="site-lead" style={{ marginBottom: 24 }}>
-          We couldn&apos;t find your order confirmation. Check your account orders or try checkout again.
-        </p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+      <div className="site-page--narrow">
+        <SitePageIntro
+          title="Order not found"
+          lead="We couldn't find your order confirmation. Check your account orders or try checkout again."
+        />
+        <div className="site-page-actions">
           <Link href="/account/orders" className="site-btn site-btn--primary">
             View my orders
           </Link>
@@ -71,23 +72,25 @@ export default function CheckoutSuccessClient() {
   }
 
   return (
-    <div className="site-container site-container--narrow">
-      <div className="site-success-icon" aria-hidden>✓</div>
-      <h1 className="site-page-title">You&apos;re in!</h1>
-      <p className="site-lead" style={{ marginBottom: 24 }}>
-        Payment successful. Good luck — your tickets are confirmed below.
-      </p>
+    <div className="site-page--narrow">
+      <div className="site-success-icon" aria-hidden>
+        ✓
+      </div>
+      <SitePageIntro
+        title="You're in!"
+        lead="Payment successful. Good luck — your tickets are confirmed below."
+      />
 
-      <div className="site-card">
+      <div className="site-card site-card--v2">
         <p className="site-muted">Order {orderId}</p>
         {error && <p className="site-error">{error}</p>}
         {data && (
           <>
-            <p style={{ fontSize: 18, fontWeight: 700, marginTop: 0 }}>
-              Total paid: {formatKes(data.total)}
+            <p className="site-checkout-success__total">
+              Total paid: <strong>{formatKes(data.total)}</strong>
             </p>
             <h2 className="site-section-title">Your tickets</h2>
-            <ul className="site-ticket-list">
+            <ul className="site-ticket-list site-ticket-list--commerce">
               {data.tickets.map((t, i) => (
                 <li key={i} className="site-ticket-pill">
                   <span>{t.raffle_title}</span>
@@ -97,12 +100,10 @@ export default function CheckoutSuccessClient() {
             </ul>
             {data.instant_wins && data.instant_wins.length > 0 && (
               <>
-                <h2 className="site-section-title" style={{ marginTop: 24 }}>
-                  Instant wins!
-                </h2>
-                <ul className="site-ticket-list">
+                <h2 className="site-section-title site-section-title--spaced">Instant wins!</h2>
+                <ul className="site-ticket-list site-ticket-list--commerce">
                   {data.instant_wins.map((w, i) => (
-                    <li key={i} className="site-ticket-pill" style={{ background: "var(--site-accent-soft)" }}>
+                    <li key={i} className="site-ticket-pill site-ticket-pill--win">
                       <span>{w.name}</span>
                       <strong>{formatKes(w.prize_value)}</strong>
                     </li>
@@ -114,7 +115,7 @@ export default function CheckoutSuccessClient() {
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" }}>
+      <div className="site-page-actions">
         <Link href="/account/tickets" className="site-btn site-btn--primary">
           View my tickets
         </Link>

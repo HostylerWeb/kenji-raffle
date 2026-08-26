@@ -20,7 +20,7 @@ export function SiteFooter({
   const year = new Date().getFullYear();
 
   return (
-    <footer className="site-footer">
+    <footer className="site-footer site-footer--v2">
       <div className="site-footer__accent" aria-hidden />
       <div className="site-container">
         <div className="site-footer__trust">

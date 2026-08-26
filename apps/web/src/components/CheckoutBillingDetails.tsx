@@ -52,8 +52,8 @@ export function CheckoutBillingDetails({
 }: CheckoutBillingDetailsProps) {
   if (loading) {
     return (
-      <div className="site-card site-checkout-billing" style={{ marginBottom: 20 }}>
-        <div className="site-skeleton" style={{ height: 320 }} />
+      <div className="site-card site-card--v2 site-checkout-billing site-page-block">
+        <div className="site-skeleton site-skeleton--form" />
       </div>
     );
   }
@@ -63,9 +63,9 @@ export function CheckoutBillingDetails({
   }
 
   return (
-    <div className="site-card site-checkout-billing" style={{ marginBottom: 20 }}>
+    <div className="site-card site-card--v2 site-checkout-billing site-page-block">
       <h2 className="site-section-title">Billing details</h2>
-      <p className="site-muted" style={{ marginTop: 0, marginBottom: 16, fontSize: 14 }}>
+      <p className="site-muted site-checkout-billing__lead">
         Enter your details exactly as they should appear on your order confirmation.
       </p>
       <div className="site-form site-form--compact">

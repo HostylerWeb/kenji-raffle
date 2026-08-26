@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ReservationCountdown } from "@/components/ReservationCountdown";
+import { SitePageIntro } from "@/components/SitePageIntro";
 import { notifyCartUpdated } from "@/lib/cart-events";
 import { formatKes } from "@/lib/format";
 import { getPlayerToken, playerFetch } from "@/lib/player-api";
@@ -61,29 +62,29 @@ export default function CartPage() {
 
   if (!cart && !error) {
     return (
-      <div>
-        <h1 className="site-page-title">Your cart</h1>
-        <div className="site-skeleton" style={{ height: 200 }} />
-      </div>
+      <>
+        <SitePageIntro title="Your cart" lead="Review your tickets before checkout." />
+        <div className="site-skeleton site-skeleton--card" />
+      </>
     );
   }
 
   if (!cart) {
     return (
-      <div>
-        <h1 className="site-page-title">Your cart</h1>
+      <>
+        <SitePageIntro title="Your cart" />
         <p className="site-error">{error}</p>
-        <Link href="/raffles" className="site-btn site-btn--primary" style={{ marginTop: 16 }}>
+        <Link href="/raffles" className="site-btn site-btn--primary site-page-actions">
           Browse raffles
         </Link>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="site-checkout-grid">
+    <div className="site-cart-layout site-checkout-grid">
       <div>
-        <h1 className="site-page-title">Your cart</h1>
+        <SitePageIntro title="Your cart" lead="Your ticket reservations are held while you checkout." />
         <ReservationCountdown expiresAt={cart.expires_at} className="site-reservation-countdown" />
         {error && <p className="site-error">{error}</p>}
 
@@ -95,7 +96,7 @@ export default function CartPage() {
             actionLabel="Browse raffles"
           />
         ) : (
-          <div className="site-card">
+          <div className="site-card site-card--v2 site-cart-list">
             {cart.items.map((item) => (
               <div key={item.id} className="site-cart-item">
                 <div className="site-cart-item__thumb">
@@ -119,11 +120,12 @@ export default function CartPage() {
                       {item.ticket_numbers.length > 8 ? "…" : ""}
                     </p>
                   )}
-                  <div className="site-ticket-stepper" style={{ marginTop: 12 }}>
+                  <div className="site-ticket-stepper site-ticket-stepper--commerce">
                     <button
                       type="button"
                       disabled={updating === item.id || item.ticket_quantity <= 1}
                       onClick={() => updateQty(item.id, item.ticket_quantity - 1)}
+                      aria-label="Decrease quantity"
                     >
                       −
                     </button>
@@ -137,15 +139,14 @@ export default function CartPage() {
                       type="button"
                       disabled={updating === item.id}
                       onClick={() => updateQty(item.id, item.ticket_quantity + 1)}
+                      aria-label="Increase quantity"
                     >
                       +
                     </button>
                   </div>
                 </div>
                 <div className="site-cart-item__actions">
-                  <p style={{ fontWeight: 700, margin: "0 0 8px" }}>
-                    {formatKes(item.final_amount)}
-                  </p>
+                  <p className="site-cart-item__price">{formatKes(item.final_amount)}</p>
                   <button
                     type="button"
                     className="site-btn site-btn--ghost site-btn--sm"
@@ -160,14 +161,14 @@ export default function CartPage() {
           </div>
         )}
 
-        <p style={{ marginTop: 16 }}>
+        <p className="site-page-back">
           <Link href="/raffles">← Continue shopping</Link>
         </p>
       </div>
 
       {cart.items.length > 0 && (
         <aside className="site-order-summary">
-          <div className="site-card">
+          <div className="site-card site-card--v2 site-order-summary__card">
             <h2 className="site-section-title">Order summary</h2>
             <div className="site-order-summary__row">
               <span className="site-muted">Subtotal</span>
@@ -177,11 +178,11 @@ export default function CartPage() {
               <span>Total</span>
               <strong>{formatKes(cart.subtotal)}</strong>
             </div>
-            <Link href="/checkout" className="site-btn site-btn--primary site-btn--block" style={{ marginTop: 16 }}>
+            <Link href="/checkout" className="site-btn site-btn--primary site-btn--block site-order-summary__cta">
               Proceed to checkout
             </Link>
             {!getPlayerToken() && (
-              <p className="site-muted" style={{ marginTop: 12, fontSize: 13 }}>
+              <p className="site-muted site-order-summary__note">
                 Sign in or register on checkout to complete your purchase. An account is required to pay.
               </p>
             )}

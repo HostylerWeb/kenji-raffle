@@ -27,14 +27,14 @@ export function ContactForm({ supportEmail }: { supportEmail?: string | null }) 
   }
 
   return (
-    <>
+    <div className="site-contact-form">
       {supportEmail && (
-        <p className="site-muted" style={{ marginBottom: 16 }}>
+        <p className="site-muted site-contact-form__note">
           You can also email us directly at{" "}
           <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
         </p>
       )}
-      <form className="site-form site-card" style={{ maxWidth: 520 }} onSubmit={onSubmit}>
+      <form className="site-form site-card site-card--v2" onSubmit={onSubmit}>
         <label>
           Your email
           <input type="email" value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} required />
@@ -49,8 +49,10 @@ export function ContactForm({ supportEmail }: { supportEmail?: string | null }) 
         </label>
         {error && <p className="site-error" role="alert">{error}</p>}
         {message && <p className="site-success-text">{message}</p>}
-        <button type="submit" className="site-btn site-btn--primary">Send message</button>
+        <button type="submit" className="site-btn site-btn--primary site-btn--block">
+          Send message
+        </button>
       </form>
-    </>
+    </div>
   );
 }

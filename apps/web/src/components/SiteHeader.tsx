@@ -56,7 +56,7 @@ export function SiteHeader({
 
   return (
     <>
-      <header className="site-header">
+      <header className="site-header site-header--v2 site-header--commerce">
         <div className="site-container site-header__inner">
           <Link href="/" className="site-brand">
             {logoUrl ? (
@@ -137,7 +137,7 @@ export function SiteHeader({
             aria-label="Close menu"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="site-drawer site-drawer--open" aria-label="Mobile menu">
+          <aside className="site-drawer site-drawer--commerce site-drawer--open" aria-label="Mobile menu">
             <div className="site-drawer__header">
               <span className="site-drawer__title">Menu</span>
               <button

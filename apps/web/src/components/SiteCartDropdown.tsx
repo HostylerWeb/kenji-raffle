@@ -62,6 +62,7 @@ export function SiteCartDropdown() {
       </button>
       {open && (
         <div className="site-cart-dropdown__panel" role="dialog" aria-label="Cart preview">
+          <p className="site-cart-dropdown__heading">Your cart</p>
           {cart && cart.items.length > 0 ? (
             <>
               <ul className="site-cart-dropdown__lines">
@@ -85,8 +86,7 @@ export function SiteCartDropdown() {
           )}
           <Link
             href="/cart"
-            className="site-btn site-btn--primary site-btn--block site-btn--sm"
-            style={{ marginTop: 12 }}
+            className="site-btn site-btn--primary site-btn--block site-btn--sm site-cart-dropdown__cta"
             onClick={() => setOpen(false)}
           >
             View cart

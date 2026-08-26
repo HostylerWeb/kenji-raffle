@@ -15,6 +15,7 @@ import { CheckoutGuestGate } from "@/components/CheckoutGuestGate";
 import { CheckoutOrderSummary } from "@/components/CheckoutOrderSummary";
 import { CheckoutPaymentStep } from "@/components/CheckoutPaymentStep";
 import { ReservationCountdown } from "@/components/ReservationCountdown";
+import { SitePageIntro } from "@/components/SitePageIntro";
 import { trackInitiateCheckout } from "@/components/AnalyticsScripts";
 import { notifyCartUpdated } from "@/lib/cart-events";
 import { getPublicApiUrl } from "@/lib/api-config";
@@ -281,18 +282,23 @@ export default function CheckoutPage() {
   return (
     <div className="site-checkout-grid">
       <div>
-        <h1 className="site-page-title">Checkout</h1>
+        <div className="site-checkout-steps" aria-label="Checkout progress">
+          <span className="site-checkout-step site-checkout-step--active">1. Account</span>
+          <span className="site-checkout-step">2. Billing</span>
+          <span className="site-checkout-step">3. Payment</span>
+        </div>
+        <SitePageIntro title="Checkout" lead="Complete your account details and pay securely." />
         {cart?.expires_at && !pendingOrder && (
           <ReservationCountdown expiresAt={cart.expires_at} className="site-reservation-countdown" />
         )}
 
         {loggedIn && pendingOrder && (
-          <div className="site-card site-card--highlight" style={{ marginBottom: 20 }}>
+          <div className="site-card site-card--v2 site-card--highlight site-page-block">
             <h2 className="site-section-title">Pending payment</h2>
             <p className="site-muted" style={{ marginTop: 0 }}>
               You have an unpaid order for {formatKes(pendingOrder.total)}. Complete payment below, or wait for it to expire (about 60 minutes) before starting a new checkout.
             </p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div className="site-page-actions site-page-actions--inline">
               <button
                 type="button"
                 className="site-btn site-btn--primary"
@@ -312,13 +318,13 @@ export default function CheckoutPage() {
           cart && cart.items.length > 0 ? (
             <CheckoutGuestGate cart={cart} onAuthenticated={handleAuthSuccess} />
           ) : cartLoading ? (
-            <div className="site-card">
-              <div className="site-skeleton" style={{ height: 280 }} />
+            <div className="site-card site-card--v2 site-page-block">
+              <div className="site-skeleton site-skeleton--card" />
             </div>
           ) : null
         ) : profileLoading && !pendingOrder ? (
-          <div className="site-card" style={{ marginBottom: 20 }}>
-            <div className="site-skeleton" style={{ height: 520 }} />
+          <div className="site-card site-card--v2 site-page-block">
+            <div className="site-skeleton site-skeleton--form" />
           </div>
         ) : (
           <>
@@ -330,7 +336,7 @@ export default function CheckoutPage() {
               />
             )}
             {!pendingOrder && billing && (
-              <form className="site-form site-card" onSubmit={startCheckout}>
+              <form className="site-form site-card site-card--v2" onSubmit={startCheckout}>
                 <h2 className="site-section-title" style={{ marginTop: 0 }}>
                   Payment options
                 </h2>
@@ -387,7 +393,7 @@ export default function CheckoutPage() {
             )}
           </>
         )}
-        <p style={{ marginTop: 16 }}>
+        <p className="site-page-back">
           <Link href="/cart">← Back to cart</Link>
         </p>
       </div>

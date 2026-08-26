@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 export function RaffleGallery({
   images,
@@ -13,40 +14,29 @@ export function RaffleGallery({
   if (images.length === 0) return null;
 
   return (
-    <div>
-      <div
-        style={{
-          borderRadius: "var(--site-radius)",
-          overflow: "hidden",
-          aspectRatio: "16/10",
-          background: "var(--site-bg)",
-          marginBottom: 12,
-        }}
-      >
-        <img
-          src={images[active]}
+    <div className="site-gallery">
+      <div className="site-gallery__main">
+        <Image
+          src={images[active] ?? images[0]}
           alt={title}
-          style={{ width: "100%", height: "100%", objectFit: "cover" }}
+          fill
+          sizes="(max-width: 1024px) 100vw, 60vw"
+          className="site-gallery__image"
+          priority
         />
       </div>
       {images.length > 1 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="site-gallery__thumbs">
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
+              className={`site-gallery__thumb${i === active ? " site-gallery__thumb--active" : ""}`}
+              aria-label={`Show image ${i + 1}`}
+              aria-current={i === active ? "true" : undefined}
               onClick={() => setActive(i)}
-              style={{
-                padding: 0,
-                border: i === active ? "2px solid var(--site-accent)" : "2px solid transparent",
-                borderRadius: 8,
-                overflow: "hidden",
-                cursor: "pointer",
-                width: 72,
-                height: 48,
-              }}
             >
-              <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <Image src={src} alt="" width={96} height={64} className="site-gallery__thumb-img" />
             </button>
           ))}
         </div>

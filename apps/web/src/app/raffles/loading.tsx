@@ -1,11 +1,11 @@
 export default function RafflesLoading() {
   return (
     <div>
-      <div className="site-skeleton" style={{ height: 36, width: 200, marginBottom: 24 }} />
-      <div className="site-skeleton" style={{ height: 40, width: "100%", maxWidth: 480, marginBottom: 24 }} />
-      <div className="site-raffle-grid">
+      <div className="site-skeleton site-loading-title" />
+      <div className="site-skeleton site-loading-bar" />
+      <div className="site-raffle-grid site-raffle-grid--commerce">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <div key={i} className="site-skeleton" style={{ height: 320, borderRadius: "var(--site-radius)" }} />
+          <div key={i} className="site-skeleton site-loading-card" />
         ))}
       </div>
     </div>

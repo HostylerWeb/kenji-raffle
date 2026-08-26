@@ -40,9 +40,9 @@ export function CheckoutGuestGate({ cart, onAuthenticated }: CheckoutGuestGatePr
   }
 
   return (
-    <div className="site-checkout-guest site-card">
+    <div className="site-checkout-guest site-card site-card--v2 site-page-block">
       <h2 className="site-section-title">Complete your purchase</h2>
-      <p className="site-muted" style={{ marginTop: 0 }}>
+      <p className="site-muted site-checkout-guest__lead">
         Sign in or create an account to continue with checkout. An account is required to pay.
       </p>
 

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import { headers } from "next/headers";
 import "./globals.css";
 import "./public.css";
@@ -32,20 +33,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="preload"
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap"
-          as="style"
-        />
-      </head>
+      <head />
       <body>
         <AnalyticsScripts analytics={tenant?.analytics ?? null} />
-        <PublicSiteChrome tenant={tenant}>
-          {children}
-        </PublicSiteChrome>
+        <Suspense fallback={<div className="site-root">{children}</div>}>
+          <PublicSiteChrome tenant={tenant}>
+            {children}
+          </PublicSiteChrome>
+        </Suspense>
       </body>
     </html>
   );

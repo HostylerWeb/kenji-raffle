@@ -37,7 +37,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             role="status"
             className={`site-toast site-toast--${t.tone ?? "success"}`}
           >
-            {t.message}
+            <span className="site-toast__message">{t.message}</span>
           </div>
         ))}
       </div>

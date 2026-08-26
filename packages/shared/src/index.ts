@@ -121,10 +121,24 @@ export type {
 } from "./gra-outbound";
 export {
   SITE_THEME_PRESETS,
+  DEFAULT_SITE_FONTS,
+  BRANDING_DRAFT_STORAGE_KEY,
   resolveSiteTheme,
   themeToCssVariables,
   extractThemeConfig,
+  extractThemeFonts,
   sanitizeThemeColor,
+  parseFooterGradient,
+  buildFooterGradient,
+  isValidHexColor,
   type SiteThemeColors,
+  type SiteThemeFonts,
   type SiteThemePresetId,
+  type BrandingDraft,
 } from "./site-theme";
+export {
+  GOOGLE_FONTS_CATALOG,
+  buildGoogleFontsUrl,
+  findGoogleFont,
+  type GoogleFontEntry,
+} from "./google-fonts-catalog";

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { headers } from "next/headers";
+import { SitePageIntro } from "@/components/SitePageIntro";
 import { getRequestHost, getTenantContext } from "@/lib/tenant";
 
 export default async function PrivacyPage() {
@@ -10,11 +10,10 @@ export default async function PrivacyPage() {
 
   return (
     <>
-      <Link href="/" className="site-breadcrumb">← Home</Link>
-      <h1 className="site-page-title">Privacy policy</h1>
-      <div className="site-card" style={{ lineHeight: 1.7 }}>
+      <SitePageIntro breadcrumb="← Home" title="Privacy policy" />
+      <div className="site-card site-card--v2 site-card--content">
         {text ? (
-          <div style={{ whiteSpace: "pre-wrap" }}>{text}</div>
+          <div className="site-prose site-prose--pre">{text}</div>
         ) : (
           <p className="site-muted">Privacy policy has not been configured yet.</p>
         )}

@@ -14,6 +14,8 @@
     "typecheck": "npm run build -w @kenji-raffle/shared && npm run build -w @kenji-raffle/database-platform && npm run build -w @kenji-raffle/database-tenant && npm run build -w @kenji-raffle/api && npm run typecheck -w @kenji-raffle/platform && npm run typecheck -w @kenji-raffle/web",
     "validate:schemas": "npm run validate:schemas -w @kenji-raffle/database-platform && npm run validate:schemas -w @kenji-raffle/database-tenant",
     "lint": "npm run typecheck && npm run validate:schemas",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
     "migrate:platform": "npm run migrate:deploy -w @kenji-raffle/database-platform",
     "migrate:tenant": "tsx packages/database-platform/scripts/migrate-tenant.ts",
     "migrate:tenants": "tsx packages/database-platform/scripts/migrate-all-tenants.ts",
@@ -30,6 +32,18 @@
   },
   "engines": {
     "node": ">=22"
+  },
+  "overrides": {
+    "postcss": "^8.5.23",
+    "sharp": "^0.35.0",
+    "nodemailer": "^9.0.5",
+    "deepmerge-ts": "^8.0.0",
+    "@prisma/config": {
+      "deepmerge-ts": "^8.0.0"
+    },
+    "next": {
+      "postcss": "^8.5.23"
+    }
   },
   "devDependencies": {
     "tsx": "^4.19.4",

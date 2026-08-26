@@ -105,15 +105,15 @@ export function TicketSelector({
         <p className="site-muted">Maximum {ticketLimitPerUser} tickets per person</p>
       )}
 
-      <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-        Total: {formatKes(total)}
+      <p className="site-detail-total">
+        Total: <strong>{formatKes(total)}</strong>
       </p>
 
       {error && <p className="site-error">{error}</p>}
 
       <button
         type="button"
-        className="site-btn site-btn--primary site-btn--lg site-btn--block"
+        className="site-btn site-btn--primary site-btn--lg site-btn--block site-ticket-selector__submit"
         disabled={loading}
         onClick={addToCart}
       >
