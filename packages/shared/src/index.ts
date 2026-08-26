@@ -71,6 +71,7 @@ export {
 export { slugify } from "./slug";
 export {
   KENYA_COUNTIES,
+  KENYA_REGIONS,
   KENYA_COUNTY_TO_REGION,
   getKenyaRegionForCounty,
   type KenyaCounty,

@@ -6,6 +6,7 @@ import { PlatformShell } from "../../../components/PlatformShell";
 import { StatusBadge } from "../../../components/StatusBadge";
 import { isAuthenticated, platformFetch } from "../../../lib/api";
 import { usePlatformSession } from "../../../lib/use-platform-session";
+import { usePlatformToast } from "../../../components/PlatformToast";
 import { rollupWindowSummary } from "../../../lib/rollup-summary";
 
 type RollupRow = {
@@ -98,19 +99,17 @@ export default function OperatorDetailPage() {
   const [primaryColor, setPrimaryColor] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [graTestResult, setGraTestResult] = useState("");
-  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(
-    null,
-  );
+  const { toast } = usePlatformToast();
   const { isAdmin: admin } = usePlatformSession();
 
   function showSuccess(text: string) {
-    setNotice({ tone: "success", text });
+    toast(text, "success");
     setError("");
   }
 
   function showError(text: string) {
+    toast(text, "error");
     setError(text);
-    setNotice(null);
   }
 
   const salesToday = rollupWindowSummary(rollupRows, 1);
@@ -509,15 +508,6 @@ export default function OperatorDetailPage() {
 
   return (
     <PlatformShell title={operator.name}>
-      {notice && (
-        <p
-          className={notice.tone === "success" ? "notice-success" : "error"}
-          style={{ marginBottom: 16 }}
-          role="status"
-        >
-          {notice.text}
-        </p>
-      )}
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Customer handoff</h2>
         <p className="muted">

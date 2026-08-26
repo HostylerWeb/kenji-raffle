@@ -41,6 +41,69 @@ function resolveRegion(county: string, existingRegion?: string | null) {
   return getKenyaRegionForCounty(county) ?? existingRegion ?? "";
 }
 
+function normalizeWebsite(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isValidWebsite(url: string): boolean {
+  try {
+    const parsed = new URL(normalizeWebsite(url));
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const LOCK_FIELD_LABELS: Record<string, string> = {
+  legal_name: "Registered company name",
+  trading_name: "Trading / brand name",
+  registration_number: "Registration number",
+  kra_pin: "KRA PIN",
+  beneficial_owner: "Beneficial owner",
+  business_email: "Business email",
+  business_phone: "Business phone",
+  county: "County",
+  website: "Your domain URL / website",
+};
+
+function getProfileValidationErrors(values: {
+  legalName: string;
+  tradingName: string;
+  registrationNumber: string;
+  kraPin: string;
+  beneficialOwner: string;
+  businessEmail: string;
+  businessPhone: string;
+  county: string;
+  region: string;
+  website: string;
+}): string[] {
+  const missing: string[] = [];
+  const checks: [keyof typeof LOCK_FIELD_LABELS, string][] = [
+    ["legal_name", values.legalName],
+    ["trading_name", values.tradingName],
+    ["registration_number", values.registrationNumber],
+    ["kra_pin", values.kraPin],
+    ["beneficial_owner", values.beneficialOwner],
+    ["business_email", values.businessEmail],
+    ["business_phone", values.businessPhone],
+    ["county", values.county],
+    ["website", values.website],
+  ];
+  for (const [key, value] of checks) {
+    if (!value.trim()) missing.push(LOCK_FIELD_LABELS[key]);
+  }
+  if (values.website.trim() && !isValidWebsite(values.website)) {
+    missing.push("Valid website URL (https://your-domain.co.ke)");
+  }
+  if (values.county.trim() && !values.region.trim()) {
+    missing.push("Region (choose a valid county)");
+  }
+  return missing;
+}
+
 export default function OperatorOnboardingPage() {
   const router = useRouter();
   const { toast } = useAdminToast();
@@ -123,23 +186,31 @@ export default function OperatorOnboardingPage() {
       applyProfile(updated);
       toast("Legal profile saved");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile");
+      const message = err instanceof Error ? err.message : "Failed to save profile";
+      setError(message);
+      toast(message, "error");
     } finally {
       setLoading(false);
     }
   }
 
   async function confirmProfile(confirmText?: string) {
-    const updated = await operatorFetch<LegalProfile>(
-      "/v1/admin/onboarding/confirm-legal-profile",
-      {
-        method: "POST",
-        body: JSON.stringify({ confirm_text: confirmText }),
-      },
-    );
-    applyProfile(updated);
-    await load();
-    toast("Legal profile locked", "success");
+    try {
+      const updated = await operatorFetch<LegalProfile>(
+        "/v1/admin/onboarding/confirm-legal-profile",
+        {
+          method: "POST",
+          body: JSON.stringify({ confirm_text: confirmText }),
+        },
+      );
+      applyProfile(updated);
+      await load();
+      toast("Legal profile locked", "success");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to lock profile";
+      toast(message, "error");
+      throw err;
+    }
   }
 
   async function requestGra() {
@@ -150,7 +221,9 @@ export default function OperatorOnboardingPage() {
       await load();
       toast("GRA application submitted", "success");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to submit application");
+      const message = err instanceof Error ? err.message : "Failed to submit application";
+      setError(message);
+      toast(message, "error");
     } finally {
       setLoading(false);
     }
@@ -158,6 +231,23 @@ export default function OperatorOnboardingPage() {
 
   const locked = Boolean(profile?.legal_profile_locked_at);
   const graStatus = status?.gra_application_status ?? "not_started";
+
+  const profileValidationErrors = getProfileValidationErrors({
+    legalName,
+    tradingName,
+    registrationNumber,
+    kraPin,
+    beneficialOwner,
+    businessEmail,
+    businessPhone,
+    county,
+    region,
+    website,
+  });
+  const lockBlocked = profileValidationErrors.length > 0;
+  const lockBlockReason = lockBlocked
+    ? `Complete these fields before locking: ${profileValidationErrors.join(", ")}.`
+    : undefined;
 
   const lockProfileSummary = (
     <dl>
@@ -179,12 +269,8 @@ export default function OperatorOnboardingPage() {
       <dd>{county.trim() || "—"}</dd>
       <dt>Region</dt>
       <dd>{region.trim() || "—"}</dd>
-      {website.trim() ? (
-        <>
-          <dt>Website</dt>
-          <dd>{website.trim()}</dd>
-        </>
-      ) : null}
+      <dt>Website</dt>
+      <dd>{website.trim() || "—"}</dd>
     </dl>
   );
 
@@ -356,18 +442,33 @@ export default function OperatorOnboardingPage() {
             </label>
             <label>
               Region
-              <input value={region} readOnly disabled={locked} placeholder="Select a county first" />
-              <span className="field-hint">Filled automatically from your county selection.</span>
+              <select value={region} disabled aria-readonly>
+                <option value="">
+                  {county ? "Unknown region for county" : "Select a county first"}
+                </option>
+                {region ? (
+                  <option value={region}>{region}</option>
+                ) : null}
+              </select>
+              <span className="field-hint">
+                In Kenya each county maps to exactly one region — it is set automatically when
+                you choose a county.
+              </span>
             </label>
             <label>
-              Your domain URL / website (optional)
+              Your domain URL / website
               <input
                 type="url"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
+                required
                 disabled={locked}
                 placeholder="https://your-domain.co.ke"
               />
+              <span className="field-hint">
+                Required for GRA. If you do not have a domain yet, register one and return here
+                before locking your profile.
+              </span>
             </label>
           </div>
 
@@ -382,6 +483,8 @@ export default function OperatorOnboardingPage() {
                 details={lockProfileSummary}
                 confirmLabel="Lock profile"
                 promptLabel="Type CONFIRM to lock"
+                confirmDisabled={lockBlocked}
+                blockReason={lockBlockReason}
                 onConfirm={confirmProfile}
               >
                 {(open) => (

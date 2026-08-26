@@ -107,3 +107,7 @@ export function getKenyaRegionForCounty(county: string | null | undefined): stri
   if (!trimmed) return null;
   return KENYA_COUNTY_TO_REGION[trimmed as KenyaCounty] ?? null;
 }
+
+export const KENYA_REGIONS = [
+  ...new Set(Object.values(KENYA_COUNTY_TO_REGION)),
+].sort() as string[];

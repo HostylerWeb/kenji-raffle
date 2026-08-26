@@ -36,7 +36,23 @@ const LEGAL_REQUIRED: (keyof LegalProfileInput)[] = [
   "business_email",
   "business_phone",
   "county",
+  "website",
 ];
+
+function normalizeWebsite(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
+function isValidWebsite(url: string): boolean {
+  try {
+    const parsed = new URL(normalizeWebsite(url));
+    return parsed.protocol === "http:" || parsed.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
 
 @Injectable()
 export class OperatorOnboardingService {
@@ -97,6 +113,11 @@ export class OperatorOnboardingService {
     const region =
       getKenyaRegionForCounty(county) ??
       (input.region?.trim() || settings.region);
+    const websiteRaw = input.website?.trim() || settings.website;
+    const website = websiteRaw ? normalizeWebsite(websiteRaw) : null;
+    if (websiteRaw && !isValidWebsite(websiteRaw)) {
+      throw new BadRequestException("Website URL must be a valid http(s) address");
+    }
 
     const updated = await this.platformPrisma.client.operator_settings.update({
       where: { operator_id: tenant.operatorId },
@@ -112,7 +133,7 @@ export class OperatorOnboardingService {
         business_phone: input.business_phone?.trim() || settings.business_phone,
         county,
         region,
-        website: input.website?.trim() || settings.website,
+        website,
       },
     });
 
@@ -148,6 +169,10 @@ export class OperatorOnboardingService {
       }
     }
 
+    if (!isValidWebsite(profile.website!)) {
+      throw new BadRequestException("Website URL must be a valid http(s) address");
+    }
+
     const derivedRegion = getKenyaRegionForCounty(profile.county);
     if (profile.county?.trim() && !derivedRegion) {
       throw new BadRequestException("Could not determine region for selected county");
@@ -158,6 +183,7 @@ export class OperatorOnboardingService {
       data: {
         legal_profile_locked_at: new Date(),
         ...(derivedRegion ? { region: derivedRegion } : {}),
+        website: normalizeWebsite(profile.website!.trim()),
       },
     });
 

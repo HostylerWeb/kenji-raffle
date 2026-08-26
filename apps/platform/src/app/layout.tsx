@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PlatformAuthBootstrap } from "../components/PlatformAuthBootstrap";
+import { PlatformToastProvider } from "../components/PlatformToast";
 
 export const metadata: Metadata = {
   title: "Kenji Raffle — Platform Console",
@@ -31,8 +32,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <PlatformAuthBootstrap />
-        {children}
+        <PlatformToastProvider>
+          <PlatformAuthBootstrap />
+          {children}
+        </PlatformToastProvider>
       </body>
     </html>
   );
