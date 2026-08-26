@@ -29,6 +29,35 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.site-unknown-tenant {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #f4f6f8;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  color: #0f172a;
+}
+
+.site-unknown-tenant__panel {
+  max-width: 420px;
+  text-align: center;
+}
+
+.site-unknown-tenant__title {
+  margin: 0 0 12px;
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.site-unknown-tenant__text {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
 .site-root a:not(.site-btn):not(.site-nav-link):not(.site-mobile-nav__item) {
   color: var(--site-accent-dark);
   text-decoration: none;

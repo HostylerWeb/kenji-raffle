@@ -124,7 +124,10 @@ export class PlatformOperatorsService {
       data: {
         operator_id: operator.id,
         gra_application_status: "not_started",
-        feature_flags: { checkout_enabled: false },
+        feature_flags: {
+          checkout_enabled: false,
+          owner_password_custom: Boolean(input.owner_password),
+        },
         primary_color: "#00a551",
         support_email: `support@${slug}.local`,
         provision_owner_email: resolvedOwnerEmail,
@@ -176,7 +179,11 @@ export class PlatformOperatorsService {
       throw new NotFoundException("Operator not found");
     }
 
-    return this.mapOperator(operator);
+    const mapped = this.mapOperator(operator);
+    return {
+      ...mapped,
+      owner_login: await this.resolveOwnerLogin(operator),
+    };
   }
 
   async updateStatus(
@@ -240,7 +247,7 @@ export class PlatformOperatorsService {
       input,
     );
 
-    return this.mapOperator(updated);
+    return this.getById(id);
   }
 
   async testConnection(operatorId: string) {
@@ -689,6 +696,53 @@ export class PlatformOperatorsService {
         "Remove conflicting apex A records. Optional TXT for verification.",
         "Customer clicks Verify DNS in their admin (or Verify DNS here).",
       ],
+    };
+  }
+
+  private async resolveOwnerLogin(operator: {
+    slug: string;
+    tenant_database: { status: string; connection_url_encrypted: string } | null;
+    settings: {
+      provision_owner_email?: string | null;
+      feature_flags?: unknown;
+    } | null;
+  }) {
+    const flags =
+      (operator.settings?.feature_flags as Record<string, boolean>) ?? {};
+    const defaultEmail = `owner@${operator.slug}.local`;
+    let email =
+      operator.settings?.provision_owner_email?.trim() || defaultEmail;
+
+    if (operator.tenant_database?.status === "active") {
+      try {
+        const encryptionKey = requireEnv("CREDENTIALS_ENCRYPTION_KEY");
+        const url = decryptSecret(
+          operator.tenant_database.connection_url_encrypted,
+          encryptionKey,
+        );
+        const client = createTenantPrismaClient(url);
+        try {
+          const owner = await client.operator_staff.findFirst({
+            where: { role: "owner" },
+            select: { email: true },
+          });
+          if (owner?.email) {
+            email = owner.email;
+          }
+        } finally {
+          await client.$disconnect();
+        }
+      } catch {
+        // fall back to platform settings
+      }
+    }
+
+    const passwordCustom = Boolean(flags.owner_password_custom);
+
+    return {
+      email,
+      password_custom: passwordCustom,
+      temporary_password: passwordCustom ? null : "ChangeMe123!",
     };
   }
 

@@ -30,6 +30,11 @@ type OperatorDetail = {
   licence_number?: string | null;
   status: string;
   created_at: string;
+  owner_login?: {
+    email: string;
+    password_custom?: boolean;
+    temporary_password?: string | null;
+  };
   tenant_database: {
     status: string;
     database_name: string;
@@ -93,7 +98,20 @@ export default function OperatorDetailPage() {
   const [primaryColor, setPrimaryColor] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [graTestResult, setGraTestResult] = useState("");
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(
+    null,
+  );
   const { isAdmin: admin } = usePlatformSession();
+
+  function showSuccess(text: string) {
+    setNotice({ tone: "success", text });
+    setError("");
+  }
+
+  function showError(text: string) {
+    setError(text);
+    setNotice(null);
+  }
 
   const salesToday = rollupWindowSummary(rollupRows, 1);
   const sales7d = rollupWindowSummary(rollupRows, 7);
@@ -130,7 +148,7 @@ export default function OperatorDetailPage() {
       return;
     }
     load().catch((err) => {
-      setError(err instanceof Error ? err.message : "Failed to load operator");
+      showError(err instanceof Error ? err.message : "Failed to load operator");
     });
   }, [load, router]);
 
@@ -148,14 +166,20 @@ export default function OperatorDetailPage() {
     setActionLoading(true);
     setError("");
     try {
-      setOperator(
-        await platformFetch<OperatorDetail>(
-          `/v1/platform/operators/${params.id}`,
-          { method: "PATCH", body: JSON.stringify({ status }) },
-        ),
+      await platformFetch<OperatorDetail>(`/v1/platform/operators/${params.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await load();
+      showSuccess(
+        status === "active"
+          ? "Operator reactivated."
+          : status === "suspended"
+            ? "Operator suspended."
+            : "Operator archived.",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Action failed");
+      showError(err instanceof Error ? err.message : "Action failed");
     } finally {
       setActionLoading(false);
     }
@@ -165,14 +189,14 @@ export default function OperatorDetailPage() {
     setActionLoading(true);
     setError("");
     try {
-      setOperator(
-        await platformFetch<OperatorDetail>(
-          `/v1/platform/operators/${params.id}/reprovision-db`,
-          { method: "POST" },
-        ),
+      await platformFetch<OperatorDetail>(
+        `/v1/platform/operators/${params.id}/reprovision-db`,
+        { method: "POST" },
       );
+      await load();
+      showSuccess("Database re-provision queued.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Re-provision failed");
+      showError(err instanceof Error ? err.message : "Re-provision failed");
     } finally {
       setActionLoading(false);
     }
@@ -183,17 +207,19 @@ export default function OperatorDetailPage() {
     setActionLoading(true);
     setError("");
     try {
+      const hostname = customHostname.trim();
       await platformFetch(`/v1/platform/operators/${params.id}/domains`, {
         method: "POST",
         body: JSON.stringify({
-          hostname: customHostname,
+          hostname,
           domain_type: "custom",
         }),
       });
       setCustomHostname("");
       await load();
+      showSuccess(`Custom domain ${hostname} added.`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add domain");
+      showError(err instanceof Error ? err.message : "Failed to add domain");
     } finally {
       setActionLoading(false);
     }
@@ -209,8 +235,9 @@ export default function OperatorDetailPage() {
         );
       }
       await load();
+      showSuccess("DNS verification completed.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to verify domain");
+      showError(err instanceof Error ? err.message : "Failed to verify domain");
     } finally {
       setActionLoading(false);
     }
@@ -224,8 +251,9 @@ export default function OperatorDetailPage() {
         { method: "POST" },
       );
       await load();
+      showSuccess("DNS verification job queued.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to queue DNS verify");
+      showError(err instanceof Error ? err.message : "Failed to queue DNS verify");
     } finally {
       setActionLoading(false);
     }
@@ -238,8 +266,9 @@ export default function OperatorDetailPage() {
         method: "POST",
       });
       await load();
+      showSuccess("Tenant migration queued.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Migrate failed");
+      showError(err instanceof Error ? err.message : "Migrate failed");
     } finally {
       setActionLoading(false);
     }
@@ -256,14 +285,14 @@ export default function OperatorDetailPage() {
         method: "POST",
       });
       if (!result.ok) {
-        setError(result.error ?? "Connection failed");
+        showError(result.error ?? "Connection failed");
       } else if (result.schema_drift) {
-        setError("Connected but schema version drift detected — run migrate.");
+        showError("Connected but schema version drift detected — run migrate.");
       } else {
-        setError("");
+        showSuccess("Database connection OK.");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Connection test failed");
+      showError(err instanceof Error ? err.message : "Connection test failed");
     } finally {
       setActionLoading(false);
     }
@@ -275,21 +304,18 @@ export default function OperatorDetailPage() {
     setActionLoading(true);
     setError("");
     try {
-      setOperator(
-        await platformFetch<OperatorDetail>(
-          `/v1/platform/operators/${params.id}`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({
-              name: editName,
-              gra_registry_id: editGraId,
-              licence_number: editLicence,
-            }),
-          },
-        ),
-      );
+      await platformFetch<OperatorDetail>(`/v1/platform/operators/${params.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: editName,
+          gra_registry_id: editGraId,
+          licence_number: editLicence,
+        }),
+      });
+      await load();
+      showSuccess("Operator metadata saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Update failed");
+      showError(err instanceof Error ? err.message : "Update failed");
     } finally {
       setActionLoading(false);
     }
@@ -308,8 +334,9 @@ export default function OperatorDetailPage() {
         }),
       });
       await load();
+      showSuccess("Feature flags saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save flags");
+      showError(err instanceof Error ? err.message : "Failed to save flags");
     } finally {
       setActionLoading(false);
     }
@@ -333,8 +360,9 @@ export default function OperatorDetailPage() {
         `Invited ${result.email}. Temporary password: ${result.temporary_password}`,
       );
       setInviteEmail("");
+      showSuccess(`Staff invited: ${result.email}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Invite failed");
+      showError(err instanceof Error ? err.message : "Invite failed");
     } finally {
       setActionLoading(false);
     }
@@ -343,7 +371,7 @@ export default function OperatorDetailPage() {
   async function hardDestroy() {
     if (!admin || !operator) return;
     if (destroyConfirm !== operator.slug) {
-      setError("Type the operator slug to confirm permanent delete");
+      showError("Type the operator slug to confirm permanent delete");
       return;
     }
     setActionLoading(true);
@@ -355,7 +383,7 @@ export default function OperatorDetailPage() {
       });
       router.push("/operators");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed");
+      showError(err instanceof Error ? err.message : "Delete failed");
     } finally {
       setActionLoading(false);
     }
@@ -376,8 +404,9 @@ export default function OperatorDetailPage() {
         }),
       });
       await load();
+      showSuccess("Branding settings saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save branding");
+      showError(err instanceof Error ? err.message : "Failed to save branding");
     } finally {
       setActionLoading(false);
     }
@@ -397,11 +426,13 @@ export default function OperatorDetailPage() {
           ? "GRA ingest connection succeeded."
           : result.error ?? "GRA ingest connection failed",
       );
-      if (!result.ok) {
-        setError(result.error ?? "GRA ingest connection failed");
+      if (result.ok) {
+        showSuccess("GRA ingest connection succeeded.");
+      } else {
+        showError(result.error ?? "GRA ingest connection failed");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "GRA connection test failed");
+      showError(err instanceof Error ? err.message : "GRA connection test failed");
     } finally {
       setActionLoading(false);
     }
@@ -423,8 +454,9 @@ export default function OperatorDetailPage() {
       setGraApiKey("");
       setGraHmacSecret("");
       await load();
+      showSuccess("GRA credentials saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save GRA keys");
+      showError(err instanceof Error ? err.message : "Failed to save GRA keys");
     } finally {
       setActionLoading(false);
     }
@@ -449,20 +481,43 @@ export default function OperatorDetailPage() {
   const primaryDomain = operator.domains.find((d) => d.is_primary);
   const stagingHost =
     primaryDomain?.hostname ?? `${operator.slug}.force42.com`;
+  const ownerEmail =
+    operator.owner_login?.email ?? `owner@${operator.slug}.local`;
+  const ownerPasswordLine = operator.owner_login?.password_custom
+    ? "Password: use the password set when this operator was created."
+    : `Temporary password: ${operator.owner_login?.temporary_password ?? "ChangeMe123!"}`;
   const handoffText = [
     `Operator: ${operator.name}`,
     `Staging site: https://${stagingHost}`,
     `Admin: https://${stagingHost}/admin`,
-    `Owner login: owner@${operator.slug}.local`,
-    `Temporary password: ChangeMe123!`,
+    `Owner login: ${ownerEmail}`,
+    ownerPasswordLine,
     "",
     "First steps: Admin → GRA onboarding — confirm legal profile and request GRA connection.",
     "While under review: configure branding, create raffles, preview staging site.",
     "After GRA approval: live checkout, GRA relay, and custom domains unlock.",
   ].join("\n");
 
+  async function copyHandoff() {
+    try {
+      await navigator.clipboard.writeText(handoffText);
+      showSuccess("Handoff copied to clipboard.");
+    } catch {
+      showError("Could not copy to clipboard.");
+    }
+  }
+
   return (
     <PlatformShell title={operator.name}>
+      {notice && (
+        <p
+          className={notice.tone === "success" ? "notice-success" : "error"}
+          style={{ marginBottom: 16 }}
+          role="status"
+        >
+          {notice.text}
+        </p>
+      )}
       <div className="card" style={{ marginBottom: 16 }}>
         <h2 style={{ marginTop: 0 }}>Customer handoff</h2>
         <p className="muted">
@@ -518,7 +573,7 @@ export default function OperatorDetailPage() {
               type="button"
               className="btn btn-secondary"
               style={{ marginTop: 8 }}
-              onClick={() => navigator.clipboard.writeText(handoffText)}
+              onClick={copyHandoff}
             >
               Copy handoff to clipboard
             </button>

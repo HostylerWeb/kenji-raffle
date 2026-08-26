@@ -134,6 +134,14 @@ export async function platformFetch<T>(
     ...options,
     headers,
     credentials: "include",
+  }).catch((err: unknown) => {
+    const message =
+      err instanceof TypeError && /fetch/i.test(err.message)
+        ? "Could not reach the platform API — check your network or try again."
+        : err instanceof Error
+          ? err.message
+          : "Network request failed";
+    throw new Error(message);
   });
 
   if (res.status === 401 && retry) {

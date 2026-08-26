@@ -622,6 +622,13 @@ button {
   margin: 0;
 }
 
+.notice-success {
+  color: var(--success);
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0;
+}
+
 .muted {
   color: var(--text-muted);
   font-size: 14px;

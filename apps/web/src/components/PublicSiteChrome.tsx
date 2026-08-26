@@ -39,6 +39,10 @@ export function PublicSiteChrome({
     return <>{children}</>;
   }
 
+  if (!tenant) {
+    return <div className="site-unknown-tenant">{children}</div>;
+  }
+
   return (
     <ToastProvider>
       <div

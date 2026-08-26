@@ -12,7 +12,15 @@ export default async function HomePage() {
   const tenant = await getTenantContext(host);
 
   if (!tenant) {
-    return <h1 className="site-page-title">Site not found</h1>;
+    return (
+      <div className="site-unknown-tenant__panel">
+        <h1 className="site-unknown-tenant__title">Site not found</h1>
+        <p className="site-unknown-tenant__text">
+          No operator is registered for this address. Check the URL or contact the
+          platform team.
+        </p>
+      </div>
+    );
   }
 
   let featured: RaffleCardData[] = [];
