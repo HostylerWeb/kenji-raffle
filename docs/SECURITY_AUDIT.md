@@ -1,7 +1,7 @@
 # Kenji Raffle API — Security Audit Report
 
 **Date:** 2026-08-25  
-**Last updated:** 2026-08-25 (remediation applied)  
+**Last updated:** 2026-08-26 (remediation deployed to VPS)  
 **Target:** `https://api.force42.com` (tenant: `demo.force42.com`)  
 **Scope:** Player, cart, checkout, payments, account/KYC, media, auth, operator admin  
 **Method:** OWASP API Security Top 10 (2023) checklist, static code review, live black-box testing with `curl`
@@ -10,7 +10,9 @@
 
 ## Remediation status (2026-08-25)
 
-All findings below have been addressed in code. **Production VPS still requires env updates** before go-live:
+All findings below have been addressed in code and **deployed to production VPS** (2026-08-26). Demo env still uses mock payment and auto-verify email by choice.
+
+**Before real-money go-live**, set on VPS `.env`:
 
 | Finding | Fix |
 |---------|-----|
@@ -47,17 +49,20 @@ All findings below have been addressed in code. **Production VPS still requires 
 | Tenant + operator isolation | **Pass** |
 | Playwright E2E (`demo.force42.com`) | **12/12 pass** |
 
-### Production VPS (`api.force42.com`) — **fixes NOT deployed yet**
+### Production VPS (`api.force42.com`) — **deployed 2026-08-26**
 
-| Check | Prod status | Expected after deploy |
-|-------|-------------|------------------------|
-| CORS evil origin | Still reflects (vulnerable) | Blocked |
-| Swagger `/docs` | Public 200 | 404 |
-| Security headers | Missing | Present |
-| Invalid Bearer on cart | 200 (guest fallback) | 401 |
-| KYC URL POST | Already 404 | 404 |
+Re-test: `API=https://api.force42.com HOST=demo.force42.com bash scripts/security-retest.sh`
 
-**Action required:** Deploy patched code + production `.env` to VPS, then re-run `scripts/security-retest.sh` against `https://api.force42.com`.
+| Check | Prod status |
+|-------|-------------|
+| CORS evil origin | Blocked ✓ |
+| Swagger `/docs` | 404 ✓ |
+| Security headers | Present (Helmet) ✓ |
+| Invalid Bearer on cart | 401 ✓ |
+| KYC URL POST | 404 ✓ |
+| Mock payment complete | 400/404 (demo keeps `HARAMBE_PAYMENT_MODE=mock`) |
+
+**Latest retest:** PASS=10, FAIL=0, WARN=1, SKIP=1 (2026-08-26)
 
 ### Known residual risk (low)
 
@@ -337,18 +342,17 @@ curl -X POST https://api.force42.com/v1/account/kyc \
 
 ## Production go-live checklist
 
-- [ ] `HARAMBE_PAYMENT_MODE=live`
-- [ ] `PLAYER_AUTO_VERIFY_EMAIL=false`
-- [ ] Strong unique `JWT_SECRET` and `JWT_REFRESH_SECRET` (no defaults)
-- [ ] `API_PUBLIC_URL=https://api.force42.com`
-- [ ] CORS allowlist per tenant domain
-- [ ] Disable or protect `/docs`
-- [ ] HMAC-signed payment webhooks + replay protection
-- [ ] Authenticated or presigned KYC media access
-- [ ] Helmet / security headers
-- [ ] Redis rate limits + auth endpoint throttling
-- [ ] `GATEWAY_DEV_MOCK=false`
-- [ ] KYC URL validation (own uploads only)
+- [x] CORS allowlist per tenant domain (demo)
+- [x] Disable or protect `/docs`
+- [x] Helmet / security headers
+- [x] Redis rate limits + auth endpoint throttling
+- [x] HMAC-signed payment webhooks + replay protection (code live; gateway not deployed)
+- [x] Authenticated KYC media access
+- [x] `API_PUBLIC_URL=https://api.force42.com`
+- [ ] `HARAMBE_PAYMENT_MODE=live` (demo uses `mock`)
+- [ ] `PLAYER_AUTO_VERIFY_EMAIL=false` (demo uses `true`)
+- [ ] Strong unique `JWT_SECRET` and `JWT_REFRESH_SECRET` (verify on VPS)
+- [ ] `GATEWAY_DEV_MOCK=false` when kenji-gateway is live on pay.force42.com
 
 ---
 

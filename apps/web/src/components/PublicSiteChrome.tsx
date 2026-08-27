@@ -1,22 +1,39 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import dynamic from "next/dynamic";
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   DEFAULT_SITE_FONTS,
   themeToCssVariables,
   type SiteThemeColors,
   type SiteThemeFonts,
 } from "@kenji-raffle/shared/site-theme";
+import type { SiteCopyOverrides } from "@kenji-raffle/shared/site-copy-defaults";
 import { SiteFonts } from "@/components/SiteFonts";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteMobileNav } from "@/components/SiteMobileNav";
 import { ToastProvider } from "@/components/ToastProvider";
+import { SiteCopyEditorProvider } from "@/components/site-copy/SiteCopyEditorProvider";
+import { SiteCopyEditEntry } from "@/components/site-copy/SiteCopyEditEntry";
+import { SiteCopyLoginBanner } from "@/components/site-copy/SiteCopyEditorShell";
 import { useBrandingPreviewDraft } from "@/hooks/useBrandingPreviewDraft";
 import { resolveDraftTheme } from "@/lib/branding-preview";
+import { getOperatorToken } from "@/lib/api";
+import { getAllSiteCopy } from "@/lib/site-copy";
+import { isSiteCopyEditUrl } from "@/lib/site-copy-edit";
+
+const SiteCopyEditorShell = dynamic(
+  () => import("@/components/site-copy/SiteCopyEditorShell"),
+  { ssr: false },
+);
 
 type TenantBranding = {
   name: string;
+  content?: {
+    copy?: SiteCopyOverrides | Record<string, string>;
+  };
   branding?: {
     primary_color?: string;
     logo_url?: string | null;
@@ -36,6 +53,7 @@ export function PublicSiteChrome({
   children: React.ReactNode;
 }) {
   const pathname = usePathname() ?? "";
+  const searchParams = useSearchParams();
   const previewDraft = useBrandingPreviewDraft();
   const isAdmin = pathname.startsWith("/admin");
   const isAuth =
@@ -44,6 +62,22 @@ export function PublicSiteChrome({
     pathname === "/verify-email" ||
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
+
+  const copyEditRequested = isSiteCopyEditUrl(searchParams);
+  const [hasOperatorToken, setHasOperatorToken] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setHasOperatorToken(Boolean(getOperatorToken()));
+    sync();
+    window.addEventListener("focus", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("focus", sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [pathname]);
+
+  const copyEditActive = copyEditRequested && hasOperatorToken;
 
   if (isAdmin) {
     return <>{children}</>;
@@ -92,34 +126,52 @@ export function PublicSiteChrome({
     : (tenant.branding?.social_links ?? {});
 
   const isHome = pathname === "/";
+  const copyOverrides = (tenant.content?.copy ?? {}) as SiteCopyOverrides;
+  const copyVars = { tenantName };
+  const siteCopy = getAllSiteCopy(tenant, copyVars);
+
+  const rootClass = [
+    "site-root site-root--commerce",
+    previewDraft ? "site-root--preview" : "",
+    copyEditRequested ? "site-root--copy-edit" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <ToastProvider>
-      <SiteFonts fonts={fonts} />
-      <div
-        className={`site-root site-root--commerce${previewDraft ? " site-root--preview" : ""}`}
-        style={cssVars as React.CSSProperties}
+      <SiteCopyEditorProvider
+        active={copyEditActive}
+        initialOverrides={copyOverrides}
+        vars={copyVars}
       >
-        {previewDraft && (
-          <div className="site-preview-banner" role="status">
-            Preview mode — unsaved branding changes
+        <SiteFonts fonts={fonts} />
+        <div className={rootClass} style={cssVars as React.CSSProperties}>
+          {previewDraft && (
+            <div className="site-preview-banner" role="status">
+              Preview mode — unsaved branding changes
+            </div>
+          )}
+          {copyEditRequested && !hasOperatorToken && <SiteCopyLoginBanner />}
+          {hasOperatorToken && !copyEditActive && !previewDraft && <SiteCopyEditEntry />}
+          {copyEditActive && <SiteCopyEditorShell />}
+          <SiteHeader tenantName={tenantName} logoUrl={logoUrl} siteCopy={siteCopy} />
+          <div
+            className={`site-main${isAuth ? " site-main--auth" : ""}${isHome ? " site-main--home" : " site-container"}${!isAuth ? " site-main--with-mobile-nav" : ""}${copyEditActive ? " site-main--copy-edit" : ""}`}
+          >
+            {children}
           </div>
-        )}
-        <SiteHeader tenantName={tenantName} logoUrl={logoUrl} />
-        <div
-          className={`site-main${isAuth ? " site-main--auth" : ""}${isHome ? " site-main--home" : " site-container"}${!isAuth ? " site-main--with-mobile-nav" : ""}`}
-        >
-          {children}
+          <SiteFooter
+            name={tenantName}
+            footerLogoUrl={footerLogoUrl}
+            footerLicence={footerLicence}
+            socialLinks={socialLinks}
+            supportEmail={supportEmail}
+            siteCopy={siteCopy}
+          />
+          {!isAuth && <SiteMobileNav />}
         </div>
-        <SiteFooter
-          name={tenantName}
-          footerLogoUrl={footerLogoUrl}
-          footerLicence={footerLicence}
-          socialLinks={socialLinks}
-          supportEmail={supportEmail}
-        />
-        {!isAuth && <SiteMobileNav />}
-      </div>
+      </SiteCopyEditorProvider>
     </ToastProvider>
   );
 }

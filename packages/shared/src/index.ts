@@ -142,3 +142,18 @@ export {
   findGoogleFont,
   type GoogleFontEntry,
 } from "./google-fonts-catalog";
+export {
+  SITE_COPY_DEFAULTS,
+  SITE_COPY_META,
+  SITE_COPY_DRAFT_STORAGE_KEY,
+  isSiteCopyKey,
+  resolveSiteCopy,
+  resolveSiteCopyValue,
+  sanitizeSiteCopyValue,
+  mergeSiteCopyOverrides,
+  listSiteCopyKeysForPage,
+  type SiteCopyKey,
+  type SiteCopyOverrides,
+  type SiteCopyVars,
+  type SiteCopyMeta,
+} from "./site-copy-defaults";

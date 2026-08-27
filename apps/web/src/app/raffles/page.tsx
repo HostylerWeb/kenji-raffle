@@ -4,6 +4,7 @@ import { CategoryPills } from "@/components/CategoryPills";
 import { EmptyState } from "@/components/EmptyState";
 import { RaffleCard, type RaffleCardData } from "@/components/RaffleCard";
 import { SitePageIntro } from "@/components/SitePageIntro";
+import { getSiteCopy } from "@/lib/site-copy";
 import { getRequestHost, getTenantContext, publicFetch } from "@/lib/tenant";
 
 type Category = { id: string; name: string; slug: string };
@@ -71,8 +72,10 @@ export default async function RafflesPage({
     <>
       <SitePageIntro
         breadcrumb="← Home"
-        title="All raffles"
-        lead={`Enter licensed competitions at ${tenant.name}. Filter by category or find raffles ending soon.`}
+        title={getSiteCopy(tenant, "raffles.page.title")}
+        lead={getSiteCopy(tenant, "raffles.page.lead", { tenantName: tenant.name })}
+        titleCopyKey="raffles.page.title"
+        leadCopyKey="raffles.page.lead"
       />
 
       {categories.length > 0 && (
@@ -125,10 +128,12 @@ export default async function RafflesPage({
 
       {raffles.length === 0 ? (
         <EmptyState
-          title="No raffles match your filters"
-          description="Try a different category or check back later."
+          title={getSiteCopy(tenant, "raffles.empty.title")}
+          description={getSiteCopy(tenant, "raffles.empty.body")}
           actionHref="/raffles"
           actionLabel="View all raffles"
+          titleCopyKey="raffles.empty.title"
+          descriptionCopyKey="raffles.empty.body"
         />
       ) : (
         <div className="site-raffle-grid site-raffle-grid--commerce">

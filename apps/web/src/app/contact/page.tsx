@@ -2,6 +2,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { ContactForm } from "@/components/ContactForm";
 import { SitePageIntro } from "@/components/SitePageIntro";
+import { getSiteCopy } from "@/lib/site-copy";
 import { getRequestHost, getTenantContext } from "@/lib/tenant";
 
 export default async function ContactPage() {
@@ -14,8 +15,10 @@ export default async function ContactPage() {
     <>
       <SitePageIntro
         breadcrumb="← Home"
-        title="Contact us"
-        lead="Have a question? Send us a message and we'll get back to you."
+        title={tenant ? getSiteCopy(tenant, "contact.page.title") : "Contact us"}
+        lead={tenant ? getSiteCopy(tenant, "contact.page.lead") : undefined}
+        titleCopyKey="contact.page.title"
+        leadCopyKey="contact.page.lead"
       />
       <ContactForm supportEmail={supportEmail} />
     </>

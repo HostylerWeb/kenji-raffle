@@ -169,6 +169,7 @@ exports.Prisma.Operator_settingsScalarFieldEnum = {
   primary_color: 'primary_color',
   theme_preset: 'theme_preset',
   theme_config: 'theme_config',
+  site_copy: 'site_copy',
   support_email: 'support_email',
   footer_licence_text: 'footer_licence_text',
   social_links: 'social_links',

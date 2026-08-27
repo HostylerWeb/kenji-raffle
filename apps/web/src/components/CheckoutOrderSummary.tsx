@@ -2,6 +2,8 @@
 
 import type { Cart } from "@/lib/cart-types";
 import { formatKes } from "@/lib/format";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
+import { useSiteCopyText } from "@/components/site-copy/SiteCopyEditorProvider";
 
 type CheckoutOrderSummaryProps = {
   cart: Cart | null;
@@ -9,9 +11,14 @@ type CheckoutOrderSummaryProps = {
 };
 
 export function CheckoutOrderSummary({ cart, loading }: CheckoutOrderSummaryProps) {
+  const orderTitle = useSiteCopyText("checkout.order.title");
+  const secureTitle = useSiteCopyText("checkout.secure.title");
+
   return (
     <div className="site-card site-card--v2 site-order-summary__card">
-      <h2 className="site-section-title">Your order</h2>
+      <h2 className="site-section-title">
+        <SiteCopySlot copyKey="checkout.order.title">{orderTitle}</SiteCopySlot>
+      </h2>
       {loading || !cart ? (
         <div className="site-checkout-summary-skeleton" aria-hidden>
           <div className="site-skeleton site-skeleton--row" />
@@ -49,7 +56,9 @@ export function CheckoutOrderSummary({ cart, loading }: CheckoutOrderSummaryProp
         <p className="site-muted">Your cart is empty.</p>
       )}
       <hr className="site-divider" />
-      <h2 className="site-section-title">Secure checkout</h2>
+      <h2 className="site-section-title">
+        <SiteCopySlot copyKey="checkout.secure.title">{secureTitle}</SiteCopySlot>
+      </h2>
       <p className="site-muted site-order-summary__trust">
         Payments are processed through our licensed Harambe Payment Gateway.
         Your ticket reservations are held while you complete payment.

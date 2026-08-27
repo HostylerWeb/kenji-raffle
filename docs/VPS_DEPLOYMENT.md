@@ -179,14 +179,20 @@ JWT_EXPIRES_IN="30m"
 JWT_REFRESH_EXPIRES_IN="7d"
 
 # --- GRA (operator outbound events — not card processing) ---
-GRA_INGEST_URL="https://srv1781529.hstgr.cloud:4001/v1"   # or your ingest host
+GRA_INGEST_URL="https://ingest.force42.com/v1"
 # GRA_RELAY_BATCH_SIZE=50          # events per relay run (default 50)
 # GRA_RELAY_MAX_PER_MINUTE=50      # per-operator cap (GRA limit is 60/min)
 # GRA_RELAY_OPERATOR_CONCURRENCY=3 # parallel tenants during sweep
 
 # --- Payments (payment gateway — NOT GRA ingest) ---
 HARAMBE_PAYMENT_MODE="live"
-# HARAMBE_GATEWAY_URL="https://payments.your-domain/v1/charge"   # kenji-gateway :4003 locally
+# Production VPS (force42.com):
+# HARAMBE_PAYMENT_MODE=live
+# HARAMBE_GATEWAY_URL=https://pay.force42.com/v1/pay
+# HARAMBE_CALLBACK_SECRET=<shared-with-kenji-gateway>
+# GATEWAY_DEV_MOCK=false
+# CORS_ALLOWED_ORIGINS=https://demo.force42.com,https://platform.force42.com,https://*.force42.com,https://pay.force42.com
+# HARAMBE_GATEWAY_URL="http://localhost:4003/v1/pay"   # kenji-gateway :4003 locally
 
 # --- Email (alerts, password reset) ---
 SMTP_HOST="smtp.example.com"

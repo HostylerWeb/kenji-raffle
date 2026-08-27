@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { RaffleCardData } from "@/components/RaffleCard";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
 import { formatKes } from "@/lib/format";
 import {
   placeholderHue,
@@ -15,12 +16,19 @@ type FeaturedHeroRailProps = {
   raffles: RaffleCardData[];
   tenantName: string;
   showFooterLink?: boolean;
+  copy: Record<
+    | "home.hero.kicker"
+    | "home.hero.headline"
+    | "home.hero.sub",
+    string
+  >;
 };
 
 export function FeaturedHeroRail({
   raffles,
   tenantName,
   showFooterLink = true,
+  copy,
 }: FeaturedHeroRailProps) {
   const slides = raffles.slice(0, 8);
   if (slides.length === 0) return null;
@@ -28,13 +36,15 @@ export function FeaturedHeroRail({
   return (
     <section className="site-featured-hero" aria-label={`Featured raffles at ${tenantName}`}>
       <div className="site-featured-hero__intro site-container">
-        <p className="site-featured-hero__kicker">Licensed raffles · Kenya</p>
-        <h1 className="site-featured-hero__headline">
-          Win amazing prizes from {tenantName}
-        </h1>
-        <p className="site-featured-hero__sub">
-          Secure checkout, instant wins, and responsible play built in.
-        </p>
+        <SiteCopySlot copyKey="home.hero.kicker" as="p" className="site-featured-hero__kicker">
+          {copy["home.hero.kicker"]}
+        </SiteCopySlot>
+        <SiteCopySlot copyKey="home.hero.headline" as="h1" className="site-featured-hero__headline">
+          {copy["home.hero.headline"]}
+        </SiteCopySlot>
+        <SiteCopySlot copyKey="home.hero.sub" as="p" className="site-featured-hero__sub">
+          {copy["home.hero.sub"]}
+        </SiteCopySlot>
       </div>
 
       <div

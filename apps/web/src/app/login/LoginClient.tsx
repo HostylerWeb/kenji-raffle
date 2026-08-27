@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthShell } from "@/components/AuthShell";
+import { useSiteCopyText } from "@/components/site-copy/SiteCopyEditorProvider";
 import { PlayerLoginForm } from "@/components/PlayerLoginForm";
 
 export default function LoginClient({
@@ -14,11 +15,15 @@ export default function LoginClient({
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") ?? "/";
+  const title = useSiteCopyText("auth.login.title");
+  const lead = useSiteCopyText("auth.login.lead");
 
   return (
     <AuthShell
-      title="Welcome back"
-      subtitle="Sign in to your player account."
+      title={title}
+      subtitle={lead}
+      titleCopyKey="auth.login.title"
+      subtitleCopyKey="auth.login.lead"
       logoUrl={logoUrl}
       tenantName={tenantName}
     >

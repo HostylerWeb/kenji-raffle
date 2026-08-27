@@ -1,4 +1,3 @@
-import { formatDrawLabel } from "@/lib/format";
 import type { RaffleCardData } from "@/components/RaffleCard";
 
 export function raffleCoverImage(raffle: RaffleCardData): string | null {
@@ -12,9 +11,25 @@ export function isEndingSoon(endDate: string | null | undefined): boolean {
 }
 
 export type RaffleStatusBadge = {
-  kind: "featured" | "sold" | "ending" | "draw";
+  kind: "featured" | "sold" | "ending";
   label: string;
 };
+
+function endingBadgeLabel(endDate: string): string | null {
+  const end = new Date(endDate);
+  const now = new Date();
+  if (end.getTime() <= now.getTime()) return null;
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTomorrow = new Date(startOfToday);
+  startOfTomorrow.setDate(startOfTomorrow.getDate() + 1);
+  const startOfDayAfter = new Date(startOfTomorrow);
+  startOfDayAfter.setDate(startOfDayAfter.getDate() + 1);
+
+  if (end >= startOfToday && end < startOfTomorrow) return "Ending today";
+  if (end >= startOfTomorrow && end < startOfDayAfter) return "Ending tomorrow";
+  return null;
+}
 
 export function raffleStatusBadges(raffle: RaffleCardData): RaffleStatusBadge[] {
   const soldOut = raffle.tickets_available === 0;
@@ -28,17 +43,27 @@ export function raffleStatusBadges(raffle: RaffleCardData): RaffleStatusBadge[] 
   }
 
   if (raffle.end_date) {
-    if (isEndingSoon(raffle.end_date)) {
-      badges.push({
-        kind: "ending",
-        label: `Ending soon · ${formatDrawLabel(raffle.end_date)}`,
-      });
-    } else {
-      badges.push({ kind: "draw", label: formatDrawLabel(raffle.end_date) });
+    const endingLabel = endingBadgeLabel(raffle.end_date);
+    if (endingLabel) {
+      badges.push({ kind: "ending", label: endingLabel });
     }
   }
 
   return badges;
+}
+
+export function sortRafflesByEndDate(raffles: RaffleCardData[]): RaffleCardData[] {
+  return [...raffles].sort((a, b) => {
+    const soldA = a.tickets_available === 0 ? 1 : 0;
+    const soldB = b.tickets_available === 0 ? 1 : 0;
+    if (soldA !== soldB) return soldA - soldB;
+
+    const endA = a.end_date ? new Date(a.end_date).getTime() : Number.POSITIVE_INFINITY;
+    const endB = b.end_date ? new Date(b.end_date).getTime() : Number.POSITIVE_INFINITY;
+    if (endA !== endB) return endA - endB;
+
+    return a.title.localeCompare(b.title);
+  });
 }
 
 export function placeholderHue(seed: string): number {

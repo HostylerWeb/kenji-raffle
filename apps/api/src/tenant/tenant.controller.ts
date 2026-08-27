@@ -29,6 +29,10 @@ export class TenantController {
       primaryColor: settings?.primary_color,
       themeConfig,
     });
+    const siteCopy =
+      settings?.site_copy && typeof settings.site_copy === "object"
+        ? (settings.site_copy as Record<string, string>)
+        : {};
 
     return {
       slug: tenant.slug,
@@ -56,6 +60,9 @@ export class TenantController {
         faq_text: settings?.faq_text,
         terms_text: settings?.terms_text,
         privacy_text: settings?.privacy_text,
+      },
+      content: {
+        copy: siteCopy,
       },
     };
   }

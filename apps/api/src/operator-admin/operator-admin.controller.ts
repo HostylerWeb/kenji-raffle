@@ -7,11 +7,13 @@ import {
   Post,
   Query,
   UseGuards,
+  BadRequestException,
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiTags } from "@nestjs/swagger";
 import {
   IsEmail,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   MinLength,
@@ -112,6 +114,11 @@ class UpdateSettingsDto {
 
   @IsOptional()
   theme_config?: Record<string, unknown> | null;
+}
+
+class PatchSiteCopyDto {
+  @IsObject()
+  updates!: Record<string, string | null>;
 }
 
 @ApiTags("operator-admin")
@@ -275,6 +282,31 @@ export class OperatorAdminController {
       tenant.operatorId,
     );
     return updated;
+  }
+
+  @OperatorRoles("owner", "manager")
+  @Patch("site-copy")
+  async patchSiteCopy(
+    @CurrentOperatorStaff() actor: OperatorAuthUser,
+    @TenantCtx() tenant: TenantContext,
+    @Body() body: PatchSiteCopyDto,
+  ) {
+    if (!body.updates || typeof body.updates !== "object") {
+      throw new BadRequestException("updates object is required");
+    }
+    const result = await this.settingsService.updateSiteCopy(
+      tenant.operatorId,
+      body.updates,
+    );
+    await this.audit.log(
+      tenant.operatorId,
+      actor,
+      "site_copy.updated",
+      "operator_settings",
+      tenant.operatorId,
+      { keys: Object.keys(body.updates) },
+    );
+    return result;
   }
 
   @Get("audit-logs")

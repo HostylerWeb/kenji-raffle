@@ -1,13 +1,22 @@
+import { headers } from "next/headers";
 import { ProtectedAccountLink } from "@/components/ProtectedAccountLink";
 import { SitePageIntro } from "@/components/SitePageIntro";
+import { getSiteCopy } from "@/lib/site-copy";
+import { getRequestHost, getTenantContext } from "@/lib/tenant";
 
-export default function PlaySafeInfoPage() {
+export default async function PlaySafeInfoPage() {
+  const headerStore = await headers();
+  const host = getRequestHost(headerStore);
+  const tenant = await getTenantContext(host);
+
   return (
     <>
       <SitePageIntro
         breadcrumb="← Home"
-        title="Play Safe"
-        lead="Tools to help you stay in control of your raffle spending."
+        title={tenant ? getSiteCopy(tenant, "play_safe.page.title") : "Play Safe"}
+        lead={tenant ? getSiteCopy(tenant, "play_safe.page.lead") : undefined}
+        titleCopyKey="play_safe.page.title"
+        leadCopyKey="play_safe.page.lead"
       />
       <div className="site-card site-card--v2 site-card--content">
         <div className="site-prose">

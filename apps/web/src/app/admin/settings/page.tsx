@@ -216,7 +216,7 @@ export default function SettingsPage() {
               </h3>
               <p className="admin-panel__subtitle">
                 {tab === "branding" &&
-                  "Customize your public site before go-live — logos, colours, and templates."}
+                  "Logos, colours, and fonts. To edit headlines and page labels, open your public site while logged in and use Edit this page."}
                 {tab === "analytics" && "Optional GA4 and Facebook Pixel integration."}
                 {tab === "legal" && "FAQ, terms, and privacy content for players."}
               </p>

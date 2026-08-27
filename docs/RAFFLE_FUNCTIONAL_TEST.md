@@ -1,12 +1,13 @@
 # Raffle product — functional test script
 
-Manual checklist for operator tenant sites (`http://{slug}.kenji-raffle.local:3002`).
+Manual checklist for operator tenant sites (`https://{slug}.force42.com`).
 
 ## Prerequisites
 
-- Platform and tenant API running (`4002`), web (`3002`), worker, Redis, Postgres, Mailpit optional (`SMTP_HOST`).
-- Demo operator provisioned with active tenant DB.
-- `PLAYER_AUTO_VERIFY_EMAIL=true` for quick purchase tests, or `false` to test verify-email flow.
+- Platform and tenant API running (`api.force42.com`), web, worker, Redis, Postgres.
+- Demo or test operator provisioned with active tenant DB.
+- Live checkout: `HARAMBE_PAYMENT_MODE=live`, `HARAMBE_GATEWAY_URL=https://pay.force42.com/v1/pay`.
+- Player checkout: use a verified account (`player@demo.local` on demo) or configure `SMTP_*` for email verify.
 
 ## Auth
 
@@ -26,9 +27,9 @@ Manual checklist for operator tenant sites (`http://{slug}.kenji-raffle.local:30
 
 1. Browse `/raffles`, add tickets to cart.
 2. Checkout with coupon optional.
-3. Mock payment success → redirect to `/checkout/success?order_id=...`.
+3. Live payment — redirect to **pay.force42.com** → test card `4242…4242` → `/checkout/success?order_id=...`.
 4. Refresh success URL — order loads from API (durable).
-5. Mock payment fail → failed email path.
+5. Declined card (ending `0000` on gateway) → failed path / tickets released.
 
 ## Account
 

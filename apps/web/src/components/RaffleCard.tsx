@@ -79,13 +79,15 @@ export function RaffleCard({
             ))}
           </div>
         )}
-        <span className="site-raffle-card__price-pill">{formatKes(raffle.ticket_price)}</span>
       </div>
       <div className="site-raffle-card__body">
         {raffle.category && (
           <span className="site-raffle-card__category">{raffle.category.name}</span>
         )}
-        <h3 className="site-raffle-card__title">{raffle.title}</h3>
+        <div className="site-raffle-card__title-row">
+          <h3 className="site-raffle-card__title">{raffle.title}</h3>
+          <span className="site-raffle-card__price-inline">{formatKes(raffle.ticket_price)}</span>
+        </div>
         {raffle.tickets_available != null && total > 0 && (
           <div className="site-raffle-card__progress-wrap">
             <div className="site-raffle-card__progress-meta">

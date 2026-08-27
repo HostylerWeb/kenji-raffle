@@ -7,7 +7,11 @@ import {
 } from "@nestjs/common";
 import bcrypt from "bcryptjs";
 import type { OperatorAuthUser, OperatorStaffRole, TenantContext } from "@kenji-raffle/shared";
-import { resolveSiteTheme } from "@kenji-raffle/shared";
+import {
+  mergeSiteCopyOverrides,
+  resolveSiteTheme,
+  type SiteCopyOverrides,
+} from "@kenji-raffle/shared";
 import { PlatformPrismaService } from "../platform-prisma/platform-prisma.service";
 import { TenantConnectionService } from "../tenant/tenant-connection.service";
 import { TenantAuditService } from "../tenant/tenant-audit.service";
@@ -253,6 +257,11 @@ export class OperatorSettingsService {
         terms_text: operator.settings?.terms_text,
         privacy_text: operator.settings?.privacy_text,
       },
+      site_copy:
+        operator.settings?.site_copy &&
+        typeof operator.settings.site_copy === "object"
+          ? (operator.settings.site_copy as SiteCopyOverrides)
+          : {},
     };
   }
 
@@ -328,6 +337,37 @@ export class OperatorSettingsService {
     });
 
     return this.get(operatorId);
+  }
+
+  async updateSiteCopy(
+    operatorId: string,
+    updates: Record<string, string | null | undefined>,
+  ) {
+    const operator = await this.platformPrisma.client.operators.findUnique({
+      where: { id: operatorId },
+      include: { settings: true },
+    });
+    if (!operator) {
+      throw new NotFoundException("Operator not found");
+    }
+
+    const current =
+      operator.settings?.site_copy &&
+      typeof operator.settings.site_copy === "object"
+        ? (operator.settings.site_copy as SiteCopyOverrides)
+        : {};
+    const merged = mergeSiteCopyOverrides(current, updates);
+
+    await this.platformPrisma.client.operator_settings.upsert({
+      where: { operator_id: operatorId },
+      update: { site_copy: merged as object },
+      create: {
+        operator_id: operatorId,
+        site_copy: merged as object,
+      },
+    });
+
+    return { site_copy: merged };
   }
 
   async getStagingHostname(operatorId: string) {

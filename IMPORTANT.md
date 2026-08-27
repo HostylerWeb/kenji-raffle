@@ -16,8 +16,8 @@ Work **not done yet** across the three repos. Update this table when an item shi
 
 | # | Item | Where | Notes |
 |---|------|--------|-------|
-| 1 | **Production payment gateway** | `kenji-gateway` | Dev scaffold only (`POST /v1/charge`, test cards). Still need real M-Pesa/card processor, persistent gateway ledger DB, and per-operator credential mapping. |
-| 2 | **Gateway remote + deploy** | `kenji-gateway` | Local git commit exists; **no GitHub remote** yet. Deploy on VPS `:4003`, set raffle `HARAMBE_GATEWAY_URL` + `HARAMBE_CALLBACK_SECRET`. |
+| 1 | **Production payment gateway** | `kenji-gateway` | **Live on pay.force42.com** (test card). Still need real M-Pesa/card processor, persistent gateway ledger DB, and per-operator credential mapping in gateway. |
+| 2 | **Gateway remote + deploy** | `kenji-gateway` | Deployed on VPS `:4003`. Optional: add GitHub remote. Shared `RAFFLE_CALLBACK_SECRET` / `HARAMBE_CALLBACK_SECRET`. |
 | 3 | **Payment ledger to GRA** | `kenji-gateway` → GRA `:4001` | Regulatory `POST /v1/gateway/notify` — **only the gateway** (or dev simulator), never the raffle relay. Raffle relay handles live-feed events only. |
 | 4 | **Production systemd deploy** | Kenji Raffle VPS | Services still run via `npm run dev:*`. Use [docs/VPS_DEPLOYMENT.md](docs/VPS_DEPLOYMENT.md) for systemd + Nginx + process supervision. |
 | 5 | **P7 production hardening** | Kenji Raffle | CSRF, monitoring/alerting, load tests — see `docs/PROJECT_PLAN_2.md` §P7. |
@@ -41,8 +41,8 @@ cd /var/www/Kenji-raffle && npm run test:gra-relay-integration
 
 | Who | Where | Direction |
 |-----|--------|-----------|
-| **GRA staff** | Staff console (e.g. `https://srv1781529.hstgr.cloud`) | Read-only oversight UI |
-| **Operator raffle site** | Tenant subdomain or custom domain (`{slug}.kenji-raffle.local`, operator `.co.ke`) | Players + operator admin |
+| **GRA staff** | Staff console (`https://console.force42.com`) | Read-only oversight UI |
+| **Operator raffle site** | Tenant subdomain or custom domain (`demo.force42.com`, `{slug}.force42.com`, operator `.co.ke`) | Players + operator admin |
 | **Payment gateway** | Separate service (`kenji-gateway`, port **4003** locally to avoid clashing with platform API **4002**) | Charges customers |
 | **Data to GRA** | `POST {GRA_INGEST_URL}/…` (port **4001** locally) | **Push only** — operators and gateway send signed JSON |
 
@@ -235,7 +235,7 @@ Other operator ingest:
 | Dev mock gateway (`GATEWAY_DEV_MOCK`) | Done |
 | Admin payments UI (gateway fee, operator net) | Done |
 | Reports GGR includes gateway fees | Done |
-| Live `kenji-gateway` at `HARAMBE_GATEWAY_URL` | **Deploy** `/var/www/kenji-gateway` |
+| Live `kenji-gateway` at `HARAMBE_GATEWAY_URL` | **Live** — `https://pay.force42.com/v1/pay` |
 
 | Variable | Purpose |
 |----------|---------|

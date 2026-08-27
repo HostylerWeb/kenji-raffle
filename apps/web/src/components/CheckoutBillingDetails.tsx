@@ -1,6 +1,8 @@
 "use client";
 
 import { KENYA_COUNTIES } from "@/lib/kenya-counties";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
+import { useSiteCopyText } from "@/components/site-copy/SiteCopyEditorProvider";
 
 export type BillingDetails = {
   firstName: string;
@@ -50,6 +52,8 @@ export function CheckoutBillingDetails({
   onChange,
   loading,
 }: CheckoutBillingDetailsProps) {
+  const billingTitle = useSiteCopyText("checkout.billing.title");
+
   if (loading) {
     return (
       <div className="site-card site-card--v2 site-checkout-billing site-page-block">
@@ -64,7 +68,9 @@ export function CheckoutBillingDetails({
 
   return (
     <div className="site-card site-card--v2 site-checkout-billing site-page-block">
-      <h2 className="site-section-title">Billing details</h2>
+      <h2 className="site-section-title">
+        <SiteCopySlot copyKey="checkout.billing.title">{billingTitle}</SiteCopySlot>
+      </h2>
       <p className="site-muted site-checkout-billing__lead">
         Enter your details exactly as they should appear on your order confirmation.
       </p>

@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import type { SiteCopyKey } from "@kenji-raffle/shared/site-copy-defaults";
 import { SiteCartDropdown } from "@/components/SiteCartDropdown";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
+import { useSiteCopyEditor } from "@/components/site-copy/SiteCopyEditorProvider";
 import { CART_UPDATED_EVENT } from "@/lib/cart-events";
 import { playerFetch, useIsClient, usePlayerLoggedIn } from "@/lib/player-api";
 
@@ -33,26 +36,40 @@ function useCartCount() {
   return count;
 }
 
+const NAV_LINKS: { href: string; copyKey: SiteCopyKey }[] = [
+  { href: "/raffles", copyKey: "nav.raffles" },
+  { href: "/winners", copyKey: "nav.winners" },
+  { href: "/play-safe", copyKey: "nav.play_safe" },
+];
+
 export function SiteHeader({
   tenantName,
   logoUrl,
+  siteCopy,
 }: {
   tenantName: string;
   logoUrl?: string | null;
+  siteCopy: Record<SiteCopyKey, string>;
 }) {
   const pathname = usePathname() ?? "";
   const [drawerOpen, setDrawerOpen] = useState(false);
   const isClient = useIsClient();
   const loggedIn = usePlayerLoggedIn();
   const cartCount = useCartCount();
-
-  const navLinks = [
-    { href: "/raffles", label: "Raffles" },
-    { href: "/winners", label: "Winners" },
-    { href: "/play-safe", label: "Play Safe" },
-  ];
+  const copyEditor = useSiteCopyEditor();
+  const copyEditActive = copyEditor?.active ?? false;
 
   const initial = tenantName.charAt(0).toUpperCase();
+
+  function navLinkClass(href: string, extra = "") {
+    const active =
+      pathname === href || pathname.startsWith(`${href}/`) ? " site-nav-link--active" : "";
+    return `site-nav-link${active}${extra}`.trim();
+  }
+
+  function drawerLinkClass(href: string) {
+    return "site-drawer__link";
+  }
 
   return (
     <>
@@ -71,15 +88,20 @@ export function SiteHeader({
           </Link>
 
           <nav className="site-nav" aria-label="Main">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`site-nav-link${pathname === link.href || pathname.startsWith(`${link.href}/`) ? " site-nav-link--active" : ""}`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) =>
+              copyEditActive ? (
+                <span
+                  key={link.href}
+                  className={navLinkClass(link.href, " site-nav-link--copy-edit")}
+                >
+                  <SiteCopySlot copyKey={link.copyKey}>{siteCopy[link.copyKey]}</SiteCopySlot>
+                </span>
+              ) : (
+                <Link key={link.href} href={link.href} className={navLinkClass(link.href)}>
+                  <SiteCopySlot copyKey={link.copyKey}>{siteCopy[link.copyKey]}</SiteCopySlot>
+                </Link>
+              ),
+            )}
           </nav>
 
           <div className="site-header__actions">
@@ -104,13 +126,22 @@ export function SiteHeader({
                 <Link href="/account" className="site-btn site-btn--secondary site-btn--sm">
                   Account
                 </Link>
+              ) : copyEditActive ? (
+                <>
+                  <span className="site-btn site-btn--ghost site-btn--sm site-btn--copy-edit">
+                    <SiteCopySlot copyKey="nav.login">{siteCopy["nav.login"]}</SiteCopySlot>
+                  </span>
+                  <span className="site-btn site-btn--primary site-btn--sm site-btn--copy-edit">
+                    <SiteCopySlot copyKey="nav.register">{siteCopy["nav.register"]}</SiteCopySlot>
+                  </span>
+                </>
               ) : (
                 <>
                   <Link href="/login" className="site-btn site-btn--ghost site-btn--sm">
-                    Log in
+                    <SiteCopySlot copyKey="nav.login">{siteCopy["nav.login"]}</SiteCopySlot>
                   </Link>
                   <Link href="/register" className="site-btn site-btn--primary site-btn--sm">
-                    Register
+                    <SiteCopySlot copyKey="nav.register">{siteCopy["nav.register"]}</SiteCopySlot>
                   </Link>
                 </>
               )}
@@ -149,16 +180,22 @@ export function SiteHeader({
               </button>
             </div>
 
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="site-drawer__link"
-                onClick={() => setDrawerOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) =>
+              copyEditActive ? (
+                <span key={link.href} className={drawerLinkClass(link.href)}>
+                  <SiteCopySlot copyKey={link.copyKey}>{siteCopy[link.copyKey]}</SiteCopySlot>
+                </span>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={drawerLinkClass(link.href)}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <SiteCopySlot copyKey={link.copyKey}>{siteCopy[link.copyKey]}</SiteCopySlot>
+                </Link>
+              ),
+            )}
             <Link href="/cart" className="site-drawer__link" onClick={() => setDrawerOpen(false)}>
               Cart {cartCount > 0 ? `(${cartCount})` : ""}
             </Link>
@@ -172,6 +209,15 @@ export function SiteHeader({
                 >
                   My account
                 </Link>
+              ) : copyEditActive ? (
+                <>
+                  <span className="site-btn site-btn--secondary site-btn--block site-btn--copy-edit">
+                    <SiteCopySlot copyKey="nav.login">{siteCopy["nav.login"]}</SiteCopySlot>
+                  </span>
+                  <span className="site-btn site-btn--primary site-btn--block site-btn--copy-edit">
+                    <SiteCopySlot copyKey="nav.register">{siteCopy["nav.register"]}</SiteCopySlot>
+                  </span>
+                </>
               ) : (
                 <>
                   <Link
@@ -179,14 +225,14 @@ export function SiteHeader({
                     className="site-btn site-btn--secondary site-btn--block"
                     onClick={() => setDrawerOpen(false)}
                   >
-                    Log in
+                    <SiteCopySlot copyKey="nav.login">{siteCopy["nav.login"]}</SiteCopySlot>
                   </Link>
                   <Link
                     href="/register"
                     className="site-btn site-btn--primary site-btn--block"
                     onClick={() => setDrawerOpen(false)}
                   >
-                    Create account
+                    <SiteCopySlot copyKey="nav.register">{siteCopy["nav.register"]}</SiteCopySlot>
                   </Link>
                 </>
               )}

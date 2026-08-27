@@ -1,10 +1,14 @@
 import Link from "next/link";
+import type { SiteCopyKey } from "@kenji-raffle/shared/site-copy-defaults";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
 
 type SitePageIntroProps = {
   title: string;
   lead?: string;
   breadcrumb?: string;
   breadcrumbHref?: string;
+  titleCopyKey?: SiteCopyKey;
+  leadCopyKey?: SiteCopyKey;
 };
 
 export function SitePageIntro({
@@ -12,7 +16,27 @@ export function SitePageIntro({
   lead,
   breadcrumb,
   breadcrumbHref = "/",
+  titleCopyKey,
+  leadCopyKey,
 }: SitePageIntroProps) {
+  const titleNode = titleCopyKey ? (
+    <SiteCopySlot copyKey={titleCopyKey} as="span">
+      {title}
+    </SiteCopySlot>
+  ) : (
+    title
+  );
+
+  const leadNode =
+    lead &&
+    (leadCopyKey ? (
+      <SiteCopySlot copyKey={leadCopyKey} as="span">
+        {lead}
+      </SiteCopySlot>
+    ) : (
+      lead
+    ));
+
   return (
     <header className="site-page-intro">
       {breadcrumb && (
@@ -20,8 +44,8 @@ export function SitePageIntro({
           {breadcrumb}
         </Link>
       )}
-      <h1 className="site-page-title">{title}</h1>
-      {lead && <p className="site-lead">{lead}</p>}
+      <h1 className="site-page-title">{titleNode}</h1>
+      {leadNode && <p className="site-lead">{leadNode}</p>}
     </header>
   );
 }

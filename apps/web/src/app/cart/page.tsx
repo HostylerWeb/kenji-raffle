@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { ReservationCountdown } from "@/components/ReservationCountdown";
 import { SitePageIntro } from "@/components/SitePageIntro";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
+import { useSiteCopyText } from "@/components/site-copy/SiteCopyEditorProvider";
 import { notifyCartUpdated } from "@/lib/cart-events";
 import { formatKes } from "@/lib/format";
 import { getPlayerToken, playerFetch } from "@/lib/player-api";
@@ -14,6 +16,11 @@ import type { Cart, CartItem } from "@/lib/cart-types";
 export type { Cart, CartItem };
 
 export default function CartPage() {
+  const cartPageTitle = useSiteCopyText("cart.page.title");
+  const cartSummaryTitle = useSiteCopyText("cart.summary.title");
+  const emptyTitle = useSiteCopyText("cart.empty.title");
+  const emptyBody = useSiteCopyText("cart.empty.body");
+  const emptyCta = useSiteCopyText("cart.empty.cta");
   const [cart, setCart] = useState<Cart | null>(null);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
@@ -63,7 +70,7 @@ export default function CartPage() {
   if (!cart && !error) {
     return (
       <>
-        <SitePageIntro title="Your cart" lead="Review your tickets before checkout." />
+        <SitePageIntro title={cartPageTitle} lead="Review your tickets before checkout." titleCopyKey="cart.page.title" />
         <div className="site-skeleton site-skeleton--card" />
       </>
     );
@@ -72,7 +79,7 @@ export default function CartPage() {
   if (!cart) {
     return (
       <>
-        <SitePageIntro title="Your cart" />
+        <SitePageIntro title={cartPageTitle} titleCopyKey="cart.page.title" />
         <p className="site-error">{error}</p>
         <Link href="/raffles" className="site-btn site-btn--primary site-page-actions">
           Browse raffles
@@ -84,16 +91,23 @@ export default function CartPage() {
   return (
     <div className="site-cart-layout site-checkout-grid">
       <div>
-        <SitePageIntro title="Your cart" lead="Your ticket reservations are held while you checkout." />
+        <SitePageIntro
+          title={cartPageTitle}
+          lead="Your ticket reservations are held while you checkout."
+          titleCopyKey="cart.page.title"
+        />
         <ReservationCountdown expiresAt={cart.expires_at} className="site-reservation-countdown" />
         {error && <p className="site-error">{error}</p>}
 
         {cart.items.length === 0 ? (
           <EmptyState
-            title="Your cart is empty"
-            description="Browse live raffles and add tickets to get started."
+            title={emptyTitle}
+            description={emptyBody}
             actionHref="/raffles"
-            actionLabel="Browse raffles"
+            actionLabel={emptyCta}
+            titleCopyKey="cart.empty.title"
+            descriptionCopyKey="cart.empty.body"
+            actionCopyKey="cart.empty.cta"
           />
         ) : (
           <div className="site-card site-card--v2 site-cart-list">
@@ -169,7 +183,9 @@ export default function CartPage() {
       {cart.items.length > 0 && (
         <aside className="site-order-summary">
           <div className="site-card site-card--v2 site-order-summary__card">
-            <h2 className="site-section-title">Order summary</h2>
+            <h2 className="site-section-title">
+              <SiteCopySlot copyKey="cart.summary.title">{cartSummaryTitle}</SiteCopySlot>
+            </h2>
             <div className="site-order-summary__row">
               <span className="site-muted">Subtotal</span>
               <strong>{formatKes(cart.subtotal)}</strong>

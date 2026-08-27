@@ -51,7 +51,7 @@ CONFIGURE_GRA=1 bash scripts/refresh-demo.sh
 | **Platform staff** | https://platform.force42.com | `admin@platform.local` / `ChangeMe123!` |
 | **GRA staff** | https://console.force42.com | GRA admin (see kenji-government) |
 
-VPS: `PLAYER_AUTO_VERIFY_EMAIL=true` — purchases work without email verify step.
+VPS: `PLAYER_AUTO_VERIFY_EMAIL=false` (production). Use seeded **`player@demo.local`** for checkout demos — new registrations need email verify (configure `SMTP_*` or verify manually in DB).
 
 ---
 
@@ -72,8 +72,8 @@ Run on **https://demo.force42.com** in a clean browser (or incognito).
 1. **Add to cart** — guest OK; cart badge updates
 2. **Cart** — reservation countdown, thumbnails, qty stepper
 3. **Checkout** — login as `player@demo.local` if prompted
-4. **Mock payment** — Continue → **Pay successfully**
-5. **Success** — order ID, ticket numbers, instant wins (on `cash-*-live` raffles)
+4. **Live payment** — Continue → redirect to **pay.force42.com** → **Pay with test card** (`4242…4242`)
+5. **Success** — return to site; order ID, ticket numbers, instant wins (on `cash-*-live` raffles)
 6. **Account → Tickets / Orders** — confirm purchase persisted
 
 ### C. Operator back office (5 min)
@@ -106,7 +106,7 @@ cd apps/web
 CI=true PLAYWRIGHT_BASE_URL=https://demo.force42.com npx playwright test e2e/smoke.spec.ts
 ```
 
-8 tests including full mock purchase → account tickets.
+8 tests. The **mock purchase** test in `e2e/smoke.spec.ts` expects `HARAMBE_PAYMENT_MODE=mock` — on live VPS, run other smoke tests or test checkout manually via pay.force42.com.
 
 ---
 
@@ -126,7 +126,8 @@ Then run `bash scripts/refresh-demo.sh` if demo content was affected.
 
 | Item | Notes |
 |------|-------|
-| Real M-Pesa/card | Mock checkout only until `kenji-gateway` on pay.force42.com |
+| Real M-Pesa/card | Test-card gateway only at **pay.force42.com** (`4242…4242` succeeds) |
+| GRA payment ledger (non-demo) | Gateway `.env` GRA keys must match operator’s `gra_registry_id` — demo uses `op-001` |
 | Player site design | Functional shell — design refresh deferred |
 | Operator `/admin` UI | Legacy styling — separate restyle |
-| Email verify gate | Off on VPS for easy demos; turn off `PLAYER_AUTO_VERIFY_EMAIL` for prod-like test |
+| Email verify | Required for new player checkout — configure `SMTP_*` on VPS or use `player@demo.local` |

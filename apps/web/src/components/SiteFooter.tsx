@@ -1,5 +1,7 @@
 import Link from "next/link";
+import type { SiteCopyKey } from "@kenji-raffle/shared/site-copy-defaults";
 import { ProtectedAccountLink } from "@/components/ProtectedAccountLink";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
 
 type FooterProps = {
   name: string;
@@ -7,6 +9,7 @@ type FooterProps = {
   footerLicence?: string | null;
   socialLinks?: Record<string, string>;
   supportEmail?: string | null;
+  siteCopy: Record<SiteCopyKey, string>;
 };
 
 export function SiteFooter({
@@ -15,6 +18,7 @@ export function SiteFooter({
   footerLicence,
   socialLinks = {},
   supportEmail,
+  siteCopy,
 }: FooterProps) {
   const social = Object.entries(socialLinks).filter(([, url]) => url);
   const year = new Date().getFullYear();
@@ -24,9 +28,19 @@ export function SiteFooter({
       <div className="site-footer__accent" aria-hidden />
       <div className="site-container">
         <div className="site-footer__trust">
-          <span className="site-footer__badge">18+ only</span>
-          <span className="site-footer__badge">Licensed operator</span>
-          <span className="site-footer__badge">Play responsibly</span>
+          <span className="site-footer__badge">
+            <SiteCopySlot copyKey="footer.badge_18">{siteCopy["footer.badge_18"]}</SiteCopySlot>
+          </span>
+          <span className="site-footer__badge">
+            <SiteCopySlot copyKey="footer.badge_licensed">
+              {siteCopy["footer.badge_licensed"]}
+            </SiteCopySlot>
+          </span>
+          <span className="site-footer__badge">
+            <SiteCopySlot copyKey="footer.badge_responsible">
+              {siteCopy["footer.badge_responsible"]}
+            </SiteCopySlot>
+          </span>
         </div>
 
         <div className="site-footer__grid">
@@ -42,7 +56,11 @@ export function SiteFooter({
             </p>
             {supportEmail && (
               <p className="site-footer__support">
-                <span className="site-footer__support-label">Support</span>
+                <span className="site-footer__support-label">
+                  <SiteCopySlot copyKey="footer.support_label">
+                    {siteCopy["footer.support_label"]}
+                  </SiteCopySlot>
+                </span>
                 <a href={`mailto:${supportEmail}`}>{supportEmail}</a>
               </p>
             )}
@@ -64,7 +82,11 @@ export function SiteFooter({
           </div>
 
           <div className="site-footer__links-col">
-            <p className="site-footer__heading">Explore</p>
+            <p className="site-footer__heading">
+              <SiteCopySlot copyKey="footer.explore_heading">
+                {siteCopy["footer.explore_heading"]}
+              </SiteCopySlot>
+            </p>
             <ul className="site-footer__links">
               <li><Link href="/raffles">All raffles</Link></li>
               <li><Link href="/winners">Winners</Link></li>
@@ -75,7 +97,11 @@ export function SiteFooter({
           </div>
 
           <div className="site-footer__links-col">
-            <p className="site-footer__heading">Account & legal</p>
+            <p className="site-footer__heading">
+              <SiteCopySlot copyKey="footer.account_heading">
+                {siteCopy["footer.account_heading"]}
+              </SiteCopySlot>
+            </p>
             <ul className="site-footer__links">
               <li>
                 <ProtectedAccountLink href="/account">My account</ProtectedAccountLink>
@@ -89,7 +115,9 @@ export function SiteFooter({
 
         <div className="site-footer__bottom">
           <span>© {year} {name}. All rights reserved.</span>
-          <span className="site-footer__age">Must be 18+ to enter</span>
+          <span className="site-footer__age">
+            <SiteCopySlot copyKey="footer.age_notice">{siteCopy["footer.age_notice"]}</SiteCopySlot>
+          </span>
         </div>
       </div>
     </footer>

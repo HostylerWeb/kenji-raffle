@@ -12,22 +12,18 @@ function getTimeLeft(endDate: string) {
 }
 
 function compactCountdownParts(left: ReturnType<typeof getTimeLeft>) {
-  const parts: { value: string; label: string }[] = [];
-  if (left.days > 0) {
-    parts.push({ value: String(left.days), label: "d" });
-  }
-  parts.push(
-    { value: String(left.hours).padStart(2, "0"), label: "h" },
-    { value: String(left.mins).padStart(2, "0"), label: "m" },
-    { value: String(left.secs).padStart(2, "0"), label: "s" },
-  );
-  return parts;
+  return [
+    { value: String(left.days).padStart(2, "0"), label: "D" },
+    { value: String(left.hours).padStart(2, "0"), label: "H" },
+    { value: String(left.mins).padStart(2, "0"), label: "M" },
+    { value: String(left.secs).padStart(2, "0"), label: "S" },
+  ];
 }
 
 function CompactCountdownPlaceholder() {
   return (
     <div className="site-card-countdown site-card-countdown--placeholder" aria-hidden="true">
-      {["h", "m", "s"].map((label) => (
+      {["D", "H", "M", "S"].map((label) => (
         <span key={label} className="site-card-countdown__part">
           <span className="site-card-countdown__value">--</span>
           <span className="site-card-countdown__label">{label}</span>

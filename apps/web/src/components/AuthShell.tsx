@@ -1,4 +1,6 @@
 import Image from "next/image";
+import type { SiteCopyKey } from "@kenji-raffle/shared/site-copy-defaults";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
 
 export function AuthShell({
   title,
@@ -6,12 +8,16 @@ export function AuthShell({
   children,
   logoUrl,
   tenantName,
+  titleCopyKey,
+  subtitleCopyKey,
 }: {
   title: string;
   subtitle?: string;
   children: React.ReactNode;
   logoUrl?: string | null;
   tenantName?: string;
+  titleCopyKey?: SiteCopyKey;
+  subtitleCopyKey?: SiteCopyKey;
 }) {
   return (
     <div className="site-auth site-auth--commerce">
@@ -39,8 +45,22 @@ export function AuthShell({
       </aside>
       <main className="site-auth__panel">
         <div className="site-auth__form">
-          <h2>{title}</h2>
-          {subtitle && <p className="site-muted site-auth__subtitle">{subtitle}</p>}
+          <h2>
+            {titleCopyKey ? (
+              <SiteCopySlot copyKey={titleCopyKey}>{title}</SiteCopySlot>
+            ) : (
+              title
+            )}
+          </h2>
+          {subtitle && (
+            <p className="site-muted site-auth__subtitle">
+              {subtitleCopyKey ? (
+                <SiteCopySlot copyKey={subtitleCopyKey}>{subtitle}</SiteCopySlot>
+              ) : (
+                subtitle
+              )}
+            </p>
+          )}
           {children}
         </div>
       </main>

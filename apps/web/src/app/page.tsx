@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { CategoryDiscovery } from "@/components/CategoryDiscovery";
+import { HomeLiveCatalog } from "@/components/HomeLiveCatalog";
 import { FeaturedHeroRail } from "@/components/FeaturedHeroRail";
 import { RaffleCard, type RaffleCardData } from "@/components/RaffleCard";
 import { RaffleRail } from "@/components/RaffleRail";
 import { SiteStatsStrip } from "@/components/SiteStatsStrip";
+import { SiteCopySlot } from "@/components/site-copy/SiteCopySlot";
 import { pickHeroRaffles, planHomeSections } from "@/lib/raffle-display";
+import { getSiteCopy } from "@/lib/site-copy";
 import { getRequestHost, getTenantContext, publicFetch } from "@/lib/tenant";
 
 type Category = { id: string; name: string; slug: string };
@@ -66,13 +68,19 @@ export default async function HomePage() {
   const endingSoon = endingSoonRaffles(liveRaffles);
   const heroRaffles = pickHeroRaffles(liveRaffles, featured, endingSoon);
   const sections = planHomeSections(liveRaffles, featured, endingSoon, heroRaffles);
-  const catalogRaffles = liveRaffles.slice(0, CATALOG_LIMIT);
 
   const totalTicketsSold = liveRaffles.reduce((sum, r) => {
     const total = r.max_entries ?? 0;
     const available = r.tickets_available ?? 0;
     return sum + Math.max(0, total - available);
   }, 0);
+
+  const copyVars = { tenantName: tenant.name, liveCount: liveRaffles.length };
+  const heroCopy = {
+    "home.hero.kicker": getSiteCopy(tenant, "home.hero.kicker", copyVars),
+    "home.hero.headline": getSiteCopy(tenant, "home.hero.headline", copyVars),
+    "home.hero.sub": getSiteCopy(tenant, "home.hero.sub", copyVars),
+  };
 
   return (
     <>
@@ -86,27 +94,40 @@ export default async function HomePage() {
         raffles={heroRaffles}
         tenantName={tenant.name}
         showFooterLink={false}
+        copy={heroCopy}
       />
 
       <div className="site-trust-strip site-trust-strip--merged site-container" aria-label="Trust indicators">
-        <span className="site-trust-strip__lead">
-          Licensed raffles · Secure payments · Instant wins
-        </span>
+        <SiteCopySlot copyKey="home.trust.lead" className="site-trust-strip__lead">
+          {getSiteCopy(tenant, "home.trust.lead", copyVars)}
+        </SiteCopySlot>
         <span className="site-trust-strip__divider" aria-hidden>
           ·
         </span>
-        <span>18+ only</span>
-        <span>Play responsibly</span>
-        <span>Play Safe controls</span>
+        <SiteCopySlot copyKey="home.trust.item1">
+          {getSiteCopy(tenant, "home.trust.item1", copyVars)}
+        </SiteCopySlot>
+        <SiteCopySlot copyKey="home.trust.item2">
+          {getSiteCopy(tenant, "home.trust.item2", copyVars)}
+        </SiteCopySlot>
+        <SiteCopySlot copyKey="home.trust.item3">
+          {getSiteCopy(tenant, "home.trust.item3", copyVars)}
+        </SiteCopySlot>
       </div>
 
       {liveRaffles.length === 0 ? (
         <section className="site-section site-container">
           <div className="site-empty site-empty--commerce">
-            <h3 className="site-empty__title">No raffles live yet</h3>
-            <p className="site-muted">Check back soon for new competitions.</p>
+            <SiteCopySlot copyKey="home.empty.title" as="h3" className="site-empty__title">
+              {getSiteCopy(tenant, "home.empty.title", copyVars)}
+            </SiteCopySlot>
+            <SiteCopySlot copyKey="home.empty.body" as="p" className="site-muted">
+              {getSiteCopy(tenant, "home.empty.body", copyVars)}
+            </SiteCopySlot>
             <Link href="/contact" className="site-btn site-btn--secondary site-btn--sm">
-              Contact us
+              <SiteCopySlot copyKey="home.empty.cta">
+                {getSiteCopy(tenant, "home.empty.cta", copyVars)}
+              </SiteCopySlot>
             </Link>
           </div>
         </section>
@@ -115,33 +136,40 @@ export default async function HomePage() {
           <section className="site-section site-section--catalog site-container">
             <div className="site-section-header">
               <div>
-                <h2 className="site-section-title site-section-title--lg">Live raffles</h2>
-                <p className="site-lead site-section-header__lead">
-                  {liveRaffles.length} competitions open — pick tickets and enter now.
-                </p>
+                <SiteCopySlot
+                  copyKey="home.live.title"
+                  as="h2"
+                  className="site-section-title site-section-title--lg"
+                >
+                  {getSiteCopy(tenant, "home.live.title", copyVars)}
+                </SiteCopySlot>
+                <SiteCopySlot
+                  copyKey="home.live.lead"
+                  as="p"
+                  className="site-lead site-section-header__lead"
+                >
+                  {getSiteCopy(tenant, "home.live.lead", copyVars)}
+                </SiteCopySlot>
               </div>
               <Link href="/raffles" className="site-rail-section__link">
-                View all →
+                <SiteCopySlot copyKey="home.live.view_all_link">
+                  {getSiteCopy(tenant, "home.live.view_all_link", copyVars)}
+                </SiteCopySlot>
               </Link>
             </div>
 
-            {(categories.length > 0 || liveRaffles.length > 0) && (
-              <div className="site-catalog-filters">
-                <p className="site-catalog-filters__label">Browse by</p>
-                <CategoryDiscovery categories={categories} />
-              </div>
-            )}
-
-            <div className="site-raffle-grid site-raffle-grid--commerce">
-              {catalogRaffles.map((raffle) => (
-                <RaffleCard key={raffle.id} raffle={raffle} />
-              ))}
-            </div>
+            <HomeLiveCatalog
+              raffles={liveRaffles}
+              categories={categories}
+              limit={CATALOG_LIMIT}
+            />
 
             {liveRaffles.length > CATALOG_LIMIT && (
               <div className="site-catalog-more">
                 <Link href="/raffles" className="site-btn site-btn--secondary">
-                  View all {liveRaffles.length} raffles
+                  <SiteCopySlot copyKey="home.live.view_all_btn">
+                    {getSiteCopy(tenant, "home.live.view_all_btn", copyVars)}
+                  </SiteCopySlot>
                 </Link>
               </div>
             )}
@@ -160,7 +188,9 @@ export default async function HomePage() {
               <div className="site-section-header">
                 <h2 className="site-section-title site-section-title--lg">{sections.gridTitle}</h2>
                 <Link href="/raffles" className="site-rail-section__link">
-                  View all →
+                  <SiteCopySlot copyKey="home.live.view_all_link">
+                    {getSiteCopy(tenant, "home.live.view_all_link", copyVars)}
+                  </SiteCopySlot>
                 </Link>
               </div>
               <div className="site-raffle-grid site-raffle-grid--commerce">
@@ -187,29 +217,49 @@ export default async function HomePage() {
 
         <section className="site-section site-section--dark site-section--flush">
           <div className="site-container">
-            <h2 className="site-section-title site-section-title--lg site-section-title--light">
-              How it works
-            </h2>
+            <SiteCopySlot
+              copyKey="home.steps.title"
+              as="h2"
+              className="site-section-title site-section-title--lg site-section-title--light"
+            >
+              {getSiteCopy(tenant, "home.steps.title", copyVars)}
+            </SiteCopySlot>
             <div className="site-steps site-steps--commerce">
               <div className="site-step site-step--commerce">
                 <div className="site-step__num">1</div>
-                <p className="site-step__title">Choose a raffle</p>
-                <p className="site-step__desc">Browse live competitions and pick your favourites.</p>
+                <SiteCopySlot copyKey="home.steps.1.title" as="p" className="site-step__title">
+                  {getSiteCopy(tenant, "home.steps.1.title", copyVars)}
+                </SiteCopySlot>
+                <SiteCopySlot copyKey="home.steps.1.desc" as="p" className="site-step__desc">
+                  {getSiteCopy(tenant, "home.steps.1.desc", copyVars)}
+                </SiteCopySlot>
               </div>
               <div className="site-step site-step--commerce">
                 <div className="site-step__num">2</div>
-                <p className="site-step__title">Select tickets</p>
-                <p className="site-step__desc">Add tickets to your cart — reservations hold while you checkout.</p>
+                <SiteCopySlot copyKey="home.steps.2.title" as="p" className="site-step__title">
+                  {getSiteCopy(tenant, "home.steps.2.title", copyVars)}
+                </SiteCopySlot>
+                <SiteCopySlot copyKey="home.steps.2.desc" as="p" className="site-step__desc">
+                  {getSiteCopy(tenant, "home.steps.2.desc", copyVars)}
+                </SiteCopySlot>
               </div>
               <div className="site-step site-step--commerce">
                 <div className="site-step__num">3</div>
-                <p className="site-step__title">Pay securely</p>
-                <p className="site-step__desc">Complete payment via our licensed payment gateway.</p>
+                <SiteCopySlot copyKey="home.steps.3.title" as="p" className="site-step__title">
+                  {getSiteCopy(tenant, "home.steps.3.title", copyVars)}
+                </SiteCopySlot>
+                <SiteCopySlot copyKey="home.steps.3.desc" as="p" className="site-step__desc">
+                  {getSiteCopy(tenant, "home.steps.3.desc", copyVars)}
+                </SiteCopySlot>
               </div>
               <div className="site-step site-step--commerce">
                 <div className="site-step__num">4</div>
-                <p className="site-step__title">Win &amp; claim</p>
-                <p className="site-step__desc">Instant wins credit immediately. Main prizes drawn after close.</p>
+                <SiteCopySlot copyKey="home.steps.4.title" as="p" className="site-step__title">
+                  {getSiteCopy(tenant, "home.steps.4.title", copyVars)}
+                </SiteCopySlot>
+                <SiteCopySlot copyKey="home.steps.4.desc" as="p" className="site-step__desc">
+                  {getSiteCopy(tenant, "home.steps.4.desc", copyVars)}
+                </SiteCopySlot>
               </div>
             </div>
           </div>
@@ -219,9 +269,17 @@ export default async function HomePage() {
       {recentWinners.length > 0 && (
         <section className="site-section site-section--winners site-container">
           <div className="site-section-header">
-            <h2 className="site-section-title site-section-title--lg">Recent winners</h2>
+            <SiteCopySlot
+              copyKey="home.winners.title"
+              as="h2"
+              className="site-section-title site-section-title--lg"
+            >
+              {getSiteCopy(tenant, "home.winners.title", copyVars)}
+            </SiteCopySlot>
             <Link href="/winners" className="site-rail-section__link">
-              View all →
+              <SiteCopySlot copyKey="home.winners.view_all">
+                {getSiteCopy(tenant, "home.winners.view_all", copyVars)}
+              </SiteCopySlot>
             </Link>
           </div>
           <div className="site-winners-strip site-winners-strip--commerce">

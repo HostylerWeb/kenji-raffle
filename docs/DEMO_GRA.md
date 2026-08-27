@@ -68,17 +68,20 @@ GRA staff console live ticker: **https://console.force42.com**
 
 ### Path 2 — Payment ledger (regulatory tax / escrow)
 
-**Not** sent by raffle mock checkout. Requires payment gateway:
+**Not** sent by raffle outbound events alone. Requires **kenji-gateway** (live on **pay.force42.com**) or the dev simulator:
 
 ```bash
+# Live checkout on demo → pay.force42.com → gateway calls /gateway/notify automatically
+
+# Or manual simulator (op-001 sandbox keys):
 cd /var/www/kenji-government
 GRA_INGEST_URL=https://ingest.force42.com/v1 \
   bash tools/gateway-simulator/simulate-charge.sh 1000
 ```
 
-Uses sandbox credentials for `op-001`. Appears in GRA **Payments** ledger, not the live event ticker alone.
+Uses sandbox credentials for `op-001`. Appears in GRA **Payments** ledger.
 
-When `kenji-gateway` is deployed on `pay.force42.com`, it calls `/gateway/notify` automatically after real charges.
+For a **new operator** (not demo), update `/var/www/kenji-gateway/.env` `GRA_API_KEY` / `GRA_HMAC_SECRET` to match that operator’s GRA credentials before expecting ledger rows under their registry.
 
 ---
 

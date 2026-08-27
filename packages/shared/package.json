@@ -20,12 +20,16 @@
     "./google-fonts-catalog": {
       "types": "./dist/google-fonts-catalog.d.ts",
       "default": "./dist/google-fonts-catalog.js"
+    },
+    "./site-copy-defaults": {
+      "types": "./dist/site-copy-defaults.d.ts",
+      "default": "./dist/site-copy-defaults.js"
     }
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "npm run build && node --test tests/gra-outbound.test.mjs tests/gra-relay-contract.test.mjs tests/gra-retry.test.mjs"
+    "test": "npm run build && node --test tests/gra-outbound.test.mjs tests/gra-relay-contract.test.mjs tests/gra-retry.test.mjs tests/site-copy.test.mjs"
   },
   "dependencies": {
     "@kenji-raffle/database-platform": "*",

@@ -111,6 +111,7 @@ model operator_settings {
   primary_color                      String?
   theme_preset                       String?                @default("kenji-green")
   theme_config                       Json?
+  site_copy                          Json?
   support_email                      String?
   footer_licence_text                String?
   social_links                       Json?
